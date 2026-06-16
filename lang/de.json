@@ -1,0 +1,283 @@
+{
+  "app": {
+    "name": "Reaktor: Freiheit",
+    "subtitle": "Ein Kontrollpanel, das Energie, Geld und Selbstbestimmung zurückholt.",
+    "tagline_short": "Freiheits-Kontrollpanel",
+    "kicker": "Reaktor-Kontrolle"
+  },
+  "common": {
+    "back": "Zurück",
+    "next": "Weiter",
+    "important": "Wichtig:"
+  },
+  "time": {
+    "hours": "{hours}h",
+    "days_hours": "{days}T {hours}h",
+    "day": "Tag",
+    "week": "Woche",
+    "month": "Monat"
+  },
+  "auth": {
+    "language": "Sprache",
+    "hero_text": "Kein medizinisches Tagebuch, sondern ein hochwertiges Sci-Fi-Panel für Drang, Fortschritt, Geld, Belohnungen und Notfallmodus.",
+    "chip_control": "Kontrolle",
+    "chip_money": "Gespartes Geld",
+    "chip_rewards": "Belohnungen",
+    "login_title": "Reaktor öffnen",
+    "login_subtitle": "Melde dich an und setze deine aktuelle Serie fort.",
+    "register_title": "Reaktor starten",
+    "register_subtitle": "Erstelle ein sicheres Konto und speichere deinen Fortschritt in MySQL.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Passwort",
+    "sign_in": "Einloggen",
+    "create_account": "Konto erstellen",
+    "need_account": "Neues Konto erstellen",
+    "have_account": "Ich habe bereits ein Konto"
+  },
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen.",
+    "choose_habit": "Wähle mindestens eine Gewohnheit.",
+    "choose_reason": "Wähle deinen Hauptgrund.",
+    "goal_amount": "Der Zielbetrag muss größer als null sein."
+  },
+  "habits": {
+    "smoking": "Zigaretten",
+    "alcohol": "Alkohol",
+    "both": "Zigaretten und Alkohol"
+  },
+  "onboarding": {
+    "kicker": "Einrichtung",
+    "habit_title": "Welche Gewohnheit willst du loswerden?",
+    "habit_subtitle": "Wähle das Reaktor-Ziel. Das Dashboard zeigt nur aktive Systeme.",
+    "habit_options": [
+      { "value": ["smoking"], "icon": "smoke", "token": "token-red", "title": "Zigaretten", "body": "Saubere Stunden, Vorfälle, Packungspreis und Ersparnis." },
+      { "value": ["alcohol"], "icon": "alcohol", "token": "token-blue", "title": "Alkohol", "body": "Nüchterne Zeit, riskante Momente und Wochenkosten." },
+      { "value": ["smoking", "alcohol"], "icon": "reactor", "token": "token-violet", "title": "Beides", "body": "Ein gemeinsames Kontrollsystem für beide Gewohnheiten." }
+    ],
+    "reason_title": "Was ist dein wichtigstes Ziel?",
+    "reason_options": [
+      { "code": "health", "icon": "shield", "token": "token-green", "title": "Gesundheit", "body": "Mehr Atem, Schlaf und stabile Energie." },
+      { "code": "money", "icon": "money", "token": "token-gold", "title": "Geld", "body": "Alte Ausgaben in sichtbaren Fortschritt verwandeln." },
+      { "code": "family", "icon": "star", "token": "token-violet", "title": "Familie", "body": "Ruhiger und präsenter für wichtige Menschen sein." },
+      { "code": "control", "icon": "reactor", "token": "token-blue", "title": "Selbstkontrolle", "body": "Beweisen, dass der Impuls nicht führt." },
+      { "code": "energy", "icon": "bolt", "token": "token-green", "title": "Sport und Energie", "body": "Einen Körper aufbauen, der schneller antwortet." },
+      { "code": "custom", "icon": "star", "token": "token-gold", "title": "Eigener Grund", "body": "Schreibe den Satz, der dich nach vorn zieht." }
+    ],
+    "custom_reason": "Dein Grund",
+    "goal_title": "Wohin soll das gesparte Geld fließen?",
+    "goal_subtitle": "Wähle ein finanzielles Ziel. Der Reaktor zeigt, wie alte Ausgaben realen Fortschritt werden.",
+    "goal_name": "Zielname",
+    "goal_amount": "Zielbetrag",
+    "currency": "Währung",
+    "goal_placeholder": "Familienreise",
+    "smoking_title": "Zigaretten-Basiswerte",
+    "cigarettes_per_day": "Zigaretten pro Tag",
+    "cigarettes_per_pack": "Zigaretten pro Packung",
+    "pack_price": "Packungspreis",
+    "alcohol_title": "Alkohol-Basiswerte",
+    "alcohol_weekly_spend": "Alkoholausgaben pro Woche",
+    "dangerous_days": "Riskante Momente",
+    "alcohol_warning": "Wenn ohne Alkohol Zittern, Schwitzen, starke Angst, Schlaflosigkeit, Herzrasen oder Unwohlsein auftreten, nicht abrupt ohne ärztliche Hilfe aufhören.",
+    "summary_kicker": "Bestätigung",
+    "summary_title": "Der Reaktor ist startklar",
+    "summary_habits": "Ziel",
+    "summary_reason": "Hauptgrund",
+    "summary_goal": "Finanzielles Ziel",
+    "summary_savings": "Geschätzte Ersparnis",
+    "launch": "Reaktor starten"
+  },
+  "dangerous_days": [
+    { "code": "weekdays", "title": "Wochentage" },
+    { "code": "friday", "title": "Freitag" },
+    { "code": "weekend", "title": "Wochenende" },
+    { "code": "after_work", "title": "Nach der Arbeit" },
+    { "code": "company", "title": "Gesellschaft" },
+    { "code": "stress", "title": "Stress" }
+  ],
+  "dashboard": {
+    "progress_ring": "Reaktor-Fortschrittsring",
+    "reactor": "Reaktor",
+    "control_active": "{name}, Kontrolle aktiv",
+    "status_line": "System online. Halte heute die Linie.",
+    "clean_streak": "{days} saubere Tage",
+    "craving_wins": "{wins} Drang-Angriffe abgewehrt",
+    "mission_kicker": "Mission des Tages",
+    "mission_title": "Reaktor schützen",
+    "mission_text": "Schließe den Tag sauber ab und nutze den Notfallmodus vor jeder riskanten Entscheidung.",
+    "without_smoking": "Ohne Zigaretten",
+    "without_alcohol": "Ohne Alkohol",
+    "saved": "Gespart",
+    "saved_today": "{amount} heute",
+    "level": "Level",
+    "xp": "{xp} XP",
+    "series_days": "Serie {days} Tage",
+    "goal_kicker": "Ziel-Tresor",
+    "goal_title": "Finanzielles Ziel",
+    "goal": "Ziel",
+    "personal_goal": "Persönliches Ziel",
+    "of_goal": "von {amount}",
+    "goal_remaining": "Noch {amount} bis zum Ziel.",
+    "daily_kicker": "Täglicher Check",
+    "today": "Heute",
+    "checkin": "Check-in",
+    "mark_smoke_clean": "Tag ohne Zigaretten",
+    "mark_alcohol_clean": "Tag ohne Alkohol",
+    "money_kicker": "Geldsignal",
+    "money_title": "Geld kommt zurück",
+    "money_story": "Diese Woche hast du {amount} gespart. Dieses Geld kann jetzt zu dir gehen, nicht zu Zigaretten oder Alkohol.",
+    "treats_kicker": "Leistbar",
+    "treats_title": "Kleine Belohnungen",
+    "treat_available": "Jetzt verfügbar",
+    "treat_remaining": "Noch {amount}",
+    "rewards_kicker": "Fortschrittsbelohnungen",
+    "rewards_title": "Erfolge",
+    "next_reward": "Nächste: {reward}",
+    "all_rewards": "Alle Belohnungen freigeschaltet",
+    "logs_kicker": "Ereignisstrom",
+    "logs_title": "Journal",
+    "empty_logs": "Das Journal ist noch leer. Der erste saubere Tag wird bereits Geschichte.",
+    "checkin_saved": "Täglicher Check gespeichert."
+  },
+  "status": {
+    "launch": "Start",
+    "stabilization": "Stabilisierung",
+    "control": "Kontrolle",
+    "reactor": "Reaktor",
+    "maximum": "Maximum"
+  },
+  "rewards": {
+    "pending": { "title": "Funke" },
+    "spark": { "title": "Funke", "description": "Die ersten 12 Stunden Kontrolle." },
+    "launch": { "title": "Start", "description": "Der erste saubere Tag ist online." },
+    "control": { "title": "Kontrolle", "description": "Drei Tage ohne Rückfall." },
+    "iron": { "title": "Eisen", "description": "Eine Woche Disziplin." },
+    "reactor": { "title": "Reaktor", "description": "Zwei Wochen stabile Energie." },
+    "stark_mode": { "title": "Stark-Modus", "description": "Dreißig Tage Führung." },
+    "no_rollback": { "title": "Kein Rückrollen", "description": "Neunzig Tage auf neuem Level." }
+  },
+  "rarity": {
+    "common": "Gewöhnlich",
+    "rare": "Selten",
+    "epic": "Episch",
+    "legendary": "Legendär"
+  },
+  "treats": {
+    "coffee": "Kaffee",
+    "cinema": "Kino",
+    "dinner": "Gutes Abendessen",
+    "child_gift": "Geschenk für ein Kind",
+    "clothes": "Kleidung",
+    "tech": "Technik",
+    "trip": "Reise"
+  },
+  "log": {
+    "reactor_started": "Reaktor gestartet",
+    "reactor_started_body": "Neues Kontrollsystem gestartet.",
+    "progress_reset": "Fortschritt zurückgesetzt",
+    "progress_reset_body": "Aktuelle Serie nach Bestätigung neu gestartet.",
+    "checkin_saved": "Täglicher Check gespeichert",
+    "checkin_saved_body": "Sauberer Tag markiert. +10 XP.",
+    "craving_completed": "Drang abgewehrt",
+    "incident_saved": "Vorfall gespeichert",
+    "incident_saved_body": "Das ist nicht das Ende. Weiter.",
+    "reward_unlocked": "Belohnung freigeschaltet"
+  },
+  "settings": {
+    "kicker": "Einstellungen",
+    "title": "Einstellungen",
+    "account": "Konto",
+    "goal": "Finanzielles Ziel",
+    "smoking": "Zigarettenparameter",
+    "alcohol": "Alkoholparameter",
+    "reset_title": "Aktuelle Serie zurücksetzen",
+    "reset_body": "Das Öffnen der Einstellungen setzt nie Fortschritt zurück. Tippe RESET nur, wenn du aktive Serien wirklich neu starten willst.",
+    "confirm_reset": "Bestätigung",
+    "save": "Einstellungen speichern",
+    "logout": "Ausloggen",
+    "saved": "Einstellungen gespeichert."
+  },
+  "craving": {
+    "button": "Ich bin kurz davor einzubrechen",
+    "button_subtitle": "Starte den Notfallmodus und warte den Drang-Gipfel ab.",
+    "kicker": "Notfallmodus",
+    "title": "Entscheide nicht jetzt.",
+    "subtitle": "Warte 90 Sekunden. Erst den Lärm senken, dann aus Kontrolle wählen.",
+    "timer_label": "warte, bis der Gipfel fällt",
+    "reason_title": "Was hat den Drang ausgelöst?",
+    "action_title": "Rettungsaktion",
+    "complete": "Erledigt. Drang abgewehrt.",
+    "saved": "Drang abgewehrt und gespeichert.",
+    "reasons": ["Stress", "Langeweile", "Wut", "nach dem Essen", "nach der Arbeit", "Gesellschaft", "Gewohnheit", "Alkohol → Zigaretten", "Zigaretten → Alkohol"],
+    "actions": ["Trinke ein Glas Wasser und verlasse den Raum für 3 Minuten.", "Mache 20 Kniebeugen. Keine Debatte, nur Bewegung.", "Wasche dein Gesicht kalt und atme 10-mal langsam.", "Schreibe: Ich gehorche dem Befehl der Abhängigkeit nicht.", "Mach Musik an und gehe 300 Schritte.", "Putze die Zähne oder kaue Minze.", "Öffne ein Fenster und atme 10-mal langsam.", "Schreibe dir einen Satz der Kontrolle."]
+  },
+  "incident": {
+    "kicker": "Vorfall prüfen",
+    "title": "Das ist ein Vorfall, kein Scheitern.",
+    "subtitle": "Halte fest, was passiert ist. Der Lebensfortschritt bleibt. Nur die passende Serie startet neu.",
+    "note": "Was ist passiert?",
+    "placeholder": "Stress nach der Arbeit, Gesellschaft, Langeweile, Wut...",
+    "save": "Speichern und weiter",
+    "saved": "Vorfall gespeichert. Weiter.",
+    "smoked": "Ich habe geraucht",
+    "drank": "Ich habe getrunken"
+  },
+  "phrases": {
+    "general": [
+      "Drang ist kein Befehl. Es ist Lärm.",
+      "Du musst heute nicht dein ganzes Leben gewinnen. Gewinne die nächsten fünf Minuten.",
+      "Abhängigkeit verlangt Steuer. Heute zahlst du nicht.",
+      "Du gibst nichts auf. Du holst Kontrolle zurück.",
+      "Die heutige Absage ist der Stolz von morgen."
+    ],
+    "craving": [
+      "Der Drang ist laut, aber kurzlebig.",
+      "Erst Pause. Dann Entscheidung.",
+      "Lass fünf Minuten nicht fünf Tage stehlen.",
+      "Der Impuls will Tempo. Deine Stärke ist Verzögerung.",
+      "Du kannst diese Welle überstehen, ohne sie zu füttern."
+    ],
+    "morning": [
+      "Beginne den Tag als der Mensch, den du versprochen hast zu werden.",
+      "Die erste saubere Wahl setzt den Systemton.",
+      "Morgendliche Kontrolle macht den Abend leichter.",
+      "Füttere den Reaktor mit Disziplin, nicht mit Reue.",
+      "Kleine Morgensiege summieren sich schnell."
+    ],
+    "evening": [
+      "Ein sauberer Abend ist ein Geschenk an morgen.",
+      "Schließe den Tag, ohne die alte Steuer zu zahlen.",
+      "Du bist fast durch die aktuelle Mission.",
+      "Ruhe ist stärker, wenn sie nicht von Abhängigkeit geliehen ist.",
+      "Beende den Tag zu deinen Bedingungen."
+    ],
+    "afterIncident": [
+      "Ein Vorfall ist Information, nicht Identität.",
+      "Setze die Serie zurück, nicht deinen Selbstrespekt.",
+      "Das System läuft weiter. Lernen und weitergehen.",
+      "Ein Ereignis löscht die Arbeit nicht.",
+      "Keine Schamspirale. Zurück zur Kontrolle."
+    ],
+    "rewardUnlocked": [
+      "Belohnung freigeschaltet. Der Reaktor hat es bemerkt.",
+      "Fortschritt ist jetzt sichtbar.",
+      "Dieses Leuchten ist verdient.",
+      "Ein neues Zeichen für eine echte Entscheidung.",
+      "Das System markiert diesen Sieg."
+    ],
+    "milestone": [
+      "Meilenstein erreicht. Höhe halten.",
+      "Du hast eine Schwelle überschritten.",
+      "Das ist nicht mehr Theorie.",
+      "Schwung wird Identität.",
+      "Das nächste Level ist näher, als es wirkt."
+    ],
+    "moneySaved": [
+      "Geld kehrt in dein Leben zurück.",
+      "Alte Ausgaben werden Wahlfreiheit.",
+      "Jeder saubere Tag finanziert dein Ziel.",
+      "Du kaufst Freiheit zurück.",
+      "Das Ziel ist nicht mehr abstrakt."
+    ]
+  }
+}

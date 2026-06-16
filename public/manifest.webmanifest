@@ -1,0 +1,19 @@
+{
+  "name": "REACTOR: Freedom",
+  "short_name": "REACTOR",
+  "description": "A premium reactor-style control panel for breaking smoking and alcohol habits.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#050813",
+  "theme_color": "#050813",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,283 @@
+{
+  "app": {
+    "name": "REACTOR: Freedom",
+    "subtitle": "A control panel for reclaiming energy, money and self-command.",
+    "tagline_short": "Freedom control panel",
+    "kicker": "Reactor control"
+  },
+  "common": {
+    "back": "Back",
+    "next": "Next",
+    "important": "Important:"
+  },
+  "time": {
+    "hours": "{hours}h",
+    "days_hours": "{days}d {hours}h",
+    "day": "day",
+    "week": "week",
+    "month": "month"
+  },
+  "auth": {
+    "language": "Language",
+    "hero_text": "Not a medical diary. A premium sci-fi reactor for surviving cravings, tracking clean time and turning old spending into visible progress.",
+    "chip_control": "Control",
+    "chip_money": "Money saved",
+    "chip_rewards": "Rewards",
+    "login_title": "Access reactor",
+    "login_subtitle": "Sign in and continue your current streak.",
+    "register_title": "Launch your reactor",
+    "register_subtitle": "Create a secure account and save progress in MySQL.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "sign_in": "Sign in",
+    "create_account": "Create account",
+    "need_account": "Create a new account",
+    "have_account": "I already have an account"
+  },
+  "errors": {
+    "generic": "Something went wrong.",
+    "choose_habit": "Choose at least one habit.",
+    "choose_reason": "Choose your main reason.",
+    "goal_amount": "Goal amount must be greater than zero."
+  },
+  "habits": {
+    "smoking": "Cigarettes",
+    "alcohol": "Alcohol",
+    "both": "Cigarettes and alcohol"
+  },
+  "onboarding": {
+    "kicker": "Onboarding",
+    "habit_title": "Which habit do you want to break?",
+    "habit_subtitle": "Pick the reactor target. The dashboard will only show the systems you activate.",
+    "habit_options": [
+      { "value": ["smoking"], "icon": "smoke", "token": "token-red", "title": "Cigarettes", "body": "Track clean hours, incidents, pack cost and money saved." },
+      { "value": ["alcohol"], "icon": "alcohol", "token": "token-blue", "title": "Alcohol", "body": "Track sober time, risky moments and weekly spending." },
+      { "value": ["smoking", "alcohol"], "icon": "reactor", "token": "token-violet", "title": "Both", "body": "Run a combined control system for both habits." }
+    ],
+    "reason_title": "What is your main reason?",
+    "reason_options": [
+      { "code": "health", "icon": "shield", "token": "token-green", "title": "Health", "body": "More breath, sleep and steady energy." },
+      { "code": "money", "icon": "money", "token": "token-gold", "title": "Money", "body": "Turn old spending into visible progress." },
+      { "code": "family", "icon": "star", "token": "token-violet", "title": "Family", "body": "Be more present for people who matter." },
+      { "code": "control", "icon": "reactor", "token": "token-blue", "title": "Self-control", "body": "Prove that the impulse is not in charge." },
+      { "code": "energy", "icon": "bolt", "token": "token-green", "title": "Sport and energy", "body": "Build a body that answers faster." },
+      { "code": "custom", "icon": "star", "token": "token-gold", "title": "My own reason", "body": "Write the sentence that will pull you forward." }
+    ],
+    "custom_reason": "Your reason",
+    "goal_title": "Where should saved money go?",
+    "goal_subtitle": "Choose a financial target. The dashboard will show how old spending turns into something real.",
+    "goal_name": "Goal name",
+    "goal_amount": "Goal amount",
+    "currency": "Currency",
+    "goal_placeholder": "Family trip",
+    "smoking_title": "Cigarette baseline",
+    "cigarettes_per_day": "Cigarettes per day",
+    "cigarettes_per_pack": "Cigarettes per pack",
+    "pack_price": "Pack price",
+    "alcohol_title": "Alcohol baseline",
+    "alcohol_weekly_spend": "Weekly alcohol spending",
+    "dangerous_days": "Risky moments",
+    "alcohol_warning": "If you have tremor, sweating, intense anxiety, insomnia, heart racing or feel unwell without alcohol, do not stop abruptly without medical help.",
+    "summary_kicker": "Confirmation",
+    "summary_title": "Ready to start the reactor",
+    "summary_habits": "Target",
+    "summary_reason": "Main reason",
+    "summary_goal": "Financial goal",
+    "summary_savings": "Estimated savings",
+    "launch": "Launch reactor"
+  },
+  "dangerous_days": [
+    { "code": "weekdays", "title": "Weekdays" },
+    { "code": "friday", "title": "Friday" },
+    { "code": "weekend", "title": "Weekend" },
+    { "code": "after_work", "title": "After work" },
+    { "code": "company", "title": "Company" },
+    { "code": "stress", "title": "Stress" }
+  ],
+  "dashboard": {
+    "progress_ring": "Reactor progress ring",
+    "reactor": "reactor",
+    "control_active": "{name}, control is active",
+    "status_line": "System is online. Hold the line today.",
+    "clean_streak": "{days} clean days",
+    "craving_wins": "{wins} cravings beaten",
+    "mission_kicker": "Mission of the day",
+    "mission_title": "Protect the reactor",
+    "mission_text": "Close the day clean and use emergency mode before any risky decision.",
+    "without_smoking": "Without cigarettes",
+    "without_alcohol": "Without alcohol",
+    "saved": "Saved",
+    "saved_today": "{amount} today",
+    "level": "Level",
+    "xp": "{xp} XP",
+    "series_days": "streak {days} days",
+    "goal_kicker": "Goal vault",
+    "goal_title": "Financial goal",
+    "goal": "Goal",
+    "personal_goal": "Personal goal",
+    "of_goal": "of {amount}",
+    "goal_remaining": "{amount} left to goal.",
+    "daily_kicker": "Daily check",
+    "today": "Today",
+    "checkin": "Check-in",
+    "mark_smoke_clean": "Day without cigarettes",
+    "mark_alcohol_clean": "Day without alcohol",
+    "money_kicker": "Money signal",
+    "money_title": "Money came back",
+    "money_story": "This week you saved {amount}. You can afford things that used to disappear into cigarettes or alcohol.",
+    "treats_kicker": "Can afford",
+    "treats_title": "Small rewards",
+    "treat_available": "Available now",
+    "treat_remaining": "{amount} to unlock",
+    "rewards_kicker": "Progress rewards",
+    "rewards_title": "Achievements",
+    "next_reward": "Next: {reward}",
+    "all_rewards": "All rewards unlocked",
+    "logs_kicker": "Log stream",
+    "logs_title": "Journal",
+    "empty_logs": "The journal is empty. The first clean day is already becoming history.",
+    "checkin_saved": "Daily check saved."
+  },
+  "status": {
+    "launch": "Launch",
+    "stabilization": "Stabilization",
+    "control": "Control",
+    "reactor": "Reactor",
+    "maximum": "Maximum"
+  },
+  "rewards": {
+    "pending": { "title": "Spark" },
+    "spark": { "title": "Spark", "description": "First 12 hours of control." },
+    "launch": { "title": "Launch", "description": "First clean day online." },
+    "control": { "title": "Control", "description": "Three days without rollback." },
+    "iron": { "title": "Iron", "description": "One week of discipline." },
+    "reactor": { "title": "Reactor", "description": "Two weeks of stable power." },
+    "stark_mode": { "title": "Stark Mode", "description": "Thirty days of command." },
+    "no_rollback": { "title": "No Rollback", "description": "Ninety days at a new level." }
+  },
+  "rarity": {
+    "common": "Common",
+    "rare": "Rare",
+    "epic": "Epic",
+    "legendary": "Legendary"
+  },
+  "treats": {
+    "coffee": "Coffee",
+    "cinema": "Cinema",
+    "dinner": "Good dinner",
+    "child_gift": "Gift for a child",
+    "clothes": "Clothes",
+    "tech": "Tech",
+    "trip": "Trip"
+  },
+  "log": {
+    "reactor_started": "Reactor launched",
+    "reactor_started_body": "New control system started.",
+    "progress_reset": "Progress reset",
+    "progress_reset_body": "Current streak restarted after confirmation.",
+    "checkin_saved": "Daily check saved",
+    "checkin_saved_body": "Clean day marked. +10 XP.",
+    "craving_completed": "Craving beaten",
+    "incident_saved": "Incident recorded",
+    "incident_saved_body": "This is not the end. Continue.",
+    "reward_unlocked": "Reward unlocked"
+  },
+  "settings": {
+    "kicker": "Settings",
+    "title": "Settings",
+    "account": "Account",
+    "goal": "Financial goal",
+    "smoking": "Cigarette parameters",
+    "alcohol": "Alcohol parameters",
+    "reset_title": "Reset current streak",
+    "reset_body": "Opening settings never resets progress. Type RESET only if you really want to restart active streaks.",
+    "confirm_reset": "Confirmation",
+    "save": "Save settings",
+    "logout": "Logout",
+    "saved": "Settings saved."
+  },
+  "craving": {
+    "button": "I feel close to breaking",
+    "button_subtitle": "Start emergency mode and wait out the craving peak.",
+    "kicker": "Emergency response mode",
+    "title": "Do not decide right now.",
+    "subtitle": "Wait 90 seconds. First lower the noise, then choose from control.",
+    "timer_label": "wait for the peak to pass",
+    "reason_title": "What triggered the craving?",
+    "action_title": "Rescue action",
+    "complete": "Done. Craving beaten.",
+    "saved": "Craving beaten and saved.",
+    "reasons": ["stress", "boredom", "anger", "after food", "after work", "company", "habit", "alcohol → cigarettes", "cigarettes → alcohol"],
+    "actions": ["Drink a glass of water and leave the room for 3 minutes.", "Do 20 squats. No debate, just movement.", "Splash cold water on your face and take 10 slow breaths.", "Write: I do not obey the addiction command.", "Put on music and walk 300 steps.", "Brush your teeth or chew mint gum.", "Open a window and breathe slowly 10 times.", "Write one sentence of control to yourself."]
+  },
+  "incident": {
+    "kicker": "Incident review",
+    "title": "This is an incident, not a failure.",
+    "subtitle": "Record what happened. The lifetime progress stays. Only the relevant streak restarts.",
+    "note": "What happened?",
+    "placeholder": "Stress after work, company, boredom, anger...",
+    "save": "Save and continue",
+    "saved": "Incident recorded. Continue.",
+    "smoked": "I smoked",
+    "drank": "I drank"
+  },
+  "phrases": {
+    "general": [
+      "Craving is not an order. It is noise.",
+      "You do not need to win your whole life today. Win the next five minutes.",
+      "Addiction asks for tax. Today you do not pay.",
+      "You are not giving something up. You are taking control back.",
+      "Today's refusal is tomorrow's pride."
+    ],
+    "craving": [
+      "The urge is loud, but it is temporary.",
+      "Pause first. Decide later.",
+      "Do not let five minutes steal five days.",
+      "The impulse wants speed. Your power is delay.",
+      "You can survive this wave without feeding it."
+    ],
+    "morning": [
+      "Start the day as the person you promised to become.",
+      "The first clean choice sets the system tone.",
+      "Morning control makes evening easier.",
+      "Fuel the reactor with discipline, not regret.",
+      "Small morning wins compound fast."
+    ],
+    "evening": [
+      "A clean evening is a gift to tomorrow.",
+      "Close the day without paying the old tax.",
+      "You are almost through the current mission.",
+      "Rest is stronger when it is not borrowed from addiction.",
+      "Finish the day on your own terms."
+    ],
+    "afterIncident": [
+      "An incident is data, not identity.",
+      "Reset the streak, not your self-respect.",
+      "The system continues. Learn and move.",
+      "One event does not erase the work.",
+      "No shame spiral. Back to control."
+    ],
+    "rewardUnlocked": [
+      "Reward unlocked. The reactor noticed.",
+      "Progress is now visible.",
+      "That glow is earned.",
+      "A new badge for a real decision.",
+      "The system marks this win."
+    ],
+    "milestone": [
+      "Milestone reached. Hold altitude.",
+      "You crossed a threshold.",
+      "This is no longer theory.",
+      "Momentum is becoming identity.",
+      "The next level is closer than it looks."
+    ],
+    "moneySaved": [
+      "Money is returning to your life.",
+      "Old spending is becoming choice.",
+      "Every clean day funds your goal.",
+      "You are buying freedom back.",
+      "The goal is not abstract anymore."
+    ]
+  }
+}

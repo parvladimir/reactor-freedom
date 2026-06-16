@@ -1,0 +1,7 @@
+.env
+/storage/logs/*.log
+/storage/sessions/*
+!/storage/sessions/.gitkeep
+/.prototype/
+/tmp-theme-mobile-qa/
+/edge-theme-mobile-qa/

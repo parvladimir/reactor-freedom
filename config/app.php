@@ -10,4 +10,8 @@ return [
     'session_name' => Env::get('SESSION_NAME', 'reactor_session'),
     'languages' => ['ru', 'en', 'de'],
     'default_language' => 'en',
+    'mail' => [
+        'from_email' => Env::get('MAIL_FROM', 'noreply@reactor.local'),
+        'from_name' => Env::get('MAIL_FROM_NAME', 'REACTOR: Freedom'),
+    ],
 ];

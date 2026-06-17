@@ -1,6 +1,8 @@
 .env
 /storage/logs/*.log
+/storage/mail/*
 /storage/sessions/*
+!/storage/mail/.gitkeep
 !/storage/sessions/.gitkeep
 /.prototype/
 /tmp-theme-mobile-qa/

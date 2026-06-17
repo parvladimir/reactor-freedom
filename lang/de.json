@@ -30,10 +30,31 @@
     "name": "Name",
     "email": "Email",
     "password": "Passwort",
+    "password_confirm": "Passwort wiederholen",
+    "marketing_opt_in": "Ich möchte hilfreiche E-Mails, Updates und besondere Angebote erhalten.",
     "sign_in": "Einloggen",
     "create_account": "Konto erstellen",
     "need_account": "Neues Konto erstellen",
-    "have_account": "Ich habe bereits ein Konto"
+    "have_account": "Ich habe bereits ein Konto",
+    "password_mismatch": "Die Passwörter stimmen nicht überein.",
+    "verify_sent": "Wir haben eine E-Mail an {email} gesendet. Bestätige die Registrierung über den Link innerhalb von 24 Stunden.",
+    "verify_saved_local": "Die E-Mail für {email} wurde erstellt, aber der Mailversand ist nicht eingerichtet. Auf lokalem WAMP liegt die HTML-E-Mail in storage/mail.",
+    "verification_resent": "Eine neue E-Mail wurde an {email} gesendet.",
+    "email_not_verified": "Bestätige zuerst deine E-Mail. Der Bestätigungslink ist 24 Stunden gültig.",
+    "resend_verification": "E-Mail erneut senden",
+    "email_verified": "E-Mail bestätigt. Der Reaktor ist startbereit.",
+    "email_verify_failed": "Der Bestätigungslink ist ungültig oder abgelaufen."
+  },
+  "email": {
+    "verify_subject": "Bestätige deine Registrierung in {app}",
+    "verify_preheader": "Nur noch ein Schritt: E-Mail bestätigen und Reaktor starten.",
+    "verify_kicker": "Registrierung bestätigen",
+    "verify_title": "{name}, dein Reaktor ist fast bereit",
+    "verify_body": "Klicke auf die Schaltfläche, um deine E-Mail zu bestätigen und dein Konto in {app} zu aktivieren.",
+    "verify_button": "Registrierung bestätigen",
+    "verify_expiry": "Dieser Link ist 24 Stunden gültig.",
+    "verify_footer": "Wenn du dieses Konto nicht erstellt hast, kannst du diese E-Mail ignorieren.",
+    "verify_plain": "{name}, bestätige deine Registrierung in {app}: {url}. Dieser Link ist 24 Stunden gültig."
   },
   "errors": {
     "generic": "Etwas ist schiefgelaufen.",

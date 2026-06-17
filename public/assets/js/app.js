@@ -10,7 +10,9 @@ const state = {
   user: null,
   dashboard: null,
   error: "",
+  errorCode: "",
   notice: "",
+  pendingVerificationEmail: "",
   loading: false,
   onboarding: {
     step: 0,
@@ -112,7 +114,10 @@ async function api(path, options = {}) {
   const payload = await response.json().catch(() => null);
   if (payload && payload.csrf) boot.csrf = payload.csrf;
   if (!response.ok || !payload || payload.ok !== true) {
-    throw new Error(payload?.error?.message || t("errors.generic"));
+    const error = new Error(payload?.error?.message || t("errors.generic"));
+    error.code = payload?.error?.code || "error";
+    error.meta = payload?.meta || {};
+    throw error;
   }
   return payload.data || {};
 }
@@ -137,6 +142,18 @@ async function init() {
   renderBoot();
   try {
     await loadLanguage(state.lang);
+    const verifyToken = new URLSearchParams(location.search).get("verify_email");
+    if (verifyToken) {
+      const verified = await api(`/api/email/verify?token=${encodeURIComponent(verifyToken)}`);
+      window.history.replaceState({}, document.title, location.pathname);
+      if (verified.user?.language && verified.user.language !== state.lang) {
+        await loadLanguage(verified.user.language);
+      }
+      state.notice = t("auth.email_verified");
+      await loadDashboard();
+      render();
+      return;
+    }
     const me = await api("/api/me");
     if (me.authenticated && me.user) {
       if (me.user.language && me.user.language !== state.lang) {
@@ -148,7 +165,7 @@ async function init() {
     }
   } catch (error) {
     state.screen = "auth";
-    state.error = error.message;
+    state.error = error.code === "email_verification_invalid" ? t("auth.email_verify_failed") : error.message;
   }
   render();
 
@@ -229,32 +246,49 @@ function renderAuth() {
         <h2>${esc(t(isRegister ? "auth.register_title" : "auth.login_title"))}</h2>
         <p class="muted">${esc(t(isRegister ? "auth.register_subtitle" : "auth.login_subtitle"))}</p>
         ${state.error ? `<div class="alert">${esc(state.error)}</div>` : ""}
+        ${state.notice ? `<div class="alert success">${esc(state.notice)}</div>` : ""}
         <form id="authForm" class="form-grid">
           ${isRegister ? `<label>${esc(t("auth.name"))}<input name="name" autocomplete="name" required minlength="2" maxlength="80"></label>` : ""}
           <label>${esc(t("auth.email"))}<input name="email" type="email" autocomplete="email" required></label>
           <label>${esc(t("auth.password"))}<input name="password" type="password" autocomplete="${isRegister ? "new-password" : "current-password"}" required minlength="8"></label>
+          ${isRegister ? `<label>${esc(t("auth.password_confirm"))}<input name="password_confirmation" type="password" autocomplete="new-password" required minlength="8"></label>` : ""}
+          ${isRegister ? `<label class="checkbox-line"><input name="marketing_opt_in" type="checkbox" value="1"><span>${esc(t("auth.marketing_opt_in"))}</span></label>` : ""}
           <div class="form-actions">
             <button class="primary-button full" type="submit" ${state.loading ? "disabled" : ""}>${esc(t(isRegister ? "auth.create_account" : "auth.sign_in"))}</button>
             <button class="text-button" type="button" id="switchAuth">${esc(t(isRegister ? "auth.have_account" : "auth.need_account"))}</button>
           </div>
         </form>
+        ${!isRegister && state.pendingVerificationEmail ? `<button class="secondary-button" type="button" id="resendVerification" ${state.loading ? "disabled" : ""}>${esc(t("auth.resend_verification"))}</button>` : ""}
       </div>
     </section>`;
 
   attachLanguagePicker();
   document.getElementById("switchAuth").addEventListener("click", () => {
     state.error = "";
+    state.errorCode = "";
+    state.notice = "";
     state.authMode = isRegister ? "login" : "register";
     renderAuth();
   });
   document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+  const resendButton = document.getElementById("resendVerification");
+  if (resendButton) resendButton.addEventListener("click", resendVerificationEmail);
 }
 
 async function handleAuthSubmit(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
+  if (state.authMode === "register" && String(form.get("password") || "") !== String(form.get("password_confirmation") || "")) {
+    state.error = t("auth.password_mismatch");
+    state.errorCode = "password_mismatch";
+    state.notice = "";
+    renderAuth();
+    return;
+  }
   state.loading = true;
   state.error = "";
+  state.errorCode = "";
+  state.notice = "";
   renderAuth();
   try {
     const endpoint = state.authMode === "register" ? "/api/register" : "/api/login";
@@ -262,16 +296,57 @@ async function handleAuthSubmit(event) {
       name: String(form.get("name") || ""),
       email: String(form.get("email") || ""),
       password: String(form.get("password") || ""),
+      password_confirmation: String(form.get("password_confirmation") || ""),
+      marketing_opt_in: form.get("marketing_opt_in") === "1",
       language: state.lang
     };
     const result = await api(endpoint, { method: "POST", body: data });
+    if (state.authMode === "register" && result.verification_required) {
+      state.authMode = "login";
+      state.pendingVerificationEmail = result.email || data.email;
+      state.notice = t(result.email_sent ? "auth.verify_sent" : "auth.verify_saved_local", { email: state.pendingVerificationEmail });
+      state.screen = "auth";
+      return;
+    }
     state.user = result.user;
     await loadDashboard();
+  } catch (error) {
+    state.errorCode = error.code || "error";
+    if (error.code === "email_not_verified") {
+      state.pendingVerificationEmail = error.meta?.email || String(form.get("email") || "");
+      state.error = t("auth.email_not_verified");
+    } else if (error.code === "password_mismatch") {
+      state.error = t("auth.password_mismatch");
+    } else {
+      state.error = error.message;
+    }
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+async function resendVerificationEmail() {
+  if (!state.pendingVerificationEmail) return;
+  state.loading = true;
+  state.error = "";
+  state.notice = "";
+  renderAuth();
+
+  try {
+    const result = await api("/api/email/resend", {
+      method: "POST",
+      body: {
+        email: state.pendingVerificationEmail,
+        language: state.lang
+      }
+    });
+    state.notice = t(result.sent ? "auth.verification_resent" : "auth.verify_saved_local", { email: state.pendingVerificationEmail });
   } catch (error) {
     state.error = error.message;
   } finally {
     state.loading = false;
-    render();
+    renderAuth();
   }
 }
 

@@ -9,23 +9,31 @@ use Reactor\Helpers\Input;
 use Reactor\Helpers\Response;
 use Reactor\Middleware\AuthMiddleware;
 use Reactor\Repositories\AppRepository;
+use Reactor\Repositories\EmailVerificationRepository;
 use Reactor\Repositories\UserRepository;
 use Reactor\Services\DashboardService;
 use Reactor\Services\Database;
+use Reactor\Services\EmailService;
 use Throwable;
 
 final class ApiController
 {
     private UserRepository $users;
+    private EmailVerificationRepository $emailVerifications;
     private AppRepository $app;
     private DashboardService $dashboard;
+    private EmailService $emailService;
+    private array $config;
 
     public function __construct()
     {
         $pdo = Database::pdo();
+        $this->config = require REACTOR_ROOT . '/config/app.php';
         $this->users = new UserRepository($pdo);
+        $this->emailVerifications = new EmailVerificationRepository($pdo);
         $this->app = new AppRepository($pdo);
         $this->dashboard = new DashboardService($this->app);
+        $this->emailService = new EmailService($this->config);
     }
 
     public static function dispatch(string $path, string $method): never
@@ -61,6 +69,8 @@ final class ApiController
             'POST /api/register' => $this->register(),
             'POST /api/login' => $this->login(),
             'POST /api/logout' => $this->logout(),
+            'GET /api/email/verify' => $this->verifyEmail(),
+            'POST /api/email/resend' => $this->resendVerificationEmail(),
             'GET /api/dashboard' => $this->dashboard(),
             'POST /api/onboarding' => $this->onboarding(),
             'GET /api/settings' => $this->dashboard(),
@@ -108,7 +118,9 @@ final class ApiController
         $name = Input::string($data, 'name');
         $email = strtolower(Input::string($data, 'email'));
         $password = Input::string($data, 'password');
+        $passwordConfirmation = Input::string($data, 'password_confirmation');
         $language = I18n::normalize(Input::string($data, 'language', 'en'));
+        $marketingOptIn = Input::bool($data, 'marketing_opt_in');
 
         if (strlen($name) < 2 || strlen($name) > 80) {
             Response::error('Name must be between 2 and 80 characters.', 422, 'invalid_name');
@@ -119,16 +131,24 @@ final class ApiController
         if (strlen($password) < 8) {
             Response::error('Password must be at least 8 characters.', 422, 'weak_password');
         }
+        if ($password !== $passwordConfirmation) {
+            Response::error('Password confirmation does not match.', 422, 'password_mismatch');
+        }
         if ($this->users->findByEmail($email) !== null) {
             Response::error('This email is already registered.', 409, 'email_exists');
         }
 
-        $userId = $this->users->create($name, $email, password_hash($password, PASSWORD_DEFAULT), $language);
+        $userId = $this->users->create($name, $email, password_hash($password, PASSWORD_DEFAULT), $language, $marketingOptIn);
         $this->app->ensureUserRecords($userId, $language);
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = $userId;
+        $user = $this->users->findById($userId);
+        $emailSent = is_array($user) && $this->sendVerificationEmail($user, $language);
 
-        Response::ok(['authenticated' => true, 'user' => $this->users->findById($userId)], 201);
+        Response::ok([
+            'authenticated' => false,
+            'verification_required' => true,
+            'email' => $email,
+            'email_sent' => $emailSent,
+        ], 201);
     }
 
     private function login(): never
@@ -151,6 +171,9 @@ final class ApiController
             $this->app->recordLoginAttempt($email, $ip);
             Response::error('Wrong email or password.', 401, 'bad_credentials');
         }
+        if (empty($user['email_verified_at'])) {
+            Response::error('Email address is not verified.', 403, 'email_not_verified', ['email' => $email]);
+        }
 
         $this->app->clearLoginAttempts($email, $ip);
         $this->users->updateLanguage((int) $user['id'], $language);
@@ -158,6 +181,48 @@ final class ApiController
         $_SESSION['user_id'] = (int) $user['id'];
 
         Response::ok(['authenticated' => true, 'user' => $this->users->findById((int) $user['id'])]);
+    }
+
+    private function verifyEmail(): never
+    {
+        $token = trim((string) ($_GET['token'] ?? ''));
+        if ($token === '' || strlen($token) < 40) {
+            Response::error('Verification link is invalid or expired.', 422, 'email_verification_invalid');
+        }
+
+        $verification = $this->emailVerifications->findActiveByToken($token);
+        if ($verification === null) {
+            Response::error('Verification link is invalid or expired.', 410, 'email_verification_invalid');
+        }
+
+        $userId = (int) $verification['user_id'];
+        $this->users->markEmailVerified($userId);
+        $this->emailVerifications->markVerified((int) $verification['id']);
+        $this->app->ensureUserRecords($userId);
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $userId;
+
+        Response::ok([
+            'authenticated' => true,
+            'user' => $this->users->findById($userId),
+        ]);
+    }
+
+    private function resendVerificationEmail(): never
+    {
+        $data = Input::json();
+        $email = strtolower(Input::string($data, 'email'));
+        $language = I18n::normalize(Input::string($data, 'language', 'en'));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Response::error('Invalid email address.', 422, 'invalid_email');
+        }
+
+        $user = $this->users->findByEmail($email);
+        if ($user === null || !empty($user['email_verified_at'])) {
+            Response::ok(['sent' => true]);
+        }
+
+        Response::ok(['sent' => $this->sendVerificationEmail($user, $language)]);
     }
 
     private function logout(): never
@@ -316,5 +381,27 @@ final class ApiController
     private function habitTypeOrNull(string $habitType): ?string
     {
         return in_array($habitType, ['smoking', 'alcohol'], true) ? $habitType : null;
+    }
+
+    private function sendVerificationEmail(array $user, string $language): bool
+    {
+        $token = bin2hex(random_bytes(32));
+        $this->emailVerifications->create((int) $user['id'], (string) $user['email'], $token);
+
+        return $this->emailService->sendVerificationEmail($user, $this->verificationUrl($token), $language);
+    }
+
+    private function verificationUrl(string $token): string
+    {
+        $baseUrl = (string) ($this->config['url'] ?? '');
+        if ($baseUrl === '') {
+            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            $scheme = $secure ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+            $baseUrl = $scheme . '://' . $host . ($scriptDir !== '' && $scriptDir !== '/' ? $scriptDir : '');
+        }
+
+        return rtrim($baseUrl, '/') . '/?verify_email=' . rawurlencode($token);
     }
 }

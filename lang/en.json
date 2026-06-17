@@ -30,10 +30,31 @@
     "name": "Name",
     "email": "Email",
     "password": "Password",
+    "password_confirm": "Confirm password",
+    "marketing_opt_in": "I want to receive useful emails, updates and special offers.",
     "sign_in": "Sign in",
     "create_account": "Create account",
     "need_account": "Create a new account",
-    "have_account": "I already have an account"
+    "have_account": "I already have an account",
+    "password_mismatch": "Passwords do not match.",
+    "verify_sent": "We sent an email to {email}. Confirm registration from the link within 24 hours.",
+    "verify_saved_local": "The email for {email} was created, but server mail is not configured. On local WAMP, open the HTML email in storage/mail.",
+    "verification_resent": "A new email was sent to {email}.",
+    "email_not_verified": "Confirm your email first. The verification link in the email is valid for 24 hours.",
+    "resend_verification": "Send email again",
+    "email_verified": "Email confirmed. The reactor is ready to launch.",
+    "email_verify_failed": "The verification link is invalid or has expired."
+  },
+  "email": {
+    "verify_subject": "Confirm your registration in {app}",
+    "verify_preheader": "One step left: confirm your email and launch the reactor.",
+    "verify_kicker": "Registration confirmation",
+    "verify_title": "{name}, your reactor is almost ready",
+    "verify_body": "Press the button below to confirm your email and activate your account in {app}.",
+    "verify_button": "Confirm registration",
+    "verify_expiry": "This link is valid for 24 hours.",
+    "verify_footer": "If you did not create this account, you can safely ignore this email.",
+    "verify_plain": "{name}, confirm your registration in {app}: {url}. This link is valid for 24 hours."
   },
   "errors": {
     "generic": "Something went wrong.",

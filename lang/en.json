@@ -38,7 +38,7 @@
     "have_account": "I already have an account",
     "password_mismatch": "Passwords do not match.",
     "verify_sent": "We sent an email to {email}. Confirm registration from the link within 24 hours.",
-    "verify_saved_local": "The email for {email} was created, but server mail is not configured. On local WAMP, open the HTML email in storage/mail.",
+    "verify_saved_local": "The email for {email} was created, but the server could not send it. Check storage/logs/mail.log; the HTML copy is in storage/mail.",
     "verification_resent": "A new email was sent to {email}.",
     "email_not_verified": "Confirm your email first. The verification link in the email is valid for 24 hours.",
     "resend_verification": "Send email again",

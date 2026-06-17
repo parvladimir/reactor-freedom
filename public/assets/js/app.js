@@ -570,12 +570,20 @@ function renderDashboardView() {
         </div>
       </section>
 
-      <button id="cravingBtn" class="craving-button">
-        <span class="button-content">
-          <span class="button-icon">${icon("shield")}</span>
-          <span><strong>${esc(t("craving.button"))}</strong><small>${esc(t("craving.button_subtitle"))}</small></span>
-        </span>
-      </button>
+      <section class="action-grid">
+        <button id="cravingBtn" class="craving-button">
+          <span class="button-content">
+            <span class="button-icon">${icon("shield")}</span>
+            <span><strong>${esc(t("craving.button"))}</strong><small>${esc(t("craving.button_subtitle"))}</small></span>
+          </span>
+        </button>
+        <button id="shareBtn" class="share-button">
+          <span class="button-content">
+            <span class="button-icon">${icon("reactor")}</span>
+            <span><strong>${esc(t("share.button"))}</strong><small>${esc(t("share.button_subtitle"))}</small></span>
+          </span>
+        </button>
+      </section>
 
       <section class="stat-grid">
         ${hasSmoking ? statCard("smoke", "token-red", t("dashboard.without_smoking"), duration(data.habits.smoking.hours), t("dashboard.series_days", { days: data.habits.smoking.days })) : ""}
@@ -663,6 +671,7 @@ function renderDashboardView() {
   app.querySelector("#settingsBtn").addEventListener("click", () => { state.screen = "settings"; state.notice = ""; render(); });
   app.querySelector("#logoutBtn").addEventListener("click", logout);
   app.querySelector("#cravingBtn").addEventListener("click", openCraving);
+  app.querySelector("#shareBtn").addEventListener("click", openShareModal);
   app.querySelectorAll("[data-checkin]").forEach((button) => button.addEventListener("click", () => saveCheckin(button.dataset.checkin)));
   app.querySelectorAll("[data-incident]").forEach((button) => button.addEventListener("click", () => openIncident(button.dataset.incident)));
 }
@@ -933,6 +942,303 @@ function openIncident(habitType) {
       render();
     }
   });
+}
+
+function sharePayload() {
+  const data = state.dashboard;
+  const currency = data.money.goal.currency || "EUR";
+  const habits = data.habit_types.includes("smoking") && data.habit_types.includes("alcohol")
+    ? t("habits.both")
+    : data.habit_types.includes("smoking")
+      ? t("habits.smoking")
+      : t("habits.alcohol");
+  const url = new URL(location.href);
+  url.hash = "";
+
+  return {
+    appName: t("app.name"),
+    title: t("share.card_title"),
+    subtitle: t("share.card_subtitle", { habit: habits }),
+    name: data.user.name,
+    percent: Number(data.reactor.percent || 0),
+    status: t(data.reactor.status_key),
+    days: Number(data.reactor.control_days || 0),
+    wins: Number(data.stats.craving_wins || 0),
+    saved: money(data.money.saved_total, currency),
+    savedWeek: money(data.money.saved_week, currency),
+    goal: data.money.goal.title || t("dashboard.personal_goal"),
+    goalPercent: Number(data.money.goal.progress_percent || 0),
+    level: t(data.reactor.level_key),
+    phrase: mentorPhrase("milestone") || mentorPhrase("general"),
+    url: url.toString()
+  };
+}
+
+function shareText(payload) {
+  return t("share.text", {
+    app: payload.appName,
+    percent: `${payload.percent}%`,
+    days: payload.days,
+    saved: payload.saved,
+    goal: payload.goal,
+    url: payload.url
+  });
+}
+
+function openShareModal() {
+  const payload = sharePayload();
+
+  modalRoot.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-card share-modal">
+        <button class="icon-button close-button" id="closeModal">${icon("x")}</button>
+        <p class="eyebrow">${esc(t("share.kicker"))}</p>
+        <h2>${esc(t("share.title"))}</h2>
+        <canvas id="shareCanvas" class="share-canvas" width="1080" height="1350"></canvas>
+        <div class="share-actions">
+          <button class="primary-button" id="nativeShare">${icon("reactor")}${esc(t("share.system"))}</button>
+          <button class="share-channel" id="whatsappShare" type="button">${esc(t("share.whatsapp"))}</button>
+          <button class="share-channel" id="telegramShare" type="button">${esc(t("share.telegram"))}</button>
+          <button class="secondary-button" id="downloadShare">${esc(t("share.download"))}</button>
+        </div>
+        <p class="share-status" id="shareStatus" aria-live="polite"></p>
+      </div>
+    </div>`;
+
+  const canvas = modalRoot.querySelector("#shareCanvas");
+  drawShareCanvas(canvas, payload);
+  modalRoot.querySelector("#closeModal").addEventListener("click", closeModal);
+  modalRoot.querySelector("#nativeShare").addEventListener("click", () => shareImageOrDownload(canvas, payload));
+  modalRoot.querySelector("#whatsappShare").addEventListener("click", () => shareImageOrDownload(canvas, payload));
+  modalRoot.querySelector("#telegramShare").addEventListener("click", () => shareImageOrDownload(canvas, payload));
+  modalRoot.querySelector("#downloadShare").addEventListener("click", () => downloadShareImage(canvas));
+}
+
+function drawShareCanvas(canvas, payload) {
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const cx = width / 2;
+  const ringRadius = 250;
+  const ringWidth = 38;
+  const ringStart = -Math.PI / 2;
+  const ringEnd = ringStart + 2 * Math.PI * (payload.percent / 100);
+  const bg = ctx.createLinearGradient(0, 0, width, height);
+  bg.addColorStop(0, "#070b18");
+  bg.addColorStop(.5, "#101828");
+  bg.addColorStop(1, "#061826");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, width, height);
+
+  drawGrid(ctx, width, height);
+  drawGlow(ctx, 185, 140, 260, "rgba(138, 92, 255, .28)");
+  drawGlow(ctx, 900, 260, 240, "rgba(0, 215, 255, .22)");
+  drawGlow(ctx, 540, 900, 360, "rgba(123, 255, 207, .13)");
+
+  ctx.fillStyle = "#f4f8ff";
+  ctx.textAlign = "center";
+  ctx.font = "800 44px Inter, Segoe UI, Arial, sans-serif";
+  ctx.fillText(payload.appName, cx, 108);
+  ctx.fillStyle = "rgba(244, 248, 255, .68)";
+  ctx.font = "600 26px Inter, Segoe UI, Arial, sans-serif";
+  ctx.fillText(payload.subtitle, cx, 154);
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 215, 255, .35)";
+  ctx.shadowBlur = 34;
+  ctx.lineWidth = ringWidth;
+  ctx.strokeStyle = "rgba(255,255,255,.11)";
+  ctx.beginPath();
+  ctx.arc(cx, 470, ringRadius, 0, Math.PI * 2);
+  ctx.stroke();
+  const ring = ctx.createLinearGradient(cx - ringRadius, 220, cx + ringRadius, 720);
+  ring.addColorStop(0, "#8a5cff");
+  ring.addColorStop(.35, "#00d7ff");
+  ring.addColorStop(.72, "#7bffcf");
+  ring.addColorStop(1, "#ffd166");
+  ctx.lineCap = "round";
+  ctx.strokeStyle = ring;
+  ctx.beginPath();
+  ctx.arc(cx, 470, ringRadius, ringStart, ringEnd);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = "rgba(255,255,255,.04)";
+  ctx.beginPath();
+  ctx.arc(cx, 470, 148, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.12)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = "#f4f8ff";
+  ctx.font = "900 116px Inter, Segoe UI, Arial, sans-serif";
+  ctx.fillText(`${payload.percent}%`, cx, 468);
+  ctx.fillStyle = "#00d7ff";
+  ctx.font = "800 28px Inter, Segoe UI, Arial, sans-serif";
+  ctx.fillText(payload.status.toUpperCase(), cx, 525);
+
+  const cards = [
+    [t("share.days"), String(payload.days)],
+    [t("share.saved"), payload.saved],
+    [t("share.wins"), String(payload.wins)],
+    [t("share.level"), payload.level]
+  ];
+  cards.forEach((card, index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    drawShareMetric(ctx, 92 + col * 462, 790 + row * 160, 402, 118, card[0], card[1]);
+  });
+
+  drawShareMetric(ctx, 92, 1110, 864, 112, t("share.goal"), `${payload.goal} · ${payload.goalPercent}%`);
+
+  ctx.fillStyle = "rgba(244,248,255,.78)";
+  ctx.font = "600 28px Inter, Segoe UI, Arial, sans-serif";
+  wrapCanvasText(ctx, payload.phrase, cx, 1278, 860, 36);
+}
+
+function drawGrid(ctx, width, height) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,.035)";
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= width; x += 42) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= height; y += 42) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawGlow(ctx, x, y, radius, color) {
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
+  glow.addColorStop(0, color);
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawShareMetric(ctx, x, y, width, height, label, value) {
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,.075)";
+  ctx.strokeStyle = "rgba(255,255,255,.13)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, width, height, 18);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "rgba(244,248,255,.62)";
+  ctx.font = "700 24px Inter, Segoe UI, Arial, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(label.toUpperCase(), x + 28, y + 42);
+  ctx.fillStyle = "#f4f8ff";
+  fitCanvasText(ctx, value, x + 28, y + 91, width - 56, 42, 24, 900);
+  ctx.restore();
+}
+
+function fitCanvasText(ctx, text, x, y, maxWidth, maxFontSize, minFontSize, weight) {
+  const family = "Inter, Segoe UI, Arial, sans-serif";
+  let fontSize = maxFontSize;
+  let value = String(text);
+
+  while (fontSize > minFontSize) {
+    ctx.font = `${weight} ${fontSize}px ${family}`;
+    if (ctx.measureText(value).width <= maxWidth) break;
+    fontSize -= 2;
+  }
+
+  ctx.font = `${weight} ${fontSize}px ${family}`;
+  while (value.length > 3 && ctx.measureText(value).width > maxWidth) {
+    value = value.slice(0, -1);
+  }
+  if (value !== String(text)) value = `${value.slice(0, -3)}...`;
+  ctx.fillText(value, x, y);
+}
+
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = String(text).split(" ");
+  let line = "";
+  const lines = [];
+  words.forEach((word) => {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  });
+  if (line) lines.push(line);
+  lines.slice(0, 2).forEach((item, index) => ctx.fillText(item, x, y + index * lineHeight));
+}
+
+function canvasBlob(canvas) {
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png", .95));
+}
+
+function setShareStatus(message) {
+  const status = modalRoot.querySelector("#shareStatus");
+  if (status) status.textContent = message;
+}
+
+async function shareImageOrDownload(canvas, payload) {
+  try {
+    if (await nativeShareImage(canvas, payload)) {
+      setShareStatus("");
+      return;
+    }
+    if (await downloadShareImage(canvas)) {
+      setShareStatus(t("share.fallback_downloaded"));
+    }
+  } catch (error) {
+    if (error?.name === "AbortError") return;
+    if (await downloadShareImage(canvas)) {
+      setShareStatus(t("share.fallback_downloaded"));
+    }
+  }
+}
+
+async function nativeShareImage(canvas, payload) {
+  const text = shareText(payload);
+  const blob = await canvasBlob(canvas);
+  if (!blob || !("File" in window) || !navigator.share || !navigator.canShare) {
+    return false;
+  }
+  const file = new File([blob], "reactor-progress.png", { type: "image/png" });
+  if (!navigator.canShare({ files: [file] })) {
+    return false;
+  }
+  await navigator.share({ title: payload.appName, text, files: [file] });
+  return true;
+}
+
+async function downloadShareImage(canvas) {
+  const blob = await canvasBlob(canvas);
+  if (!blob) return false;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "reactor-progress.png";
+  link.click();
+  URL.revokeObjectURL(url);
+  return true;
 }
 
 function closeModal() {

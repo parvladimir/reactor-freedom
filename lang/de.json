@@ -139,6 +139,25 @@
     "empty_logs": "Das Journal ist noch leer. Der erste saubere Tag wird bereits Geschichte.",
     "checkin_saved": "Täglicher Check gespeichert."
   },
+  "share": {
+    "button": "Fortschritt teilen",
+    "button_subtitle": "Eine schöne Karte für Telegram, WhatsApp und andere erstellen.",
+    "card_title": "Reaktor-Fortschritt",
+    "card_subtitle": "{habit}: System hält die Linie",
+    "text": "{app}: mein Fortschritt liegt bei {percent}. Saubere Tage: {days}. Gespart: {saved}. Ziel: {goal}.",
+    "kicker": "Fortschrittskarte",
+    "title": "Fortschritt teilen",
+    "system": "Bild teilen",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "download": "PNG herunterladen",
+    "fallback_downloaded": "Der Browser konnte das Bild nicht direkt teilen, deshalb wurde das PNG heruntergeladen.",
+    "days": "Saubere Tage",
+    "saved": "Gespart",
+    "wins": "Drang abgewehrt",
+    "level": "Level",
+    "goal": "Ziel"
+  },
   "status": {
     "launch": "Start",
     "stabilization": "Stabilisierung",

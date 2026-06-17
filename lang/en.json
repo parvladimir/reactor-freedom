@@ -139,6 +139,25 @@
     "empty_logs": "The journal is empty. The first clean day is already becoming history.",
     "checkin_saved": "Daily check saved."
   },
+  "share": {
+    "button": "Share progress",
+    "button_subtitle": "Create a polished card for Telegram, WhatsApp and more.",
+    "card_title": "Reactor progress",
+    "card_subtitle": "{habit}: system is holding the line",
+    "text": "{app}: my progress is {percent}. Clean days: {days}. Saved: {saved}. Goal: {goal}.",
+    "kicker": "Progress card",
+    "title": "Share progress",
+    "system": "Share image",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "download": "Download PNG",
+    "fallback_downloaded": "The browser could not share the image directly, so the PNG was downloaded.",
+    "days": "Clean days",
+    "saved": "Saved",
+    "wins": "Cravings beaten",
+    "level": "Level",
+    "goal": "Goal"
+  },
   "status": {
     "launch": "Launch",
     "stabilization": "Stabilization",

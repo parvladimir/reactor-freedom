@@ -701,16 +701,31 @@ a {
   padding: 13px;
 }
 
-.craving-button {
+.action-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+  gap: 12px;
+}
+
+.craving-button,
+.share-button {
   position: relative;
   overflow: hidden;
   width: 100%;
   min-height: 78px;
   padding: 16px;
   border-radius: var(--radius);
+  text-align: left;
+}
+
+.craving-button {
   background: linear-gradient(135deg, rgba(255, 92, 127, .94), rgba(255, 138, 102, .94));
   box-shadow: 0 22px 46px rgba(255, 92, 127, .24);
-  text-align: left;
+}
+
+.share-button {
+  background: linear-gradient(135deg, rgba(0, 215, 255, .76), rgba(123, 255, 207, .68));
+  box-shadow: 0 22px 46px rgba(0, 215, 255, .16);
 }
 
 .craving-button::before {
@@ -719,6 +734,14 @@ a {
   inset: -65%;
   background: radial-gradient(circle, rgba(255,255,255,.2), transparent 32%);
   animation: pulseGlow 2.2s infinite;
+}
+
+.share-button::before {
+  content: "";
+  position: absolute;
+  inset: -70%;
+  background: radial-gradient(circle, rgba(255,255,255,.2), transparent 32%);
+  animation: pulseGlow 3s infinite;
 }
 
 @keyframes pulseGlow {
@@ -972,6 +995,58 @@ a {
   animation: modalIn .22s ease;
 }
 
+.share-modal {
+  width: min(640px, 100%);
+}
+
+.share-canvas {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 14px auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .34);
+}
+
+.share-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.share-channel {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .06);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  transition: transform .2s ease, background .2s ease;
+}
+
+.share-channel:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, .1);
+}
+
+.share-status {
+  min-height: 20px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
 @keyframes modalIn {
   from { transform: translateY(16px); opacity: .65; }
   to { transform: translateY(0); opacity: 1; }
@@ -1044,7 +1119,8 @@ a {
 @media (max-width: 940px) {
   .auth-shell,
   .hero-card,
-  .two-column {
+  .two-column,
+  .action-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1094,6 +1170,10 @@ a {
   .treat-grid,
   .check-grid,
   .incident-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .share-actions {
     grid-template-columns: 1fr;
   }
 

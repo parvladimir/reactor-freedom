@@ -304,7 +304,7 @@ async function handleAuthSubmit(event) {
     if (state.authMode === "register" && result.verification_required) {
       state.authMode = "login";
       state.pendingVerificationEmail = result.email || data.email;
-      state.notice = t(result.email_sent ? "auth.verify_sent" : "auth.verify_saved_local", { email: state.pendingVerificationEmail });
+      state.notice = t("auth.verify_sent", { email: state.pendingVerificationEmail });
       state.screen = "auth";
       return;
     }
@@ -317,6 +317,8 @@ async function handleAuthSubmit(event) {
       state.error = t("auth.email_not_verified");
     } else if (error.code === "password_mismatch") {
       state.error = t("auth.password_mismatch");
+    } else if (error.code === "email_send_failed") {
+      state.error = t("auth.email_send_failed");
     } else {
       state.error = error.message;
     }
@@ -334,16 +336,16 @@ async function resendVerificationEmail() {
   renderAuth();
 
   try {
-    const result = await api("/api/email/resend", {
+    await api("/api/email/resend", {
       method: "POST",
       body: {
         email: state.pendingVerificationEmail,
         language: state.lang
       }
     });
-    state.notice = t(result.sent ? "auth.verification_resent" : "auth.verify_saved_local", { email: state.pendingVerificationEmail });
+    state.notice = t("auth.verification_resent", { email: state.pendingVerificationEmail });
   } catch (error) {
-    state.error = error.message;
+    state.error = error.code === "email_send_failed" ? t("auth.email_send_failed") : error.message;
   } finally {
     state.loading = false;
     renderAuth();

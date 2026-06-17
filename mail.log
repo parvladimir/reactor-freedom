@@ -1,0 +1,2 @@
+[2026-06-17T20:16:25+02:00] SMTP unexpected response: 535 Authentication credentials invalid
+[2026-06-17T20:40:31+02:00] SMTP authentication failed for user no-replay.reactor@metro-gatecontrol.de: AUTH PLAIN failed: SMTP unexpected response: 535 Authentication credentials invalid | AUTH LOGIN failed: SMTP unexpected response: 535 Authentication credentials invalid

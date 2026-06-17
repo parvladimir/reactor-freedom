@@ -23,7 +23,15 @@ final class Env
             }
 
             [$key, $value] = array_map('trim', explode('=', $line, 2));
-            $value = trim($value, "\"'");
+            if (
+                strlen($value) >= 2
+                && (
+                    (str_starts_with($value, '"') && str_ends_with($value, '"'))
+                    || (str_starts_with($value, "'") && str_ends_with($value, "'"))
+                )
+            ) {
+                $value = substr($value, 1, -1);
+            }
 
             if ($key !== '' && getenv($key) === false) {
                 $_ENV[$key] = $value;

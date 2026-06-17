@@ -38,7 +38,7 @@
     "have_account": "Ich habe bereits ein Konto",
     "password_mismatch": "Die Passwörter stimmen nicht überein.",
     "verify_sent": "Wir haben eine E-Mail an {email} gesendet. Bestätige die Registrierung über den Link innerhalb von 24 Stunden.",
-    "verify_saved_local": "Die E-Mail für {email} wurde erstellt, aber der Server konnte sie nicht senden. Prüfe storage/logs/mail.log; die HTML-Kopie liegt in storage/mail.",
+    "email_send_failed": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Das Konto wurde nicht erstellt. Prüfe SMTP-Login und Passwort.",
     "verification_resent": "Eine neue E-Mail wurde an {email} gesendet.",
     "email_not_verified": "Bestätige zuerst deine E-Mail. Der Bestätigungslink ist 24 Stunden gültig.",
     "resend_verification": "E-Mail erneut senden",

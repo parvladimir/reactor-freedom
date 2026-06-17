@@ -142,12 +142,20 @@ final class ApiController
         $this->app->ensureUserRecords($userId, $language);
         $user = $this->users->findById($userId);
         $emailSent = is_array($user) && $this->sendVerificationEmail($user, $language);
+        if (!$emailSent) {
+            $this->users->deleteById($userId);
+            Response::error(
+                'Verification email could not be sent. Please check SMTP settings.',
+                502,
+                'email_send_failed'
+            );
+        }
 
         Response::ok([
             'authenticated' => false,
             'verification_required' => true,
             'email' => $email,
-            'email_sent' => $emailSent,
+            'email_sent' => true,
         ], 201);
     }
 
@@ -222,7 +230,15 @@ final class ApiController
             Response::ok(['sent' => true]);
         }
 
-        Response::ok(['sent' => $this->sendVerificationEmail($user, $language)]);
+        if (!$this->sendVerificationEmail($user, $language)) {
+            Response::error(
+                'Verification email could not be sent. Please check SMTP settings.',
+                502,
+                'email_send_failed'
+            );
+        }
+
+        Response::ok(['sent' => true]);
     }
 
     private function logout(): never

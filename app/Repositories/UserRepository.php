@@ -76,4 +76,10 @@ final class UserRepository
         );
         $stmt->execute(['id' => $userId]);
     }
+
+    public function deleteById(int $userId): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM users WHERE id = :id');
+        $stmt->execute(['id' => $userId]);
+    }
 }

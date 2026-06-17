@@ -181,9 +181,7 @@ HTML;
                 $this->smtpCommand($socket, 'EHLO ' . $this->smtpClientHost(), [250]);
             }
 
-            $this->smtpCommand($socket, 'AUTH LOGIN', [334]);
-            $this->smtpCommand($socket, base64_encode((string) $mail['smtp_user']), [334]);
-            $this->smtpCommand($socket, base64_encode((string) $mail['smtp_pass']), [235]);
+            $this->smtpAuthenticate($socket, (string) $mail['smtp_user'], (string) $mail['smtp_pass']);
             $this->smtpCommand($socket, 'MAIL FROM:<' . $this->cleanAddress($fromEmail) . '>', [250]);
             $this->smtpCommand($socket, 'RCPT TO:<' . $this->cleanAddress($toEmail) . '>', [250, 251]);
             $this->smtpCommand($socket, 'DATA', [354]);
@@ -199,6 +197,33 @@ HTML;
             $this->logMailError($exception->getMessage());
             return false;
         }
+    }
+
+    /**
+     * @param resource $socket
+     */
+    private function smtpAuthenticate($socket, string $username, string $password): void
+    {
+        $errors = [];
+
+        try {
+            $plain = base64_encode("\0{$username}\0{$password}");
+            $this->smtpCommand($socket, 'AUTH PLAIN ' . $plain, [235]);
+            return;
+        } catch (RuntimeException $exception) {
+            $errors[] = 'AUTH PLAIN failed: ' . $exception->getMessage();
+        }
+
+        try {
+            $this->smtpCommand($socket, 'AUTH LOGIN', [334]);
+            $this->smtpCommand($socket, base64_encode($username), [334]);
+            $this->smtpCommand($socket, base64_encode($password), [235]);
+            return;
+        } catch (RuntimeException $exception) {
+            $errors[] = 'AUTH LOGIN failed: ' . $exception->getMessage();
+        }
+
+        throw new RuntimeException('SMTP authentication failed for user ' . $username . ': ' . implode(' | ', $errors));
     }
 
     /**

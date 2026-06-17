@@ -947,11 +947,19 @@ function openIncident(habitType) {
 function sharePayload() {
   const data = state.dashboard;
   const currency = data.money.goal.currency || "EUR";
-  const habits = data.habit_types.includes("smoking") && data.habit_types.includes("alcohol")
+  const hasSmoking = data.habit_types.includes("smoking");
+  const hasAlcohol = data.habit_types.includes("alcohol");
+  const controlDays = Number(data.reactor.control_days || 0);
+  const habits = hasSmoking && hasAlcohol
     ? t("habits.both")
-    : data.habit_types.includes("smoking")
+    : hasSmoking
       ? t("habits.smoking")
       : t("habits.alcohol");
+  const motivationKey = hasSmoking && hasAlcohol
+    ? "share.motivation_both"
+    : hasSmoking
+      ? "share.motivation_smoking"
+      : "share.motivation_alcohol";
   const url = new URL(location.href);
   url.hash = "";
 
@@ -959,10 +967,11 @@ function sharePayload() {
     appName: t("app.name"),
     title: t("share.card_title"),
     subtitle: t("share.card_subtitle", { habit: habits }),
+    motivation: t(motivationKey, { days: controlDays }),
     name: data.user.name,
     percent: Number(data.reactor.percent || 0),
     status: t(data.reactor.status_key),
-    days: Number(data.reactor.control_days || 0),
+    days: controlDays,
     wins: Number(data.stats.craving_wins || 0),
     saved: money(data.money.saved_total, currency),
     savedWeek: money(data.money.saved_week, currency),
@@ -977,6 +986,7 @@ function sharePayload() {
 function shareText(payload) {
   return t("share.text", {
     app: payload.appName,
+    motivation: payload.motivation,
     percent: `${payload.percent}%`,
     days: payload.days,
     saved: payload.saved,
@@ -1040,8 +1050,7 @@ function drawShareCanvas(canvas, payload) {
   ctx.font = "800 44px Inter, Segoe UI, Arial, sans-serif";
   ctx.fillText(payload.appName, cx, 108);
   ctx.fillStyle = "rgba(244, 248, 255, .68)";
-  ctx.font = "600 26px Inter, Segoe UI, Arial, sans-serif";
-  ctx.fillText(payload.subtitle, cx, 154);
+  fitCanvasText(ctx, payload.motivation, cx, 158, 920, 30, 22, 700);
 
   ctx.save();
   ctx.shadowColor = "rgba(0, 215, 255, .35)";

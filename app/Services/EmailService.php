@@ -194,7 +194,7 @@ HTML;
             if (isset($socket) && is_resource($socket)) {
                 fclose($socket);
             }
-            $this->logMailError($exception->getMessage());
+            $this->logMailError($exception->getMessage() . ' | ' . $this->smtpDebugContext($mail, $fromEmail));
             return false;
         }
     }
@@ -263,6 +263,18 @@ HTML;
     {
         $host = parse_url((string) ($this->config['url'] ?? ''), PHP_URL_HOST);
         return is_string($host) && $host !== '' ? $host : 'localhost';
+    }
+
+    private function smtpDebugContext(array $mail, string $fromEmail): string
+    {
+        $password = (string) ($mail['smtp_pass'] ?? '');
+
+        return 'SMTP context: host=' . (string) ($mail['smtp_host'] ?? '')
+            . '; port=' . (string) ($mail['smtp_port'] ?? '')
+            . '; encryption=' . (string) ($mail['smtp_encryption'] ?? '')
+            . '; user=' . (string) ($mail['smtp_user'] ?? '')
+            . '; from=' . $fromEmail
+            . '; pass_len=' . strlen($password);
     }
 
     private function cleanHeader(string $value): string

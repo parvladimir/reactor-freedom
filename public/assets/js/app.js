@@ -14,6 +14,17 @@ const state = {
   notice: "",
   pendingVerificationEmail: "",
   loading: false,
+  authForm: {
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+    marketing_opt_in: false
+  },
+  passwordVisible: {
+    password: false,
+    password_confirmation: false
+  },
   onboarding: {
     step: 0,
     habits: [],
@@ -206,6 +217,43 @@ function renderLanguagePicker() {
     </div>`;
 }
 
+function emptyAuthForm(email = "") {
+  return {
+    name: "",
+    email,
+    password: "",
+    password_confirmation: "",
+    marketing_opt_in: false
+  };
+}
+
+function captureAuthForm(formElement) {
+  if (!formElement) return;
+  const form = new FormData(formElement);
+  state.authForm = {
+    name: String(form.get("name") || ""),
+    email: String(form.get("email") || ""),
+    password: String(form.get("password") || ""),
+    password_confirmation: String(form.get("password_confirmation") || ""),
+    marketing_opt_in: form.get("marketing_opt_in") === "1"
+  };
+}
+
+function renderPasswordInput(name, label, autocomplete) {
+  const visible = state.passwordVisible[name] === true;
+  const actionLabel = t(visible ? "auth.hide_password" : "auth.show_password");
+  return `
+    <label class="password-label">
+      ${esc(label)}
+      <span class="password-field">
+        <input name="${esc(name)}" type="${visible ? "text" : "password"}" autocomplete="${esc(autocomplete)}" required minlength="8" value="${esc(state.authForm[name] || "")}">
+        <button class="password-toggle" type="button" data-password-toggle="${esc(name)}" aria-label="${esc(actionLabel)}" title="${esc(actionLabel)}">
+          ${icon(visible ? "eye-off" : "eye")}
+        </button>
+      </span>
+    </label>`;
+}
+
 function attachLanguagePicker(container = app) {
   container.querySelectorAll("[data-lang]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -248,11 +296,11 @@ function renderAuth() {
         ${state.error ? `<div class="alert">${esc(state.error)}</div>` : ""}
         ${state.notice ? `<div class="alert success">${esc(state.notice)}</div>` : ""}
         <form id="authForm" class="form-grid">
-          ${isRegister ? `<label>${esc(t("auth.name"))}<input name="name" autocomplete="name" required minlength="2" maxlength="80"></label>` : ""}
-          <label>${esc(t("auth.email"))}<input name="email" type="email" autocomplete="email" required></label>
-          <label>${esc(t("auth.password"))}<input name="password" type="password" autocomplete="${isRegister ? "new-password" : "current-password"}" required minlength="8"></label>
-          ${isRegister ? `<label>${esc(t("auth.password_confirm"))}<input name="password_confirmation" type="password" autocomplete="new-password" required minlength="8"></label>` : ""}
-          ${isRegister ? `<label class="checkbox-line"><input name="marketing_opt_in" type="checkbox" value="1"><span>${esc(t("auth.marketing_opt_in"))}</span></label>` : ""}
+          ${isRegister ? `<label>${esc(t("auth.name"))}<input name="name" autocomplete="name" required minlength="2" maxlength="80" value="${esc(state.authForm.name)}"></label>` : ""}
+          <label>${esc(t("auth.email"))}<input name="email" type="email" autocomplete="email" required value="${esc(state.authForm.email)}"></label>
+          ${renderPasswordInput("password", t("auth.password"), isRegister ? "new-password" : "current-password")}
+          ${isRegister ? renderPasswordInput("password_confirmation", t("auth.password_confirm"), "new-password") : ""}
+          ${isRegister ? `<label class="checkbox-line"><input name="marketing_opt_in" type="checkbox" value="1" ${state.authForm.marketing_opt_in ? "checked" : ""}><span>${esc(t("auth.marketing_opt_in"))}</span></label>` : ""}
           <div class="form-actions">
             <button class="primary-button full" type="submit" ${state.loading ? "disabled" : ""}>${esc(t(isRegister ? "auth.create_account" : "auth.sign_in"))}</button>
             <button class="text-button" type="button" id="switchAuth">${esc(t(isRegister ? "auth.have_account" : "auth.need_account"))}</button>
@@ -264,19 +312,35 @@ function renderAuth() {
 
   attachLanguagePicker();
   document.getElementById("switchAuth").addEventListener("click", () => {
+    const email = state.authForm.email;
     state.error = "";
     state.errorCode = "";
     state.notice = "";
     state.authMode = isRegister ? "login" : "register";
+    state.authForm = emptyAuthForm(email);
+    state.passwordVisible = { password: false, password_confirmation: false };
     renderAuth();
   });
-  document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+  const authForm = document.getElementById("authForm");
+  authForm.addEventListener("input", () => captureAuthForm(authForm));
+  authForm.addEventListener("change", () => captureAuthForm(authForm));
+  authForm.addEventListener("submit", handleAuthSubmit);
+  app.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      captureAuthForm(authForm);
+      const field = button.dataset.passwordToggle;
+      state.passwordVisible[field] = !state.passwordVisible[field];
+      renderAuth();
+      app.querySelector(`[name="${field}"]`)?.focus();
+    });
+  });
   const resendButton = document.getElementById("resendVerification");
   if (resendButton) resendButton.addEventListener("click", resendVerificationEmail);
 }
 
 async function handleAuthSubmit(event) {
   event.preventDefault();
+  captureAuthForm(event.currentTarget);
   const form = new FormData(event.currentTarget);
   if (state.authMode === "register" && String(form.get("password") || "") !== String(form.get("password_confirmation") || "")) {
     state.error = t("auth.password_mismatch");
@@ -304,10 +368,14 @@ async function handleAuthSubmit(event) {
     if (state.authMode === "register" && result.verification_required) {
       state.authMode = "login";
       state.pendingVerificationEmail = result.email || data.email;
+      state.authForm = emptyAuthForm(state.pendingVerificationEmail);
+      state.passwordVisible = { password: false, password_confirmation: false };
       state.notice = t("auth.verify_sent", { email: state.pendingVerificationEmail });
       state.screen = "auth";
       return;
     }
+    state.authForm = emptyAuthForm();
+    state.passwordVisible = { password: false, password_confirmation: false };
     state.user = result.user;
     await loadDashboard();
   } catch (error) {

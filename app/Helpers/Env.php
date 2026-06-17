@@ -33,7 +33,7 @@ final class Env
                 $value = substr($value, 1, -1);
             }
 
-            if ($key !== '' && getenv($key) === false) {
+            if ($key !== '') {
                 $_ENV[$key] = $value;
                 putenv($key . '=' . $value);
             }

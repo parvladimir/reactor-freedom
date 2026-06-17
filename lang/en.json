@@ -31,6 +31,8 @@
     "email": "Email",
     "password": "Password",
     "password_confirm": "Confirm password",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "marketing_opt_in": "I want to receive useful emails, updates and special offers.",
     "sign_in": "Sign in",
     "create_account": "Create account",

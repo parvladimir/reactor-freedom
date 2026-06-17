@@ -31,6 +31,8 @@
     "email": "Email",
     "password": "Passwort",
     "password_confirm": "Passwort wiederholen",
+    "show_password": "Passwort anzeigen",
+    "hide_password": "Passwort verbergen",
     "marketing_opt_in": "Ich möchte hilfreiche E-Mails, Updates und besondere Angebote erhalten.",
     "sign_in": "Einloggen",
     "create_account": "Konto erstellen",

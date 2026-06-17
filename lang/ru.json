@@ -31,6 +31,8 @@
     "email": "Email",
     "password": "Пароль",
     "password_confirm": "Повтори пароль",
+    "show_password": "Показать пароль",
+    "hide_password": "Скрыть пароль",
     "marketing_opt_in": "Хочу получать полезные письма, обновления и специальные предложения.",
     "sign_in": "Войти",
     "create_account": "Создать аккаунт",

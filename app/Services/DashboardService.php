@@ -37,6 +37,13 @@ final class DashboardService
         $rewards = $this->decorateRewards($this->repository->rewards(), $rewardCodes);
         $money = $this->money($habits, $goal);
         $todayCheckin = $this->repository->getTodayCheckin($userId);
+        $completedCravingsToday = $this->repository->completedCravingsToday($userId);
+        $triggerEventsToday = $this->repository->triggerEventsToday($userId);
+        $recentCravings = $this->repository->cravingsLastDays($userId, 7);
+        $recentIncidents = $this->repository->incidentsLastDays($userId, 7);
+        $recentCheckins = $this->repository->dailyCheckinsLastDays($userId, 7);
+        $missions = $this->dailyMissions($habits, $todayCheckin, $completedCravingsToday, $triggerEventsToday);
+        $triggerMap = $this->triggerMap($recentCravings, $recentIncidents);
 
         return [
             'user' => [
@@ -69,9 +76,170 @@ final class DashboardService
                 'alcohol_clean' => (bool) ($todayCheckin['alcohol_clean'] ?? false),
             ],
             'rewards' => $rewards,
+            'missions' => $missions,
+            'missions_summary' => $this->missionSummary($missions),
+            'trigger_map' => $triggerMap,
+            'weekly_report' => $this->weeklyReport($habits, $recentCravings, $recentIncidents, $recentCheckins, $triggerMap),
             'unlocked_now' => $unlockedNow,
             'logs' => $this->repository->logs($userId),
         ];
+    }
+
+    private function dailyMissions(array $habits, array $todayCheckin, int $completedCravingsToday, int $triggerEventsToday): array
+    {
+        return [
+            [
+                'code' => 'daily_checkin',
+                'icon' => 'shield',
+                'title_key' => 'dashboard.mission_daily_checkin_title',
+                'body_key' => 'dashboard.mission_daily_checkin_body',
+                'reward_key' => 'dashboard.mission_reward_xp',
+                'reward_xp' => 10,
+                'completed' => $this->activeCheckinDone($habits, $todayCheckin),
+            ],
+            [
+                'code' => 'craving_win',
+                'icon' => 'bolt',
+                'title_key' => 'dashboard.mission_craving_title',
+                'body_key' => 'dashboard.mission_craving_body',
+                'reward_key' => 'dashboard.mission_reward_xp',
+                'reward_xp' => 35,
+                'completed' => $completedCravingsToday > 0,
+            ],
+            [
+                'code' => 'trigger_scan',
+                'icon' => 'star',
+                'title_key' => 'dashboard.mission_trigger_title',
+                'body_key' => 'dashboard.mission_trigger_body',
+                'reward_key' => 'dashboard.mission_reward_intel',
+                'reward_xp' => 0,
+                'completed' => $triggerEventsToday > 0,
+            ],
+        ];
+    }
+
+    private function missionSummary(array $missions): array
+    {
+        $completed = count(array_filter($missions, static fn (array $mission): bool => (bool) $mission['completed']));
+
+        return [
+            'completed' => $completed,
+            'total' => count($missions),
+            'percent' => count($missions) > 0 ? (int) round(($completed / count($missions)) * 100) : 0,
+        ];
+    }
+
+    private function triggerMap(array $cravings, array $incidents): array
+    {
+        $reasonCounts = [];
+        $hourCounts = [];
+        $habitCounts = ['smoking' => 0, 'alcohol' => 0];
+        $events = 0;
+
+        foreach ($cravings as $craving) {
+            $reason = trim((string) ($craving['reason'] ?? ''));
+            if ($reason !== '') {
+                $reasonCounts[$reason] = ($reasonCounts[$reason] ?? 0) + 1;
+                $events++;
+            }
+
+            $habitType = (string) ($craving['habit_type'] ?? '');
+            if (isset($habitCounts[$habitType])) {
+                $habitCounts[$habitType]++;
+            }
+
+            $hour = $this->eventHour((string) (($craving['completed_at'] ?? '') ?: ($craving['created_at'] ?? '')));
+            if ($hour !== null) {
+                $hourCounts[$hour] = ($hourCounts[$hour] ?? 0) + 1;
+            }
+        }
+
+        foreach ($incidents as $incident) {
+            $events++;
+            $habitType = (string) ($incident['habit_type'] ?? '');
+            if (isset($habitCounts[$habitType])) {
+                $habitCounts[$habitType]++;
+            }
+
+            $hour = $this->eventHour((string) ($incident['created_at'] ?? ''));
+            if ($hour !== null) {
+                $hourCounts[$hour] = ($hourCounts[$hour] ?? 0) + 1;
+            }
+        }
+
+        arsort($reasonCounts);
+        arsort($hourCounts);
+        $maxReasonCount = max([1, ...array_values($reasonCounts)]);
+        $topReasons = [];
+
+        foreach (array_slice($reasonCounts, 0, 4, true) as $reason => $count) {
+            $topReasons[] = [
+                'label' => $reason,
+                'count' => $count,
+                'percent' => (int) round(($count / $maxReasonCount) * 100),
+            ];
+        }
+
+        $dangerHour = array_key_first($hourCounts);
+
+        return [
+            'period_days' => 7,
+            'events' => $events,
+            'craving_events' => count($cravings),
+            'incident_events' => count($incidents),
+            'top_reasons' => $topReasons,
+            'top_trigger' => $topReasons[0]['label'] ?? '',
+            'danger_hour' => $this->hourLabel(is_int($dangerHour) ? $dangerHour : null),
+            'habit_counts' => $habitCounts,
+        ];
+    }
+
+    private function weeklyReport(array $habits, array $cravings, array $incidents, array $checkins, array $triggerMap): array
+    {
+        $wins = count(array_filter($cravings, static fn (array $craving): bool => (int) ($craving['completed'] ?? 0) === 1));
+        $incidentCount = count($incidents);
+        $cleanCheckins = count(array_filter($checkins, fn (array $checkin): bool => $this->activeCheckinDone($habits, $checkin)));
+        $topTrigger = (string) ($triggerMap['top_trigger'] ?? '');
+        $focusKey = 'dashboard.weekly_focus_start';
+
+        if ($incidentCount > 0 && $incidentCount >= $wins) {
+            $focusKey = 'dashboard.weekly_focus_incidents';
+        } elseif ($topTrigger !== '') {
+            $focusKey = 'dashboard.weekly_focus_trigger';
+        } elseif ($cleanCheckins >= 3) {
+            $focusKey = 'dashboard.weekly_focus_consistency';
+        }
+
+        return [
+            'period_days' => 7,
+            'craving_wins' => $wins,
+            'incidents' => $incidentCount,
+            'clean_checkins' => $cleanCheckins,
+            'focus_key' => $focusKey,
+            'focus_trigger' => $topTrigger,
+        ];
+    }
+
+    private function activeCheckinDone(array $habits, array $checkin): bool
+    {
+        $activeFields = [
+            'smoking' => 'smoke_clean',
+            'alcohol' => 'alcohol_clean',
+        ];
+        $hasActiveHabit = false;
+
+        foreach ($activeFields as $habitType => $field) {
+            if (!isset($habits[$habitType])) {
+                continue;
+            }
+
+            $hasActiveHabit = true;
+            if ((int) ($checkin[$field] ?? 0) !== 1) {
+                return false;
+            }
+        }
+
+        return $hasActiveHabit;
     }
 
     private function decorateHabits(array $habits): array
@@ -235,6 +403,24 @@ final class DashboardService
 
         $start = new DateTimeImmutable($date);
         return max(0, (time() - $start->getTimestamp()) / 3600);
+    }
+
+    private function eventHour(string $date): ?int
+    {
+        if ($date === '') {
+            return null;
+        }
+
+        return (int) (new DateTimeImmutable($date))->format('G');
+    }
+
+    private function hourLabel(?int $hour): string
+    {
+        if ($hour === null) {
+            return '';
+        }
+
+        return sprintf('%02d:00-%02d:00', $hour, ($hour + 1) % 24);
     }
 
     private function floatOrNull(mixed $value): ?float

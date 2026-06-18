@@ -668,11 +668,14 @@ function renderDashboardView() {
   const hasSmoking = data.habit_types.includes("smoking");
   const hasAlcohol = data.habit_types.includes("alcohol");
   const currency = data.money.goal.currency || "EUR";
+  const missions = data.missions || [];
+  const missionSummary = data.missions_summary || { completed: 0, total: missions.length, percent: 0 };
 
   app.innerHTML = `
     <div class="topbar">
       ${renderBrand(true)}
       <div class="top-actions">
+        <button class="secondary-button journal-button" id="journalBtn" type="button">${icon("star")}<span>${esc(t("dashboard.journal_button"))}</span></button>
         <button class="icon-button" id="settingsBtn" aria-label="${esc(t("settings.title"))}">${icon("settings")}</button>
         <button class="icon-button" id="logoutBtn" aria-label="${esc(t("settings.logout"))}">${icon("log-out")}</button>
       </div>
@@ -707,9 +710,9 @@ function renderDashboardView() {
           <div class="mission-card">
             <div class="icon-token token-gold">${icon("star")}</div>
             <div>
-              <p class="eyebrow">${esc(t("dashboard.mission_kicker"))}</p>
-              <strong>${esc(t("dashboard.mission_title"))}</strong>
-              <p class="muted">${esc(t("dashboard.mission_text"))}</p>
+              <p class="eyebrow">${esc(t("dashboard.missions_kicker"))}</p>
+              <strong>${esc(t("dashboard.missions_progress", { done: missionSummary.completed, total: missionSummary.total }))}</strong>
+              <p class="muted">${esc(t("dashboard.missions_text"))}</p>
             </div>
           </div>
         </div>
@@ -729,6 +732,8 @@ function renderDashboardView() {
           </span>
         </button>
       </section>
+
+      ${renderMissionPanel(data)}
 
       <section class="stat-grid">
         ${hasSmoking ? statCard("smoke", "token-red", t("dashboard.without_smoking"), duration(data.habits.smoking.hours), t("dashboard.series_days", { days: data.habits.smoking.days })) : ""}
@@ -769,6 +774,8 @@ function renderDashboardView() {
         </section>
       </section>
 
+      ${renderInsightsPanel(data)}
+
       <section class="panel">
         <div class="section-head">
           <div><p class="eyebrow">${esc(t("dashboard.money_kicker"))}</p><h3>${esc(t("dashboard.money_title"))}</h3></div>
@@ -804,21 +811,107 @@ function renderDashboardView() {
             </div>`).join("")}
         </div>
       </section>
-
-      <section class="panel">
-        <div class="section-head"><div><p class="eyebrow">${esc(t("dashboard.logs_kicker"))}</p><h3>${esc(t("dashboard.logs_title"))}</h3></div></div>
-        <div class="log-list">
-          ${data.logs.length ? data.logs.map(renderLog).join("") : `<p class="muted">${esc(t("dashboard.empty_logs"))}</p>`}
-        </div>
-      </section>
     </main>`;
 
+  app.querySelector("#journalBtn").addEventListener("click", openJournalModal);
   app.querySelector("#settingsBtn").addEventListener("click", () => { state.screen = "settings"; state.notice = ""; render(); });
   app.querySelector("#logoutBtn").addEventListener("click", logout);
   app.querySelector("#cravingBtn").addEventListener("click", openCraving);
   app.querySelector("#shareBtn").addEventListener("click", openShareModal);
   app.querySelectorAll("[data-checkin]").forEach((button) => button.addEventListener("click", () => saveCheckin(button.dataset.checkin)));
   app.querySelectorAll("[data-incident]").forEach((button) => button.addEventListener("click", () => openIncident(button.dataset.incident)));
+}
+
+function renderMissionPanel(data) {
+  const missions = data.missions || [];
+  const summary = data.missions_summary || { completed: 0, total: missions.length, percent: 0 };
+  if (!missions.length) return "";
+
+  return `
+    <section class="panel mission-panel">
+      <div class="section-head">
+        <div><p class="eyebrow">${esc(t("dashboard.missions_kicker"))}</p><h3>${esc(t("dashboard.missions_title"))}</h3></div>
+        <span class="badge">${esc(t("dashboard.missions_progress", { done: summary.completed, total: summary.total }))}</span>
+      </div>
+      <div class="mission-progress">
+        <div class="progress-bar"><div class="progress-fill" style="width:${Number(summary.percent || 0)}%"></div></div>
+      </div>
+      <div class="mission-list">
+        ${missions.map(renderMissionItem).join("")}
+      </div>
+    </section>`;
+}
+
+function renderMissionItem(mission) {
+  const completed = Boolean(mission.completed);
+  const reward = Number(mission.reward_xp || 0) > 0
+    ? t(mission.reward_key, { xp: mission.reward_xp })
+    : t(mission.reward_key);
+
+  return `
+    <article class="daily-mission ${completed ? "completed" : ""}">
+      <div class="mission-check">${completed ? icon("shield") : icon(mission.icon || "star")}</div>
+      <div>
+        <strong>${esc(t(mission.title_key))}</strong>
+        <span>${esc(t(mission.body_key))}</span>
+      </div>
+      <div class="mission-meta">
+        <span class="mission-reward">${esc(reward)}</span>
+        <small>${esc(t(completed ? "dashboard.mission_done" : "dashboard.mission_open"))}</small>
+      </div>
+    </article>`;
+}
+
+function renderInsightsPanel(data) {
+  const map = data.trigger_map || {};
+  const report = data.weekly_report || {};
+  const topReasons = map.top_reasons || [];
+  const topTrigger = map.top_trigger || t("dashboard.trigger_none");
+  const dangerHour = map.danger_hour || t("dashboard.trigger_no_hour");
+  const focus = t(report.focus_key || "dashboard.weekly_focus_start", { trigger: report.focus_trigger || t("dashboard.trigger_none") });
+
+  return `
+    <section class="two-column insights-grid">
+      <section class="panel">
+        <div class="section-head">
+          <div><p class="eyebrow">${esc(t("dashboard.trigger_kicker"))}</p><h3>${esc(t("dashboard.trigger_title"))}</h3></div>
+          <span class="badge">${esc(t("dashboard.trigger_events", { count: map.events || 0 }))}</span>
+        </div>
+        <div class="insight-metrics">
+          <div class="insight-card"><span>${esc(t("dashboard.trigger_top"))}</span><strong>${esc(topTrigger)}</strong></div>
+          <div class="insight-card"><span>${esc(t("dashboard.trigger_hour"))}</span><strong>${esc(dangerHour)}</strong></div>
+        </div>
+        <div class="trigger-bars">
+          ${topReasons.length ? topReasons.map(renderTriggerReason).join("") : `<p class="muted">${esc(t("dashboard.trigger_empty"))}</p>`}
+        </div>
+      </section>
+      <section class="panel">
+        <div class="section-head">
+          <div><p class="eyebrow">${esc(t("dashboard.weekly_kicker"))}</p><h3>${esc(t("dashboard.weekly_title"))}</h3></div>
+          <span class="badge">${esc(t("dashboard.weekly_period", { days: report.period_days || 7 }))}</span>
+        </div>
+        <div class="weekly-grid">
+          <div><span>${esc(t("dashboard.weekly_wins"))}</span><strong>${esc(report.craving_wins || 0)}</strong></div>
+          <div><span>${esc(t("dashboard.weekly_incidents"))}</span><strong>${esc(report.incidents || 0)}</strong></div>
+          <div><span>${esc(t("dashboard.weekly_checkins"))}</span><strong>${esc(report.clean_checkins || 0)}</strong></div>
+        </div>
+        <div class="focus-box">
+          <span>${esc(t("dashboard.weekly_focus"))}</span>
+          <p>${esc(focus)}</p>
+        </div>
+      </section>
+    </section>`;
+}
+
+function renderTriggerReason(reason) {
+  return `
+    <div class="trigger-row">
+      <div>
+        <strong>${esc(reason.label)}</strong>
+        <span>${esc(t("dashboard.trigger_count", { count: reason.count }))}</span>
+      </div>
+      <div class="bar-track"><div style="width:${Number(reason.percent || 0)}%"></div></div>
+    </div>`;
 }
 
 function statCard(iconName, tokenClass, label, value, small) {
@@ -838,6 +931,22 @@ function renderLog(log) {
       ${body ? `<div>${esc(body)}</div>` : ""}
       <small>${esc(dateTime(log.created_at))}</small>
     </div>`;
+}
+
+function openJournalModal() {
+  const logs = state.dashboard?.logs || [];
+  modalRoot.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-card journal-modal">
+        <button class="icon-button close-button" id="closeModal">${icon("x")}</button>
+        <p class="eyebrow">${esc(t("dashboard.logs_kicker"))}</p>
+        <h2>${esc(t("dashboard.logs_title"))}</h2>
+        <div class="log-list journal-list">
+          ${logs.length ? logs.map(renderLog).join("") : `<p class="muted">${esc(t("dashboard.empty_logs"))}</p>`}
+        </div>
+      </div>
+    </div>`;
+  modalRoot.querySelector("#closeModal").addEventListener("click", closeModal);
 }
 
 async function saveCheckin(type) {
@@ -979,7 +1088,7 @@ async function logout() {
 
 async function openCraving() {
   const habitType = state.dashboard?.habit_types?.[0] || null;
-  state.craving = { id: null, timer: null, seconds: 90, reason: "", action: "", habitType };
+  state.craving = { id: null, timer: null, seconds: 90, totalSeconds: 90, reason: "", action: "", tool: "", toolBody: "", habitType };
   try {
     const data = await api("/api/craving/start", { method: "POST", body: { habit_type: habitType } });
     state.craving.id = data.craving_id;
@@ -992,8 +1101,7 @@ function startCravingTimer() {
   clearInterval(state.craving.timer);
   state.craving.timer = setInterval(() => {
     state.craving.seconds = Math.max(0, state.craving.seconds - 1);
-    const timer = modalRoot.querySelector("#timerText");
-    if (timer) timer.textContent = formatTimer(state.craving.seconds);
+    updateCravingTimerDisplay();
     if (state.craving.seconds <= 0) clearInterval(state.craving.timer);
   }, 1000);
 }
@@ -1004,8 +1112,39 @@ function formatTimer(seconds) {
   return `${min}:${sec}`;
 }
 
+function cravingHealthPercent() {
+  const total = Number(state.craving.totalSeconds || 90);
+  return Math.max(0, Math.min(100, Math.round((Number(state.craving.seconds || 0) / total) * 100)));
+}
+
+function cravingWaveKey(percent) {
+  if (percent > 66) return "craving.wave_peak";
+  if (percent > 25) return "craving.wave_falling";
+  return "craving.wave_control";
+}
+
+function updateCravingTimerDisplay() {
+  const health = cravingHealthPercent();
+  const timer = modalRoot.querySelector("#timerText");
+  const bossFill = modalRoot.querySelector("#bossFill");
+  const healthText = modalRoot.querySelector("#cravingHealth");
+  const waveText = modalRoot.querySelector("#waveText");
+
+  if (timer) timer.textContent = formatTimer(state.craving.seconds);
+  if (bossFill) bossFill.style.width = `${health}%`;
+  if (healthText) healthText.textContent = `${health}%`;
+  if (waveText) waveText.textContent = t(cravingWaveKey(health));
+}
+
+function cravingSupportText() {
+  return t("craving.support_message", { name: state.dashboard?.user?.name || t("app.name") });
+}
+
 function renderCravingModal(phase) {
   const reasons = list("craving.reasons");
+  const tools = list("craving.tools");
+  const health = cravingHealthPercent();
+  state.craving.phase = phase;
   modalRoot.innerHTML = `
     <div class="modal" role="dialog" aria-modal="true">
       <div class="modal-card">
@@ -1013,28 +1152,64 @@ function renderCravingModal(phase) {
         <p class="eyebrow">${esc(t("craving.kicker"))}</p>
         <h2>${esc(t("craving.title"))}</h2>
         <p class="muted">${esc(t("craving.subtitle"))}</p>
+        <div class="craving-boss">
+          <div class="boss-head"><span>${icon("bolt")}${esc(t("craving.boss"))}</span><strong id="cravingHealth">${health}%</strong></div>
+          <div class="boss-health"><div id="bossFill" style="width:${health}%"></div></div>
+          <small id="waveText">${esc(t(cravingWaveKey(health)))}</small>
+        </div>
         <div class="timer-block"><div class="timer-ring"><div class="timer-ring-inner"><strong id="timerText">${formatTimer(state.craving.seconds)}</strong><span>${esc(t("craving.timer_label"))}</span></div></div></div>
         ${phase === "reason" ? `
           <h3>${esc(t("craving.reason_title"))}</h3>
           <div class="pill-grid">${reasons.map((reason) => `<button class="pill" type="button" data-reason="${esc(reason)}">${esc(reason)}</button>`).join("")}</div>
+          <h3>${esc(t("craving.tools_title"))}</h3>
+          <div class="craving-tool-grid">
+            ${tools.map((tool, index) => `
+              <button class="craving-tool ${state.craving.tool === tool.title ? "selected" : ""}" type="button" data-tool-index="${index}">
+                <strong>${esc(tool.title)}</strong>
+                <span>${esc(tool.body)}</span>
+              </button>`).join("")}
+          </div>
         ` : `
           <h3>${esc(t("craving.action_title"))}</h3>
           <p class="rescue-action">${esc(state.craving.action)}</p>
+          <div class="support-box">
+            <strong>${esc(t("craving.support_title"))}</strong>
+            <p>${esc(cravingSupportText())}</p>
+            <button class="secondary-button full" id="copySupport" type="button">${esc(t("craving.copy_support"))}</button>
+          </div>
           <button class="primary-button full" id="completeCraving">${esc(t("craving.complete"))}</button>
         `}
       </div>
     </div>`;
 
   modalRoot.querySelector("#closeModal").addEventListener("click", closeModal);
+  modalRoot.querySelectorAll("[data-tool-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const tool = tools[Number(button.dataset.toolIndex)] || {};
+      state.craving.tool = tool.title || "";
+      state.craving.toolBody = tool.body || "";
+      renderCravingModal("reason");
+    });
+  });
   modalRoot.querySelectorAll("[data-reason]").forEach((button) => {
     button.addEventListener("click", () => {
       state.craving.reason = button.dataset.reason;
       const actions = list("craving.actions");
-      state.craving.action = actions[Math.floor(Math.random() * actions.length)] || "";
+      const action = actions[Math.floor(Math.random() * actions.length)] || "";
+      state.craving.action = state.craving.tool ? `${state.craving.tool}: ${action}` : action;
       renderCravingModal("action");
     });
   });
+  modalRoot.querySelector("#copySupport")?.addEventListener("click", async (event) => {
+    try {
+      await navigator.clipboard.writeText(cravingSupportText());
+      event.currentTarget.textContent = t("craving.copied");
+    } catch {
+      event.currentTarget.textContent = t("craving.copy_failed");
+    }
+  });
   modalRoot.querySelector("#completeCraving")?.addEventListener("click", completeCraving);
+  updateCravingTimerDisplay();
 }
 
 async function completeCraving() {

@@ -219,6 +219,19 @@ final class AppRepository
         return is_array($checkin) ? $checkin : ['smoke_clean' => 0, 'alcohol_clean' => 0];
     }
 
+    public function dailyCheckinsLastDays(int $userId, int $days = 7): array
+    {
+        $days = max(1, min(90, $days));
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM daily_checkins
+             WHERE user_id = :user_id AND checkin_date >= DATE_SUB(CURDATE(), INTERVAL {$days} DAY)
+             ORDER BY checkin_date DESC"
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return $stmt->fetchAll();
+    }
+
     public function startCraving(int $userId, ?string $habitType): int
     {
         $stmt = $this->pdo->prepare(
@@ -270,6 +283,61 @@ final class AppRepository
             $this->pdo->rollBack();
             throw $throwable;
         }
+    }
+
+    public function completedCravingsToday(int $userId): int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM cravings
+             WHERE user_id = :user_id AND completed = 1 AND DATE(completed_at) = CURDATE()'
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function triggerEventsToday(int $userId): int
+    {
+        $cravings = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM cravings
+             WHERE user_id = :user_id AND reason <> "" AND DATE(COALESCE(completed_at, created_at)) = CURDATE()'
+        );
+        $cravings->execute(['user_id' => $userId]);
+
+        $incidents = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM incidents WHERE user_id = :user_id AND DATE(created_at) = CURDATE()'
+        );
+        $incidents->execute(['user_id' => $userId]);
+
+        return (int) $cravings->fetchColumn() + (int) $incidents->fetchColumn();
+    }
+
+    public function cravingsLastDays(int $userId, int $days = 7): array
+    {
+        $days = max(1, min(90, $days));
+        $stmt = $this->pdo->prepare(
+            "SELECT id, habit_type, reason, rescue_action, completed, created_at, completed_at
+             FROM cravings
+             WHERE user_id = :user_id AND created_at >= DATE_SUB(NOW(), INTERVAL {$days} DAY)
+             ORDER BY created_at DESC, id DESC"
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return $stmt->fetchAll();
+    }
+
+    public function incidentsLastDays(int $userId, int $days = 7): array
+    {
+        $days = max(1, min(90, $days));
+        $stmt = $this->pdo->prepare(
+            "SELECT id, habit_type, note, created_at
+             FROM incidents
+             WHERE user_id = :user_id AND created_at >= DATE_SUB(NOW(), INTERVAL {$days} DAY)
+             ORDER BY created_at DESC, id DESC"
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return $stmt->fetchAll();
     }
 
     public function saveIncident(int $userId, string $habitType, string $note): void

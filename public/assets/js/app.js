@@ -14,6 +14,19 @@ const state = {
   notice: "",
   pendingVerificationEmail: "",
   loading: false,
+  social: {
+    view: "feed",
+    loading: false,
+    data: null,
+    query: "",
+    results: [],
+    notice: "",
+    invite: {
+      email: "",
+      name: "",
+      message: ""
+    }
+  },
   authForm: {
     name: "",
     email: "",
@@ -151,9 +164,14 @@ async function loadDashboard() {
 
 async function init() {
   renderBoot();
+  const urlParams = new URLSearchParams(location.search);
+  const requestedLang = urlParams.get("lang");
+  if (["ru", "en", "de"].includes(requestedLang)) state.lang = requestedLang;
+  const inviteMode = urlParams.has("invite") || urlParams.has("register");
+
   try {
     await loadLanguage(state.lang);
-    const verifyToken = new URLSearchParams(location.search).get("verify_email");
+    const verifyToken = urlParams.get("verify_email");
     if (verifyToken) {
       const verified = await api(`/api/email/verify?token=${encodeURIComponent(verifyToken)}`);
       window.history.replaceState({}, document.title, location.pathname);
@@ -173,9 +191,11 @@ async function init() {
       await loadDashboard();
     } else {
       state.screen = "auth";
+      state.authMode = inviteMode ? "register" : "login";
     }
   } catch (error) {
     state.screen = "auth";
+    state.authMode = inviteMode ? "register" : state.authMode;
     state.error = error.code === "email_verification_invalid" ? t("auth.email_verify_failed") : error.message;
   }
   render();
@@ -280,6 +300,18 @@ function renderAuth() {
         <p class="eyebrow">${esc(t("app.kicker"))}</p>
         <h1>${esc(t("app.name"))}</h1>
         <p class="muted">${esc(t("auth.hero_text"))}</p>
+        <div class="auth-promise">
+          <strong>${esc(t("auth.hero_motto"))}</strong>
+          <span>${esc(t("auth.hero_motto_body"))}</span>
+        </div>
+        <div class="auth-feature-grid">
+          ${list("auth.hero_features").map((feature) => `
+            <div class="auth-feature">
+              <div class="icon-token ${esc(feature.token || "token-blue")}">${icon(feature.icon || "star")}</div>
+              <strong>${esc(feature.title)}</strong>
+              <span>${esc(feature.body)}</span>
+            </div>`).join("")}
+        </div>
         <div class="chip-grid">
           <span class="chip">${icon("shield")}${esc(t("auth.chip_control"))}</span>
           <span class="chip">${icon("money")}${esc(t("auth.chip_money"))}</span>
@@ -675,6 +707,7 @@ function renderDashboardView() {
     <div class="topbar">
       ${renderBrand(true)}
       <div class="top-actions">
+        <button class="secondary-button journal-button" id="socialBtn" type="button">${icon("users")}<span>${esc(t("social.button"))}</span></button>
         <button class="secondary-button journal-button" id="journalBtn" type="button">${icon("star")}<span>${esc(t("dashboard.journal_button"))}</span></button>
         <button class="icon-button" id="settingsBtn" aria-label="${esc(t("settings.title"))}">${icon("settings")}</button>
         <button class="icon-button" id="logoutBtn" aria-label="${esc(t("settings.logout"))}">${icon("log-out")}</button>
@@ -813,6 +846,7 @@ function renderDashboardView() {
       </section>
     </main>`;
 
+  app.querySelector("#socialBtn").addEventListener("click", () => openSocialModal("feed"));
   app.querySelector("#journalBtn").addEventListener("click", openJournalModal);
   app.querySelector("#settingsBtn").addEventListener("click", () => { state.screen = "settings"; state.notice = ""; render(); });
   app.querySelector("#logoutBtn").addEventListener("click", logout);
@@ -947,6 +981,310 @@ function openJournalModal() {
       </div>
     </div>`;
   modalRoot.querySelector("#closeModal").addEventListener("click", closeModal);
+}
+
+async function openSocialModal(view = "feed") {
+  state.social.view = view;
+  state.social.notice = "";
+  modalRoot.innerHTML = socialShell(true);
+  modalRoot.querySelector("#closeModal").addEventListener("click", closeModal);
+
+  try {
+    const data = await api("/api/social");
+    state.social.data = data;
+  } catch (error) {
+    state.social.notice = error.message;
+  }
+
+  renderSocialModal();
+}
+
+function socialShell(loading = false) {
+  return `
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-card social-modal">
+        <button class="icon-button close-button" id="closeModal">${icon("x")}</button>
+        <p class="eyebrow">${esc(t("social.kicker"))}</p>
+        <h2>${esc(t("social.title"))}</h2>
+        <p class="muted">${esc(t("social.subtitle"))}</p>
+        ${loading ? `<div class="social-loading">${esc(t("social.loading"))}</div>` : `<div id="socialContent"></div>`}
+      </div>
+    </div>`;
+}
+
+function renderSocialModal() {
+  modalRoot.innerHTML = socialShell(false);
+  const content = modalRoot.querySelector("#socialContent");
+  const data = state.social.data || { feed: [], following: [], followers: [], notifications: [], unread_count: 0 };
+  content.innerHTML = `
+    <div class="social-tabs" role="tablist">
+      ${socialTab("feed", t("social.feed"), data.feed?.length || 0)}
+      ${socialTab("search", t("social.search"), "")}
+      ${socialTab("invite", t("social.invite"), "")}
+      ${socialTab("friends", t("social.friends"), data.following?.length || 0)}
+      ${socialTab("notifications", t("social.notifications"), data.unread_count || 0)}
+    </div>
+    ${state.social.notice ? `<div class="alert">${esc(state.social.notice)}</div>` : ""}
+    ${state.social.view === "feed" ? renderSocialFeed(data.feed || []) : ""}
+    ${state.social.view === "search" ? renderSocialSearch() : ""}
+    ${state.social.view === "invite" ? renderSocialInvite() : ""}
+    ${state.social.view === "friends" ? renderSocialFriends(data) : ""}
+    ${state.social.view === "notifications" ? renderSocialNotifications(data.notifications || [], data.unread_count || 0) : ""}
+  `;
+
+  attachSocialEvents();
+}
+
+function socialTab(view, label, count) {
+  return `
+    <button class="${state.social.view === view ? "active" : ""}" data-social-view="${esc(view)}" type="button">
+      <span>${esc(label)}</span>${count !== "" ? `<strong>${esc(count)}</strong>` : ""}
+    </button>`;
+}
+
+function renderSocialFeed(feed) {
+  return `
+    <div class="social-feed">
+      ${feed.length ? feed.map(renderSocialEvent).join("") : `
+        <div class="empty-social">
+          <strong>${esc(t("social.empty_feed_title"))}</strong>
+          <span>${esc(t("social.empty_feed_body"))}</span>
+        </div>`}
+    </div>`;
+}
+
+function renderSocialEvent(event) {
+  return `
+    <article class="social-event">
+      <div class="social-avatar">${esc(initials(event.user?.name || "?"))}</div>
+      <div class="social-event-main">
+        <div class="social-event-head">
+          <div>
+            <strong>${esc(event.user?.name || t("social.friend"))}</strong>
+            <span>${esc(dateTime(event.created_at))}</span>
+          </div>
+          <span class="badge">${esc(t(event.title_key))}</span>
+        </div>
+        ${socialEventBody(event) ? `<p>${esc(socialEventBody(event))}</p>` : ""}
+        <div class="social-actions">
+          <button class="secondary-button compact-action ${event.liked_by_me ? "liked" : ""}" data-like-log="${esc(event.id)}" type="button">
+            ${icon("heart")}${esc(t(event.liked_by_me ? "social.liked" : "social.like"))} · ${esc(event.likes_count || 0)}
+          </button>
+          <span class="support-count">${icon("message")}${esc(t("social.supports_count", { count: event.supports_count || 0 }))}</span>
+        </div>
+        <div class="support-row">
+          <input data-support-input="${esc(event.id)}" maxlength="300" placeholder="${esc(t("social.support_placeholder"))}">
+          <button class="primary-button compact-action" data-support-log="${esc(event.id)}" type="button">${esc(t("social.send_support"))}</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+function renderSocialSearch() {
+  return `
+    <form id="socialSearchForm" class="social-search">
+      <label>${esc(t("social.search_label"))}<input id="socialSearchInput" value="${esc(state.social.query)}" placeholder="${esc(t("social.search_placeholder"))}"></label>
+      <button class="primary-button" type="submit">${icon("search")}${esc(t("social.search_button"))}</button>
+    </form>
+    <div class="people-list">
+      ${state.social.results.length ? state.social.results.map(renderPersonCard).join("") : `<p class="muted">${esc(t("social.search_empty"))}</p>`}
+    </div>`;
+}
+
+function renderSocialInvite() {
+  return `
+    <form id="inviteFriendForm" class="invite-form">
+      <div class="invite-card">
+        <div class="icon-token token-green">${icon("message")}</div>
+        <div>
+          <strong>${esc(t("social.invite_title"))}</strong>
+          <span>${esc(t("social.invite_body"))}</span>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <label>${esc(t("social.invite_email"))}<input name="email" type="email" required value="${esc(state.social.invite.email)}" placeholder="${esc(t("social.invite_email_placeholder"))}"></label>
+        <label>${esc(t("social.invite_name"))}<input name="name" value="${esc(state.social.invite.name)}" placeholder="${esc(t("social.invite_name_placeholder"))}"></label>
+      </div>
+      <label>${esc(t("social.invite_message"))}<textarea name="message" maxlength="300" rows="3" placeholder="${esc(t("social.invite_message_placeholder"))}">${esc(state.social.invite.message)}</textarea></label>
+      <button class="primary-button full" type="submit">${icon("message")}${esc(t("social.invite_send"))}</button>
+    </form>`;
+}
+
+function renderSocialFriends(data) {
+  const following = data.following || [];
+  const followers = data.followers || [];
+
+  return `
+    <div class="friends-grid">
+      <section>
+        <h3>${esc(t("social.following"))}</h3>
+        <div class="people-list">
+          ${following.length ? following.map((person) => renderPersonCard(person, true)).join("") : `<p class="muted">${esc(t("social.no_following"))}</p>`}
+        </div>
+      </section>
+      <section>
+        <h3>${esc(t("social.followers"))}</h3>
+        <div class="people-list">
+          ${followers.length ? followers.map(renderPersonCard).join("") : `<p class="muted">${esc(t("social.no_followers"))}</p>`}
+        </div>
+      </section>
+    </div>`;
+}
+
+function renderPersonCard(person, forceFollowing = false) {
+  const isFollowing = forceFollowing || Boolean(person.is_following);
+  return `
+    <article class="person-card">
+      <div class="social-avatar">${esc(initials(person.name || "?"))}</div>
+      <div>
+        <strong>${esc(person.name)}</strong>
+        <span>${esc(person.email)}</span>
+      </div>
+      <button class="${isFollowing ? "secondary-button" : "primary-button"} compact-action" data-${isFollowing ? "unfollow" : "follow"}-id="${esc(person.id)}" type="button">
+        ${esc(t(isFollowing ? "social.unfollow" : "social.follow"))}
+      </button>
+    </article>`;
+}
+
+function renderSocialNotifications(notifications, unreadCount) {
+  return `
+    <div class="notification-head">
+      <span>${esc(t("social.unread_count", { count: unreadCount }))}</span>
+      <button class="secondary-button compact-action" id="markSocialRead" type="button">${esc(t("social.mark_read"))}</button>
+    </div>
+    <div class="notification-list">
+      ${notifications.length ? notifications.map(renderSocialNotification).join("") : `<p class="muted">${esc(t("social.no_notifications"))}</p>`}
+    </div>`;
+}
+
+function renderSocialNotification(notification) {
+  return `
+    <article class="notification-card ${notification.read ? "" : "unread"}">
+      <div class="social-avatar">${esc(initials(notification.actor?.name || "?"))}</div>
+      <div>
+        <strong>${esc(socialNotificationTitle(notification))}</strong>
+        ${notification.body ? `<p>${esc(notification.body)}</p>` : ""}
+        <span>${esc(dateTime(notification.created_at))}</span>
+      </div>
+    </article>`;
+}
+
+function attachSocialEvents() {
+  modalRoot.querySelector("#closeModal").addEventListener("click", closeModal);
+  modalRoot.querySelectorAll("[data-social-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.social.view = button.dataset.socialView;
+      state.social.notice = "";
+      renderSocialModal();
+    });
+  });
+  modalRoot.querySelector("#socialSearchForm")?.addEventListener("submit", searchSocialPeople);
+  modalRoot.querySelector("#inviteFriendForm")?.addEventListener("submit", sendSocialInvite);
+  modalRoot.querySelectorAll("[data-follow-id]").forEach((button) => button.addEventListener("click", () => followSocialUser(Number(button.dataset.followId))));
+  modalRoot.querySelectorAll("[data-unfollow-id]").forEach((button) => button.addEventListener("click", () => unfollowSocialUser(Number(button.dataset.unfollowId))));
+  modalRoot.querySelectorAll("[data-like-log]").forEach((button) => button.addEventListener("click", () => likeSocialEvent(Number(button.dataset.likeLog))));
+  modalRoot.querySelectorAll("[data-support-log]").forEach((button) => button.addEventListener("click", () => sendSocialSupport(Number(button.dataset.supportLog))));
+  modalRoot.querySelector("#markSocialRead")?.addEventListener("click", markSocialNotificationsRead);
+}
+
+async function searchSocialPeople(event) {
+  event.preventDefault();
+  const input = modalRoot.querySelector("#socialSearchInput");
+  state.social.query = String(input?.value || "").trim();
+  state.social.notice = "";
+
+  try {
+    const data = await api(`/api/social/search?q=${encodeURIComponent(state.social.query)}`);
+    state.social.results = data.results || [];
+  } catch (error) {
+    state.social.notice = error.message;
+  }
+
+  renderSocialModal();
+}
+
+async function sendSocialInvite(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  state.social.invite = {
+    email: String(form.get("email") || "").trim(),
+    name: String(form.get("name") || "").trim(),
+    message: String(form.get("message") || "").trim()
+  };
+  state.social.notice = "";
+
+  try {
+    const data = await api("/api/social/invite", { method: "POST", body: state.social.invite });
+    state.social.data = data;
+    state.social.notice = t("social.invite_sent");
+    state.social.invite = { email: "", name: "", message: "" };
+  } catch (error) {
+    state.social.notice = error.code === "invite_email_failed" ? t("social.invite_failed") : error.message;
+  }
+
+  renderSocialModal();
+}
+
+async function followSocialUser(userId) {
+  const data = await api("/api/social/follow", { method: "POST", body: { user_id: userId } });
+  state.social.data = data;
+  state.social.results = state.social.results.map((person) => person.id === userId ? { ...person, is_following: true } : person);
+  state.social.notice = t("social.followed");
+  renderSocialModal();
+}
+
+async function unfollowSocialUser(userId) {
+  const data = await api("/api/social/unfollow", { method: "POST", body: { user_id: userId } });
+  state.social.data = data;
+  state.social.results = state.social.results.map((person) => person.id === userId ? { ...person, is_following: false } : person);
+  state.social.notice = t("social.unfollowed");
+  renderSocialModal();
+}
+
+async function likeSocialEvent(logId) {
+  const data = await api("/api/social/like", { method: "POST", body: { log_id: logId } });
+  state.social.data = data;
+  renderSocialModal();
+}
+
+async function sendSocialSupport(logId) {
+  const input = modalRoot.querySelector(`[data-support-input="${logId}"]`);
+  const message = String(input?.value || "").trim();
+  if (!message) return;
+
+  const data = await api("/api/social/support", { method: "POST", body: { log_id: logId, message } });
+  state.social.data = data;
+  state.social.notice = t("social.support_sent");
+  renderSocialModal();
+}
+
+async function markSocialNotificationsRead() {
+  const data = await api("/api/social/notifications/read", { method: "POST", body: {} });
+  state.social.data = data;
+  renderSocialModal();
+}
+
+function socialEventBody(event) {
+  if (!event.body) return "";
+  return readPath(state.messages, event.body) ? t(event.body) : event.body;
+}
+
+function socialNotificationTitle(notification) {
+  const name = notification.actor?.name || t("social.friend");
+  if (notification.type === "follow") return t("social.notice_follow", { name });
+  if (notification.type === "like") return t("social.notice_like", { name });
+  if (notification.type === "support") return t("social.notice_support", { name });
+  return t("social.notice_generic", { name });
+}
+
+function initials(name) {
+  return String(name || "?")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0] || "")
+    .join("")
+    .toUpperCase() || "?";
 }
 
 async function saveCheckin(type) {

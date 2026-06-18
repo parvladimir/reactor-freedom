@@ -334,6 +334,54 @@ a {
   50% { transform: scale(1.05); opacity: 1; }
 }
 
+.auth-promise {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 12px;
+  padding: 14px;
+  border: 1px solid rgba(123, 255, 207, .22);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(123, 255, 207, .11), rgba(0, 215, 255, .07));
+}
+
+.auth-promise strong {
+  color: #eafff8;
+  font-size: 17px;
+  line-height: 1.24;
+}
+
+.auth-promise span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.auth-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin: 12px 0;
+}
+
+.auth-feature {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+}
+
+.auth-feature strong {
+  line-height: 1.18;
+}
+
+.auth-feature span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .auth-card {
   padding: 20px;
 }
@@ -1251,10 +1299,259 @@ a {
   width: min(680px, 100%);
 }
 
+.social-modal {
+  width: min(900px, 100%);
+}
+
 .journal-list {
   max-height: 58vh;
   overflow: auto;
   padding-right: 4px;
+}
+
+.social-loading,
+.empty-social {
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .05);
+}
+
+.empty-social {
+  display: grid;
+  gap: 6px;
+}
+
+.empty-social span {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.social-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  margin: 16px 0 12px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+}
+
+.social-tabs button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.social-tabs button.active {
+  color: var(--text);
+  background: linear-gradient(135deg, rgba(138, 92, 255, .34), rgba(0, 215, 255, .18));
+}
+
+.social-tabs strong {
+  min-width: 22px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .1);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.social-feed,
+.people-list,
+.notification-list {
+  display: grid;
+  gap: 10px;
+}
+
+.social-event,
+.person-card,
+.notification-card {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+}
+
+.social-event {
+  align-items: start;
+}
+
+.social-avatar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(0, 215, 255, .2);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(138, 92, 255, .28), rgba(0, 215, 255, .16));
+  color: #eaf7ff;
+  font-weight: 900;
+}
+
+.social-event-main,
+.social-event-head,
+.person-card > div,
+.notification-card > div {
+  min-width: 0;
+}
+
+.social-event-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.social-event-head strong,
+.person-card strong,
+.notification-card strong {
+  display: block;
+  line-height: 1.25;
+}
+
+.social-event-head span,
+.person-card span,
+.notification-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.social-event p,
+.notification-card p {
+  margin: 10px 0;
+  color: rgba(244, 248, 255, .82);
+  line-height: 1.45;
+}
+
+.social-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.compact-action {
+  width: auto;
+  min-height: 38px;
+  padding: 9px 11px;
+  font-size: 13px;
+}
+
+.compact-action svg,
+.support-count svg {
+  width: 17px;
+  height: 17px;
+}
+
+.compact-action.liked {
+  border-color: rgba(255, 92, 127, .32);
+  background: rgba(255, 92, 127, .14);
+  color: #ffd5dd;
+}
+
+.support-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.support-row,
+.social-search {
+  display: grid;
+  gap: 8px;
+}
+
+.support-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.social-search {
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 12px;
+}
+
+.invite-form {
+  display: grid;
+  gap: 12px;
+}
+
+.invite-card {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid rgba(0, 215, 255, .2);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(0, 215, 255, .1), rgba(123, 255, 207, .07));
+}
+
+.invite-card strong,
+.invite-card span {
+  display: block;
+}
+
+.invite-card strong {
+  line-height: 1.22;
+}
+
+.invite-card span {
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.friends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.friends-grid h3 {
+  margin: 0 0 10px;
+}
+
+.person-card {
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.notification-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.notification-head span {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.notification-card.unread {
+  border-color: rgba(0, 215, 255, .28);
+  background: linear-gradient(135deg, rgba(0, 215, 255, .1), rgba(138, 92, 255, .07));
 }
 
 .share-canvas {
@@ -1481,7 +1778,8 @@ a {
   .rewards-grid,
   .treat-grid,
   .mission-list,
-  .craving-tool-grid {
+  .craving-tool-grid,
+  .friends-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1518,6 +1816,7 @@ a {
 
   .choice-grid,
   .choice-grid.two,
+  .auth-feature-grid,
   .wizard-fields,
   .settings-grid,
   .stat-grid,
@@ -1527,9 +1826,16 @@ a {
   .insight-metrics,
   .weekly-grid,
   .craving-tool-grid,
+  .friends-grid,
+  .social-search,
+  .support-row,
   .check-grid,
   .incident-grid {
     grid-template-columns: 1fr;
+  }
+
+  .social-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .journal-button {
@@ -1540,6 +1846,19 @@ a {
 
   .journal-button span {
     display: none;
+  }
+
+  .person-card {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .person-card .compact-action {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .social-event-head {
+    flex-direction: column;
   }
 
   .trigger-row {

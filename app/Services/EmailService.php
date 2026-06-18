@@ -57,6 +57,58 @@ final class EmailService
         );
     }
 
+    public function sendInviteEmail(array $inviter, array $recipient, string $inviteUrl, string $language, string $personalMessage = ''): bool
+    {
+        $messages = I18n::load($language);
+        $appName = (string) ($this->config['name'] ?? 'REACTOR: Freedom');
+        $inviterName = (string) ($inviter['name'] ?? $appName);
+        $recipientEmail = (string) ($recipient['email'] ?? '');
+        $recipientName = (string) ($recipient['name'] ?? '');
+        $subject = $this->translate($messages, 'email.invite_subject', [
+            'name' => $inviterName,
+            'app' => $appName,
+        ]);
+        $html = $this->inviteHtml($messages, $inviterName, $recipientName, $inviteUrl, $appName, $personalMessage);
+        $plain = $this->translate($messages, 'email.invite_plain', [
+            'name' => $recipientName !== '' ? $recipientName : $this->translate($messages, 'social.friend'),
+            'inviter' => $inviterName,
+            'app' => $appName,
+            'url' => $inviteUrl,
+            'message' => $personalMessage,
+        ]);
+
+        $this->savePreview($recipientEmail !== '' ? $recipientEmail : 'invite', $subject, $html, $plain);
+
+        $fromEmail = (string) ($this->config['mail']['from_email'] ?? 'noreply@example.com');
+        $fromName = (string) ($this->config['mail']['from_name'] ?? $appName);
+        $recipientPayload = ['email' => $recipientEmail, 'name' => $recipientName];
+        $message = $this->mimeMessage($fromName, $fromEmail, $recipientEmail, $subject, $html, $plain);
+        $fallbackMessage = $this->plainMessage($fromName, $fromEmail, $recipientEmail, $subject, $plain);
+
+        if ($this->brevoEnabled()) {
+            return $this->sendViaBrevo($fromName, $fromEmail, $recipientPayload, $subject, $html, $plain);
+        }
+
+        if ($this->smtpEnabled()) {
+            return $this->sendViaSmtp($fromEmail, $recipientEmail, $message, $fallbackMessage);
+        }
+
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $this->encodeHeader($fromName) . ' <' . $fromEmail . '>',
+            'Reply-To: ' . $fromEmail,
+            'X-Mailer: PHP/' . PHP_VERSION,
+        ];
+
+        return @mail(
+            $recipientEmail,
+            $this->encodeHeader($subject),
+            $html,
+            implode("\r\n", $headers)
+        );
+    }
+
     private function verificationHtml(array $messages, array $user, string $verificationUrl, string $appName): string
     {
         $name = (string) ($user['name'] ?? '');
@@ -99,6 +151,72 @@ final class EmailService
           </tr>
         </table>
         <p style="max-width:600px;margin:16px auto 0;color:#6b778c;font-size:12px;line-height:1.5;text-align:center;">{$footer}</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+HTML;
+    }
+
+    private function inviteHtml(array $messages, string $inviterName, string $recipientName, string $inviteUrl, string $appName, string $personalMessage): string
+    {
+        $displayName = $recipientName !== '' ? $recipientName : $this->translate($messages, 'social.friend');
+        $url = htmlspecialchars($inviteUrl, ENT_QUOTES, 'UTF-8');
+        $safeAppName = htmlspecialchars($appName, ENT_QUOTES, 'UTF-8');
+        $kicker = htmlspecialchars($this->translate($messages, 'email.invite_kicker'), ENT_QUOTES, 'UTF-8');
+        $title = htmlspecialchars($this->translate($messages, 'email.invite_title', ['name' => $displayName]), ENT_QUOTES, 'UTF-8');
+        $lead = htmlspecialchars($this->translate($messages, 'email.invite_lead', ['inviter' => $inviterName]), ENT_QUOTES, 'UTF-8');
+        $slogan = htmlspecialchars($this->translate($messages, 'email.invite_slogan'), ENT_QUOTES, 'UTF-8');
+        $body = htmlspecialchars($this->translate($messages, 'email.invite_body', ['app' => $appName]), ENT_QUOTES, 'UTF-8');
+        $button = htmlspecialchars($this->translate($messages, 'email.invite_button'), ENT_QUOTES, 'UTF-8');
+        $footer = htmlspecialchars($this->translate($messages, 'email.invite_footer'), ENT_QUOTES, 'UTF-8');
+        $safeMessage = trim($personalMessage) !== ''
+            ? '<tr><td style="padding:0 28px 18px;"><div style="padding:14px 16px;border-left:4px solid #00b7d8;background:#eef8ff;color:#31435d;font-size:15px;line-height:1.55;">'
+                . htmlspecialchars($personalMessage, ENT_QUOTES, 'UTF-8')
+                . '</div></td></tr>'
+            : '';
+
+        return <<<HTML
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{$safeAppName}</title>
+</head>
+<body style="margin:0;padding:0;background:#eff4fb;color:#142033;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eff4fb;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;border:1px solid #dbe4f0;background:#ffffff;">
+          <tr>
+            <td style="padding:30px 28px 18px;background:#111a2d;text-align:left;">
+              <div style="color:#63f3cf;font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:.04em;">{$kicker}</div>
+              <h1 style="margin:10px 0 12px;font-size:28px;line-height:1.22;color:#ffffff;">{$title}</h1>
+              <p style="margin:0;color:#c8d4e7;font-size:16px;line-height:1.6;">{$lead}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 28px 10px;text-align:left;">
+              <div style="padding:16px 18px;border:1px solid #cfe7f5;background:#f5fbff;">
+                <div style="color:#0875c9;font-size:13px;font-weight:bold;text-transform:uppercase;">{$safeAppName}</div>
+                <p style="margin:8px 0 0;color:#142033;font-size:20px;font-weight:bold;line-height:1.35;">{$slogan}</p>
+              </div>
+            </td>
+          </tr>
+          {$safeMessage}
+          <tr>
+            <td style="padding:8px 28px 30px;text-align:left;">
+              <p style="margin:0 0 20px;color:#4c5a70;font-size:16px;line-height:1.6;">{$body}</p>
+              <p style="margin:0 0 18px;">
+                <a href="{$url}" style="display:inline-block;padding:14px 20px;background:#0875c9;color:#ffffff;text-decoration:none;font-weight:bold;font-size:16px;">{$button}</a>
+              </p>
+              <p style="margin:0;color:#6b778c;font-size:12px;line-height:1.5;word-break:break-all;">{$url}</p>
+            </td>
+          </tr>
+        </table>
+        <p style="max-width:620px;margin:16px auto 0;color:#6b778c;font-size:12px;line-height:1.5;text-align:center;">{$footer}</p>
       </td>
     </tr>
   </table>

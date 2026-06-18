@@ -1,4 +1,4 @@
-const CACHE_NAME = "reactor-freedom-static-v10";
+const CACHE_NAME = "reactor-freedom-static-v12";
 const STATIC_ASSETS = [
   "./",
   "./offline.html",

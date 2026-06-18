@@ -10,6 +10,7 @@ use Reactor\Helpers\Response;
 use Reactor\Middleware\AuthMiddleware;
 use Reactor\Repositories\AppRepository;
 use Reactor\Repositories\EmailVerificationRepository;
+use Reactor\Repositories\SocialRepository;
 use Reactor\Repositories\UserRepository;
 use Reactor\Services\DashboardService;
 use Reactor\Services\Database;
@@ -21,6 +22,7 @@ final class ApiController
     private UserRepository $users;
     private EmailVerificationRepository $emailVerifications;
     private AppRepository $app;
+    private SocialRepository $social;
     private DashboardService $dashboard;
     private EmailService $emailService;
     private array $config;
@@ -32,6 +34,7 @@ final class ApiController
         $this->users = new UserRepository($pdo);
         $this->emailVerifications = new EmailVerificationRepository($pdo);
         $this->app = new AppRepository($pdo);
+        $this->social = new SocialRepository($pdo);
         $this->dashboard = new DashboardService($this->app);
         $this->emailService = new EmailService($this->config);
     }
@@ -79,6 +82,14 @@ final class ApiController
             'POST /api/craving/start' => $this->cravingStart(),
             'POST /api/craving/complete' => $this->cravingComplete(),
             'POST /api/incident' => $this->incident(),
+            'GET /api/social' => $this->social(),
+            'GET /api/social/search' => $this->socialSearch(),
+            'POST /api/social/follow' => $this->socialFollow(),
+            'POST /api/social/unfollow' => $this->socialUnfollow(),
+            'POST /api/social/like' => $this->socialLike(),
+            'POST /api/social/support' => $this->socialSupport(),
+            'POST /api/social/invite' => $this->socialInvite(),
+            'POST /api/social/notifications/read' => $this->socialNotificationsRead(),
             'GET /api/rewards' => $this->rewards(),
             'GET /api/logs' => $this->logs(),
             default => Response::error('Endpoint not found.', 404, 'not_found'),
@@ -370,6 +381,102 @@ final class ApiController
         Response::ok(['dashboard' => $this->dashboard->build($this->users->findById($userId) ?? ['id' => $userId])]);
     }
 
+    private function social(): never
+    {
+        $userId = AuthMiddleware::userId();
+        Response::ok($this->social->summary($userId));
+    }
+
+    private function socialSearch(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $query = trim((string) ($_GET['q'] ?? ''));
+        Response::ok(['results' => $this->social->searchUsers($userId, $query)]);
+    }
+
+    private function socialFollow(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $data = Input::json();
+        $targetId = isset($data['user_id']) && is_numeric($data['user_id']) ? (int) $data['user_id'] : 0;
+        $this->social->follow($userId, $targetId);
+
+        Response::ok($this->social->summary($userId));
+    }
+
+    private function socialUnfollow(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $data = Input::json();
+        $targetId = isset($data['user_id']) && is_numeric($data['user_id']) ? (int) $data['user_id'] : 0;
+        $this->social->unfollow($userId, $targetId);
+
+        Response::ok($this->social->summary($userId));
+    }
+
+    private function socialLike(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $data = Input::json();
+        $logId = isset($data['log_id']) && is_numeric($data['log_id']) ? (int) $data['log_id'] : 0;
+        $this->social->like($userId, $logId);
+
+        Response::ok($this->social->summary($userId));
+    }
+
+    private function socialSupport(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $data = Input::json();
+        $logId = isset($data['log_id']) && is_numeric($data['log_id']) ? (int) $data['log_id'] : 0;
+        $message = Input::string($data, 'message');
+        $this->social->support($userId, $logId, $message);
+
+        Response::ok($this->social->summary($userId));
+    }
+
+    private function socialInvite(): never
+    {
+        $user = $this->requireUser();
+        $data = Input::json();
+        $email = strtolower(Input::string($data, 'email'));
+        $name = Input::string($data, 'name');
+        $message = Input::string($data, 'message');
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Response::error('Invalid email address.', 422, 'invalid_email');
+        }
+        if (strtolower((string) ($user['email'] ?? '')) === $email) {
+            Response::error('Invite another email address.', 422, 'invalid_invite_email');
+        }
+        if (strlen($message) > 600) {
+            $message = function_exists('mb_substr') ? mb_substr($message, 0, 300) : substr($message, 0, 600);
+        }
+
+        $language = I18n::normalize((string) ($user['language'] ?? 'en'));
+        $sent = $this->emailService->sendInviteEmail(
+            $user,
+            ['email' => $email, 'name' => $name],
+            $this->inviteUrl($language),
+            $language,
+            $message
+        );
+
+        if (!$sent) {
+            Response::error('Invite email could not be sent.', 502, 'invite_email_failed');
+        }
+
+        Response::ok($this->social->summary((int) $user['id']) + ['invite_sent' => true]);
+    }
+
+    private function socialNotificationsRead(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $this->social->markNotificationsRead($userId);
+
+        Response::ok($this->social->summary($userId));
+    }
+
     private function rewards(): never
     {
         $user = $this->requireUser();
@@ -409,6 +516,16 @@ final class ApiController
 
     private function verificationUrl(string $token): string
     {
+        return rtrim($this->appBaseUrl(), '/') . '/?verify_email=' . rawurlencode($token);
+    }
+
+    private function inviteUrl(string $language): string
+    {
+        return rtrim($this->appBaseUrl(), '/') . '/?invite=1&lang=' . rawurlencode($language);
+    }
+
+    private function appBaseUrl(): string
+    {
         $baseUrl = (string) ($this->config['url'] ?? '');
         if ($baseUrl === '') {
             $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
@@ -418,6 +535,6 @@ final class ApiController
             $baseUrl = $scheme . '://' . $host . ($scriptDir !== '' && $scriptDir !== '/' ? $scriptDir : '');
         }
 
-        return rtrim($baseUrl, '/') . '/?verify_email=' . rawurlencode($token);
+        return $baseUrl;
     }
 }

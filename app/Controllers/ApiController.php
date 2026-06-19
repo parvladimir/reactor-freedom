@@ -310,11 +310,15 @@ final class ApiController
         $data = Input::json();
         $language = I18n::normalize(Input::string($data, 'language', 'en'));
         $name = Input::string($data, 'name');
+        $avatarCode = Input::string($data, 'avatar_code', 'pulse');
 
         if ($name !== '' && strlen($name) <= 80) {
             $this->users->touchName($userId, $name);
         }
         $this->users->updateLanguage($userId, $language);
+        if (in_array($avatarCode, ['pulse', 'nova', 'focus', 'mint', 'ember', 'orbit'], true)) {
+            $this->users->updateAvatar($userId, $avatarCode);
+        }
 
         $this->app->updateSettings($userId, [
             'currency' => strtoupper(substr(Input::string($data, 'currency', 'EUR'), 0, 3)),

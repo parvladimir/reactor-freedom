@@ -81,7 +81,10 @@ final class EmailService
 
         $fromEmail = (string) ($this->config['mail']['from_email'] ?? 'noreply@example.com');
         $fromName = (string) ($this->config['mail']['from_name'] ?? $appName);
-        $recipientPayload = ['email' => $recipientEmail, 'name' => $recipientName];
+        $recipientPayload = [
+            'email' => $recipientEmail,
+            'name' => $recipientName !== '' ? $recipientName : $this->translate($messages, 'social.friend'),
+        ];
         $message = $this->mimeMessage($fromName, $fromEmail, $recipientEmail, $subject, $html, $plain);
         $fallbackMessage = $this->plainMessage($fromName, $fromEmail, $recipientEmail, $subject, $plain);
 

@@ -63,12 +63,18 @@ const state = {
 
 const apiPath = (path) => `${boot.basePath || ""}${path}`;
 const icon = (name) => `<svg aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
+const AVATAR_CODES = ["pulse", "nova", "focus", "mint", "ember", "orbit"];
 const esc = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
   .replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;")
   .replaceAll("'", "&#039;");
+
+function avatarMarkup(name, code = "pulse", extraClass = "") {
+  const safeCode = AVATAR_CODES.includes(code) ? code : "pulse";
+  return `<span class="user-avatar avatar-${safeCode} ${esc(extraClass)}" aria-hidden="true"><span>${esc(initials(name))}</span><i></i></span>`;
+}
 
 function readPath(object, path) {
   return String(path).split(".").reduce((carry, key) => carry && carry[key] !== undefined ? carry[key] : undefined, object);
@@ -108,6 +114,75 @@ function duration(hours) {
   const rest = total % 24;
   if (days > 0) return t("time.days_hours", { days, hours: rest });
   return t("time.hours", { hours: rest });
+}
+
+function dashboardMotion(data) {
+  const key = `reactor_dashboard_snapshot_${data.user.id}`;
+  const stage = data.reactor.next_reward?.code || "complete";
+  const targetPercent = Number(data.reactor.percent || 0);
+  const progression = data.progression || {};
+  let previous = null;
+
+  try {
+    previous = JSON.parse(localStorage.getItem(key) || "null");
+  } catch {
+    previous = null;
+  }
+
+  const sameStage = previous?.stage === stage;
+  const sameLevel = Number(previous?.level) === Number(progression.level);
+  return {
+    key,
+    stage,
+    hadPrevious: Boolean(previous),
+    reactorFrom: sameStage ? Math.min(targetPercent, Math.max(0, Number(previous?.percent || 0))) : 0,
+    reactorTo: targetPercent,
+    xpFrom: sameLevel ? Math.min(Number(progression.xp || 0), Math.max(0, Number(previous?.xp || 0))) : Number(progression.level_start_xp || 0),
+    xpPercentFrom: sameLevel ? Math.min(Number(progression.progress_percent || 0), Math.max(0, Number(previous?.xp_percent || 0))) : 0,
+    savedFrom: Math.min(Number(data.money.saved_total || 0), Math.max(0, Number(previous?.saved_total || 0)))
+  };
+}
+
+function animateDashboardProgress(data, motion, currency) {
+  const progression = data.progression || {};
+  const ring = app.querySelector(".hero-card .ring-progress");
+  const reactorValue = app.querySelector("#reactorPercentValue");
+  const xpValue = app.querySelector("#xpValueAnimated");
+  const xpFill = app.querySelector("#xpProgressAnimated");
+  const savedValue = app.querySelector("#savedTotalAnimated");
+  const radius = 96;
+  const circumference = 2 * Math.PI * radius;
+  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const durationMs = reduceMotion ? 0 : 1450;
+  const startedAt = performance.now();
+
+  localStorage.setItem(motion.key, JSON.stringify({
+    stage: motion.stage,
+    percent: motion.reactorTo,
+    level: progression.level,
+    xp: progression.xp,
+    xp_percent: progression.progress_percent,
+    saved_total: data.money.saved_total,
+    seen_at: new Date().toISOString()
+  }));
+
+  function frame(now) {
+    const raw = durationMs === 0 ? 1 : Math.min(1, (now - startedAt) / durationMs);
+    const eased = 1 - Math.pow(1 - raw, 3);
+    const percent = motion.reactorFrom + (motion.reactorTo - motion.reactorFrom) * eased;
+    const xp = motion.xpFrom + (Number(progression.xp || 0) - motion.xpFrom) * eased;
+    const xpPercent = motion.xpPercentFrom + (Number(progression.progress_percent || 0) - motion.xpPercentFrom) * eased;
+    const saved = motion.savedFrom + (Number(data.money.saved_total || 0) - motion.savedFrom) * eased;
+
+    if (ring) ring.style.strokeDashoffset = String(circumference - circumference * percent / 100);
+    if (reactorValue) reactorValue.textContent = `${Math.round(percent)}%`;
+    if (xpValue) xpValue.textContent = t("progression.xp_value", { xp: Math.round(xp) });
+    if (xpFill) xpFill.style.width = `${xpPercent}%`;
+    if (savedValue) savedValue.textContent = money(saved, currency);
+    if (raw < 1) requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
 }
 
 function flattenPhrases() {
@@ -694,9 +769,11 @@ function renderDashboardView() {
   const data = state.dashboard;
   if (!data) return renderBoot();
   const percent = Number(data.reactor.percent || 0);
+  const progression = data.progression || { level: 1, xp: data.stats.xp || 0, progress_percent: 0, title_key: "progression.levels.spark.title" };
+  const motion = dashboardMotion(data);
   const radius = 96;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - circumference * percent / 100;
+  const offset = circumference - circumference * motion.reactorFrom / 100;
   const hasSmoking = data.habit_types.includes("smoking");
   const hasAlcohol = data.habit_types.includes("alcohol");
   const currency = data.money.goal.currency || "EUR";
@@ -709,7 +786,7 @@ function renderDashboardView() {
       <div class="top-actions">
         <button class="secondary-button journal-button" id="socialBtn" type="button">${icon("users")}<span>${esc(t("social.button"))}</span></button>
         <button class="secondary-button journal-button" id="journalBtn" type="button">${icon("star")}<span>${esc(t("dashboard.journal_button"))}</span></button>
-        <button class="icon-button" id="settingsBtn" aria-label="${esc(t("settings.title"))}">${icon("settings")}</button>
+        <button class="profile-button" id="settingsBtn" aria-label="${esc(t("settings.title"))}" title="${esc(t("settings.title"))}">${avatarMarkup(data.user.name, data.user.avatar_code)}</button>
         <button class="icon-button" id="logoutBtn" aria-label="${esc(t("settings.logout"))}">${icon("log-out")}</button>
       </div>
     </div>
@@ -726,8 +803,9 @@ function renderDashboardView() {
           <div class="ring-center">
             <div>
               <div class="status-pill">${esc(t(data.reactor.status_key))}</div>
-              <strong>${percent}%</strong>
+              <strong id="reactorPercentValue">${Math.round(motion.reactorFrom)}%</strong>
               <span>${esc(t("dashboard.reactor"))}</span>
+              ${motion.hadPrevious && percent > motion.reactorFrom ? `<span class="progress-delta">${esc(t("dashboard.progress_since_visit", { percent: percent - motion.reactorFrom }))}</span>` : ""}
             </div>
           </div>
         </div>
@@ -738,7 +816,7 @@ function renderDashboardView() {
           <div class="chip-grid">
             <span class="chip">${icon("flame")}${esc(t("dashboard.clean_streak", { days: data.reactor.control_days }))}</span>
             <span class="chip">${icon("shield")}${esc(t("dashboard.craving_wins", { wins: data.stats.craving_wins }))}</span>
-            <span class="chip">${icon("trophy")}${esc(t(data.reactor.level_key))}</span>
+            <span class="chip">${icon("trophy")}${esc(t("progression.level_short", { level: progression.level }))}</span>
           </div>
           <div class="mission-card">
             <div class="icon-token token-gold">${icon("star")}</div>
@@ -772,7 +850,7 @@ function renderDashboardView() {
         ${hasSmoking ? statCard("smoke", "token-red", t("dashboard.without_smoking"), duration(data.habits.smoking.hours), t("dashboard.series_days", { days: data.habits.smoking.days })) : ""}
         ${hasAlcohol ? statCard("alcohol", "token-blue", t("dashboard.without_alcohol"), duration(data.habits.alcohol.hours), t("dashboard.series_days", { days: data.habits.alcohol.days })) : ""}
         ${statCard("money", "token-green", t("dashboard.saved"), money(data.money.saved_total, currency), t("dashboard.saved_today", { amount: money(data.money.saved_today, currency) }))}
-        ${statCard("trophy", "token-violet", t("dashboard.level"), t(data.reactor.level_key), t("dashboard.xp", { xp: data.stats.xp }))}
+        ${statCard("trophy", "token-violet", t("dashboard.level"), t(progression.title_key), t("progression.level_xp", { level: progression.level, xp: progression.xp }))}
       </section>
 
       <section class="two-column">
@@ -809,13 +887,7 @@ function renderDashboardView() {
 
       ${renderInsightsPanel(data)}
 
-      <section class="panel">
-        <div class="section-head">
-          <div><p class="eyebrow">${esc(t("dashboard.money_kicker"))}</p><h3>${esc(t("dashboard.money_title"))}</h3></div>
-          <span class="badge">${money(data.money.saved_week, currency)}</span>
-        </div>
-        <div class="money-story">${esc(t("dashboard.money_story", { amount: money(data.money.saved_week, currency) }))}</div>
-      </section>
+      ${renderGrowthPanels(data, currency, motion)}
 
       <section class="panel">
         <div class="section-head"><div><p class="eyebrow">${esc(t("dashboard.treats_kicker"))}</p><h3>${esc(t("dashboard.treats_title"))}</h3></div></div>
@@ -854,6 +926,69 @@ function renderDashboardView() {
   app.querySelector("#shareBtn").addEventListener("click", openShareModal);
   app.querySelectorAll("[data-checkin]").forEach((button) => button.addEventListener("click", () => saveCheckin(button.dataset.checkin)));
   app.querySelectorAll("[data-incident]").forEach((button) => button.addEventListener("click", () => openIncident(button.dataset.incident)));
+  animateDashboardProgress(data, motion, currency);
+}
+
+function renderGrowthPanels(data, currency, motion) {
+  const moneyData = data.money || {};
+  const target = moneyData.next_target;
+  const progression = data.progression || {};
+  const targetTitle = target
+    ? (target.title_key ? t(target.title_key) : (target.title || t("dashboard.personal_goal")))
+    : "";
+  const targetStatus = target
+    ? (target.days_remaining === null
+      ? t("dashboard.money_rate_missing")
+      : t("dashboard.money_eta", { days: target.days_remaining }))
+    : t("dashboard.money_all_open");
+  const activeSystems = Math.min(3, Math.max(1, Math.ceil(Number(progression.level || 1) / 2)));
+
+  return `
+    <section class="growth-grid">
+      <section class="panel money-signal-panel">
+        <div class="section-head">
+          <div><p class="eyebrow">${esc(t("dashboard.money_kicker"))}</p><h3>${esc(t("dashboard.money_title"))}</h3></div>
+          <span class="badge">${esc(t("dashboard.money_last_week"))}</span>
+        </div>
+        <div class="money-metrics">
+          <div class="money-metric primary"><span>${esc(t("dashboard.money_returned"))}</span><strong id="savedTotalAnimated">${money(motion.savedFrom, currency)}</strong></div>
+          <div class="money-metric"><span>${esc(t("dashboard.money_daily_rate"))}</span><strong>${money(moneyData.daily_rate, currency)}</strong></div>
+          <div class="money-metric"><span>${esc(t("dashboard.money_month_projection"))}</span><strong>${money(moneyData.month_projection, currency)}</strong></div>
+        </div>
+        ${target ? `
+          <div class="money-next">
+            <div><span>${esc(t("dashboard.money_next_target"))}</span><strong>${esc(targetTitle)}</strong></div>
+            <span class="money-eta">${esc(targetStatus)}</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${Number(target.progress_percent || 0)}%"></div></div>
+          <p class="muted">${esc(t("dashboard.money_target_remaining", { amount: money(target.remaining, currency) }))}</p>` : `
+          <div class="money-next complete"><strong>${esc(targetStatus)}</strong></div>`}
+      </section>
+
+      <section class="panel progression-panel">
+        <div class="section-head">
+          <div><p class="eyebrow">${esc(t("progression.kicker"))}</p><h3>${esc(t("progression.title"))}</h3></div>
+          <span class="level-badge">${esc(t("progression.level_short", { level: progression.level }))}</span>
+        </div>
+        <div class="progression-layout">
+          <div class="recovery-system" aria-label="${esc(t("progression.systems_label"))}">
+            ${recoveryNode("brain", "progression.brain", activeSystems >= 1)}
+            ${recoveryNode("lungs", "progression.breath", activeSystems >= 2)}
+            ${recoveryNode("heart", "progression.heart", activeSystems >= 3)}
+          </div>
+          <div class="level-copy">
+            <strong>${esc(t(progression.title_key))}</strong>
+            <p>${esc(t(progression.body_key))}</p>
+            <div class="xp-row"><span id="xpValueAnimated">${esc(t("progression.xp_value", { xp: Math.round(motion.xpFrom) }))}</span><span>${esc(progression.max_level ? t("progression.max_level") : t("progression.xp_to_next", { xp: progression.remaining_xp }))}</span></div>
+            <div class="progress-bar xp-progress"><div class="progress-fill" id="xpProgressAnimated" style="width:${motion.xpPercentFrom}%"></div></div>
+          </div>
+        </div>
+      </section>
+    </section>`;
+}
+
+function recoveryNode(iconName, labelKey, active) {
+  return `<div class="recovery-node ${active ? "active" : ""}"><span>${icon(iconName)}</span><small>${esc(t(labelKey))}</small></div>`;
 }
 
 function renderMissionPanel(data) {
@@ -1056,7 +1191,7 @@ function renderSocialFeed(feed) {
 function renderSocialEvent(event) {
   return `
     <article class="social-event">
-      <div class="social-avatar">${esc(initials(event.user?.name || "?"))}</div>
+      ${avatarMarkup(event.user?.name || "?", event.user?.avatar_code, "social-avatar")}
       <div class="social-event-main">
         <div class="social-event-head">
           <div>
@@ -1135,7 +1270,7 @@ function renderPersonCard(person, forceFollowing = false) {
   const isFollowing = forceFollowing || Boolean(person.is_following);
   return `
     <article class="person-card">
-      <div class="social-avatar">${esc(initials(person.name || "?"))}</div>
+      ${avatarMarkup(person.name || "?", person.avatar_code, "social-avatar")}
       <div>
         <strong>${esc(person.name)}</strong>
         <span>${esc(person.email)}</span>
@@ -1160,7 +1295,7 @@ function renderSocialNotifications(notifications, unreadCount) {
 function renderSocialNotification(notification) {
   return `
     <article class="notification-card ${notification.read ? "" : "unread"}">
-      <div class="social-avatar">${esc(initials(notification.actor?.name || "?"))}</div>
+      ${avatarMarkup(notification.actor?.name || "?", notification.actor?.avatar_code, "social-avatar")}
       <div>
         <strong>${esc(socialNotificationTitle(notification))}</strong>
         ${notification.body ? `<p>${esc(notification.body)}</p>` : ""}
@@ -1318,6 +1453,17 @@ function renderSettings() {
       <form id="settingsForm" class="form-grid">
         <div class="settings-section">
           <h3>${esc(t("settings.account"))}</h3>
+          <fieldset class="avatar-picker">
+            <legend>${esc(t("settings.avatar"))}</legend>
+            <div class="avatar-options">
+              ${AVATAR_CODES.map((code) => `
+                <label class="avatar-option">
+                  <input type="radio" name="avatar_code" value="${code}" ${(data.user.avatar_code || "pulse") === code ? "checked" : ""}>
+                  ${avatarMarkup(data.user.name, code)}
+                  <span>${esc(t(`avatars.${code}`))}</span>
+                </label>`).join("")}
+            </div>
+          </fieldset>
           <div class="settings-grid">
             <label>${esc(t("auth.name"))}<input name="name" value="${esc(data.user.name)}"></label>
             <label>${esc(t("auth.language"))}<select name="language">${["ru","en","de"].map((lang) => `<option value="${lang}" ${data.user.language === lang ? "selected" : ""}>${lang.toUpperCase()}</option>`).join("")}</select></label>
@@ -1371,6 +1517,7 @@ async function saveSettings(event) {
   const form = new FormData(event.currentTarget);
   const body = {
     name: String(form.get("name") || ""),
+    avatar_code: String(form.get("avatar_code") || "pulse"),
     language: String(form.get("language") || state.lang),
     currency: String(form.get("currency") || "EUR").toUpperCase().slice(0, 3),
     main_reason: state.dashboard.profile?.main_reason || "",

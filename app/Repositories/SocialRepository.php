@@ -37,7 +37,7 @@ final class SocialRepository
 
         $term = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $query) . '%';
         $stmt = $this->pdo->prepare(
-            'SELECT users.id, users.name, users.email,
+            'SELECT users.id, users.name, users.email, users.avatar_code,
                     EXISTS(
                         SELECT 1 FROM social_follows
                         WHERE social_follows.follower_id = :viewer_id
@@ -46,13 +46,14 @@ final class SocialRepository
              FROM users
              WHERE users.id <> :user_id
                AND users.email_verified_at IS NOT NULL
-               AND (users.name LIKE :term OR users.email LIKE :term)
+               AND (users.name LIKE :name_term OR users.email LIKE :email_term)
              ORDER BY users.name ASC
              LIMIT :limit'
         );
         $stmt->bindValue('viewer_id', $userId, PDO::PARAM_INT);
         $stmt->bindValue('user_id', $userId, PDO::PARAM_INT);
-        $stmt->bindValue('term', $term);
+        $stmt->bindValue('name_term', $term);
+        $stmt->bindValue('email_term', $term);
         $stmt->bindValue('limit', max(1, min(25, $limit)), PDO::PARAM_INT);
         $stmt->execute();
 
@@ -142,7 +143,7 @@ final class SocialRepository
         $keys = $this->publicKeysPlaceholders();
         $stmt = $this->pdo->prepare(
             "SELECT activity_logs.id, activity_logs.user_id, activity_logs.type, activity_logs.title_key,
-                    activity_logs.body, activity_logs.created_at, users.name, users.email,
+                    activity_logs.body, activity_logs.created_at, users.name, users.email, users.avatar_code,
                     (SELECT COUNT(*) FROM social_reactions WHERE social_reactions.activity_log_id = activity_logs.id) AS likes_count,
                     EXISTS(
                         SELECT 1 FROM social_reactions
@@ -177,7 +178,7 @@ final class SocialRepository
     public function following(int $userId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT users.id, users.name, users.email, social_follows.created_at AS followed_at
+            'SELECT users.id, users.name, users.email, users.avatar_code, social_follows.created_at AS followed_at
              FROM social_follows
              INNER JOIN users ON users.id = social_follows.following_id
              WHERE social_follows.follower_id = :user_id
@@ -191,7 +192,7 @@ final class SocialRepository
     public function followers(int $userId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT users.id, users.name, users.email, social_follows.created_at AS followed_at,
+            'SELECT users.id, users.name, users.email, users.avatar_code, social_follows.created_at AS followed_at,
                     EXISTS(
                         SELECT 1 FROM social_follows mine
                         WHERE mine.follower_id = :viewer_id AND mine.following_id = users.id
@@ -210,6 +211,7 @@ final class SocialRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT social_notifications.*, users.name AS actor_name, users.email AS actor_email,
+                    users.avatar_code AS actor_avatar_code,
                     activity_logs.title_key, activity_logs.body AS event_body
              FROM social_notifications
              INNER JOIN users ON users.id = social_notifications.actor_id
@@ -232,6 +234,7 @@ final class SocialRepository
                 'id' => (int) $notification['actor_id'],
                 'name' => $notification['actor_name'],
                 'email' => $notification['actor_email'],
+                'avatar_code' => $notification['actor_avatar_code'] ?? 'pulse',
             ],
             'event' => $notification['activity_log_id'] === null ? null : [
                 'id' => (int) $notification['activity_log_id'],
@@ -303,6 +306,7 @@ final class SocialRepository
                 'id' => (int) $event['user_id'],
                 'name' => $event['name'],
                 'email' => $event['email'],
+                'avatar_code' => $event['avatar_code'] ?? 'pulse',
             ],
         ];
     }
@@ -313,6 +317,7 @@ final class SocialRepository
             'id' => (int) $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
+            'avatar_code' => $user['avatar_code'] ?? 'pulse',
             'is_following' => (bool) ($user['is_following'] ?? false),
             'followed_at' => $user['followed_at'] ?? null,
         ];

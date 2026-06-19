@@ -23,7 +23,7 @@ final class UserRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, name, email, language, email_verified_at, marketing_opt_in, marketing_opt_in_at, created_at, updated_at
+            'SELECT id, name, email, language, avatar_code, email_verified_at, marketing_opt_in, marketing_opt_in_at, created_at, updated_at
              FROM users WHERE id = :id LIMIT 1'
         );
         $stmt->execute(['id' => $id]);
@@ -65,6 +65,12 @@ final class UserRepository
     {
         $stmt = $this->pdo->prepare('UPDATE users SET name = :name, updated_at = NOW() WHERE id = :id');
         $stmt->execute(['name' => $name, 'id' => $userId]);
+    }
+
+    public function updateAvatar(int $userId, string $avatarCode): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE users SET avatar_code = :avatar_code, updated_at = NOW() WHERE id = :id');
+        $stmt->execute(['avatar_code' => $avatarCode, 'id' => $userId]);
     }
 
     public function markEmailVerified(int $userId): void

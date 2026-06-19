@@ -18,6 +18,16 @@ final class DashboardService
         ['code' => 'trip', 'amount' => 300, 'title_key' => 'treats.trip'],
     ];
 
+    private const LEVELS = [
+        ['code' => 'spark', 'xp' => 0],
+        ['code' => 'focus', 'xp' => 100],
+        ['code' => 'rhythm', 'xp' => 250],
+        ['code' => 'resilience', 'xp' => 500],
+        ['code' => 'clarity', 'xp' => 850],
+        ['code' => 'momentum', 'xp' => 1300],
+        ['code' => 'freedom', 'xp' => 2000],
+    ];
+
     public function __construct(private readonly AppRepository $repository)
     {
     }
@@ -51,6 +61,7 @@ final class DashboardService
                 'name' => $user['name'],
                 'email' => $user['email'],
                 'language' => $user['language'],
+                'avatar_code' => $user['avatar_code'] ?? 'pulse',
             ],
             'profile' => $profile,
             'onboarding_completed' => (bool) ($profile['onboarding_completed'] ?? false),
@@ -62,6 +73,7 @@ final class DashboardService
                 'lifetime_smoke_clean_hours' => (float) ($stats['lifetime_smoke_clean_hours'] ?? 0),
                 'lifetime_alcohol_clean_hours' => (float) ($stats['lifetime_alcohol_clean_hours'] ?? 0),
             ],
+            'progression' => $this->progression((int) ($stats['xp'] ?? 0)),
             'reactor' => [
                 'control_hours' => round($controlHours, 2),
                 'control_days' => floor($controlHours / 24),
@@ -271,30 +283,76 @@ final class DashboardService
         $dailyAlcohol = 0.0;
         $smokingTotal = 0.0;
         $alcoholTotal = 0.0;
+        $smokingLastWeek = 0.0;
+        $alcoholLastWeek = 0.0;
 
         if (isset($habits['smoking'])) {
             $perDay = (float) ($habits['smoking']['cigarettes_per_day'] ?? 0);
             $perPack = max(1.0, (float) ($habits['smoking']['cigarettes_per_pack'] ?? 20));
             $price = (float) ($habits['smoking']['pack_price'] ?? 0);
             $dailySmoking = ($perDay / $perPack) * $price;
-            $smokingTotal = $dailySmoking * ($this->hoursSince($habits['smoking']['current_streak_start_at'] ?? null) / 24);
+            $smokingDays = $this->hoursSince($habits['smoking']['current_streak_start_at'] ?? null) / 24;
+            $smokingTotal = $dailySmoking * $smokingDays;
+            $smokingLastWeek = $dailySmoking * min(7, $smokingDays);
         }
 
         if (isset($habits['alcohol'])) {
             $dailyAlcohol = (float) ($habits['alcohol']['alcohol_weekly_spend'] ?? 0) / 7;
-            $alcoholTotal = $dailyAlcohol * ($this->hoursSince($habits['alcohol']['current_streak_start_at'] ?? null) / 24);
+            $alcoholDays = $this->hoursSince($habits['alcohol']['current_streak_start_at'] ?? null) / 24;
+            $alcoholTotal = $dailyAlcohol * $alcoholDays;
+            $alcoholLastWeek = $dailyAlcohol * min(7, $alcoholDays);
         }
 
         $total = max(0, $smokingTotal + $alcoholTotal);
         $target = max(0, (float) ($goal['target_amount'] ?? 0));
         $currency = (string) ($goal['currency'] ?? 'EUR');
         $progress = $target > 0 ? min(100, round(($total / $target) * 100)) : 0;
+        $dailyRate = max(0, $dailySmoking + $dailyAlcohol);
+        $treats = array_map(static fn (array $treat): array => $treat + [
+            'unlocked' => $total >= $treat['amount'],
+            'remaining' => round(max(0, $treat['amount'] - $total), 2),
+            'currency' => $currency,
+        ], self::REWARD_CATALOG);
+        $nextTreat = null;
+        foreach ($treats as $treat) {
+            if (!$treat['unlocked']) {
+                $nextTreat = $treat;
+                break;
+            }
+        }
+
+        $nextTarget = null;
+        if (is_array($nextTreat)) {
+            $remaining = (float) $nextTreat['remaining'];
+            $nextTarget = [
+                'type' => 'treat',
+                'title_key' => $nextTreat['title_key'],
+                'title' => '',
+                'amount' => (float) $nextTreat['amount'],
+                'remaining' => $remaining,
+                'progress_percent' => (int) min(100, round(($total / max(1, (float) $nextTreat['amount'])) * 100)),
+                'days_remaining' => $dailyRate > 0 ? (int) ceil($remaining / $dailyRate) : null,
+            ];
+        } elseif ($target > $total) {
+            $remaining = max(0, $target - $total);
+            $nextTarget = [
+                'type' => 'goal',
+                'title_key' => '',
+                'title' => (string) ($goal['title'] ?? ''),
+                'amount' => $target,
+                'remaining' => round($remaining, 2),
+                'progress_percent' => $progress,
+                'days_remaining' => $dailyRate > 0 ? (int) ceil($remaining / $dailyRate) : null,
+            ];
+        }
 
         return [
             'daily_smoking_saving' => round($dailySmoking, 2),
             'daily_alcohol_saving' => round($dailyAlcohol, 2),
             'saved_today' => round($dailySmoking + $dailyAlcohol, 2),
-            'saved_week' => round(($dailySmoking + $dailyAlcohol) * 7, 2),
+            'daily_rate' => round($dailyRate, 2),
+            'saved_week' => round($smokingLastWeek + $alcoholLastWeek, 2),
+            'month_projection' => round($dailyRate * 30, 2),
             'saved_total' => round($total, 2),
             'goal' => [
                 'title' => $goal['title'] ?? '',
@@ -303,11 +361,42 @@ final class DashboardService
                 'progress_percent' => $progress,
                 'remaining' => round(max(0, $target - $total), 2),
             ],
-            'treats' => array_map(static fn (array $treat): array => $treat + [
-                'unlocked' => $total >= $treat['amount'],
-                'remaining' => round(max(0, $treat['amount'] - $total), 2),
-                'currency' => $currency,
-            ], self::REWARD_CATALOG),
+            'next_target' => $nextTarget,
+            'treats' => $treats,
+        ];
+    }
+
+    private function progression(int $xp): array
+    {
+        $xp = max(0, $xp);
+        $currentIndex = 0;
+
+        foreach (self::LEVELS as $index => $level) {
+            if ($xp >= $level['xp']) {
+                $currentIndex = $index;
+            }
+        }
+
+        $current = self::LEVELS[$currentIndex];
+        $next = self::LEVELS[$currentIndex + 1] ?? null;
+        $levelStart = (int) $current['xp'];
+        $nextXp = is_array($next) ? (int) $next['xp'] : $levelStart;
+        $span = max(1, $nextXp - $levelStart);
+        $intoLevel = max(0, $xp - $levelStart);
+
+        return [
+            'level' => $currentIndex + 1,
+            'code' => $current['code'],
+            'title_key' => 'progression.levels.' . $current['code'] . '.title',
+            'body_key' => 'progression.levels.' . $current['code'] . '.body',
+            'xp' => $xp,
+            'level_start_xp' => $levelStart,
+            'next_level_xp' => $nextXp,
+            'xp_into_level' => $intoLevel,
+            'xp_for_next' => is_array($next) ? $span : 0,
+            'remaining_xp' => is_array($next) ? max(0, $nextXp - $xp) : 0,
+            'progress_percent' => is_array($next) ? (int) min(100, round(($intoLevel / $span) * 100)) : 100,
+            'max_level' => !is_array($next),
         ];
     }
 

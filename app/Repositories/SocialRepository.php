@@ -38,6 +38,7 @@ final class SocialRepository
         $term = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $query) . '%';
         $stmt = $this->pdo->prepare(
             'SELECT users.id, users.name, users.email, users.avatar_code,
+                    users.avatar_file IS NOT NULL AS has_avatar,
                     EXISTS(
                         SELECT 1 FROM social_follows
                         WHERE social_follows.follower_id = :viewer_id
@@ -144,6 +145,7 @@ final class SocialRepository
         $stmt = $this->pdo->prepare(
             "SELECT activity_logs.id, activity_logs.user_id, activity_logs.type, activity_logs.title_key,
                     activity_logs.body, activity_logs.created_at, users.name, users.email, users.avatar_code,
+                    users.avatar_file IS NOT NULL AS has_avatar,
                     (SELECT COUNT(*) FROM social_reactions WHERE social_reactions.activity_log_id = activity_logs.id) AS likes_count,
                     EXISTS(
                         SELECT 1 FROM social_reactions
@@ -178,7 +180,8 @@ final class SocialRepository
     public function following(int $userId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT users.id, users.name, users.email, users.avatar_code, social_follows.created_at AS followed_at
+            'SELECT users.id, users.name, users.email, users.avatar_code,
+                    users.avatar_file IS NOT NULL AS has_avatar, social_follows.created_at AS followed_at
              FROM social_follows
              INNER JOIN users ON users.id = social_follows.following_id
              WHERE social_follows.follower_id = :user_id
@@ -192,7 +195,8 @@ final class SocialRepository
     public function followers(int $userId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT users.id, users.name, users.email, users.avatar_code, social_follows.created_at AS followed_at,
+            'SELECT users.id, users.name, users.email, users.avatar_code,
+                    users.avatar_file IS NOT NULL AS has_avatar, social_follows.created_at AS followed_at,
                     EXISTS(
                         SELECT 1 FROM social_follows mine
                         WHERE mine.follower_id = :viewer_id AND mine.following_id = users.id
@@ -212,6 +216,7 @@ final class SocialRepository
         $stmt = $this->pdo->prepare(
             'SELECT social_notifications.*, users.name AS actor_name, users.email AS actor_email,
                     users.avatar_code AS actor_avatar_code,
+                    users.avatar_file IS NOT NULL AS actor_has_avatar,
                     activity_logs.title_key, activity_logs.body AS event_body
              FROM social_notifications
              INNER JOIN users ON users.id = social_notifications.actor_id
@@ -235,6 +240,7 @@ final class SocialRepository
                 'name' => $notification['actor_name'],
                 'email' => $notification['actor_email'],
                 'avatar_code' => $notification['actor_avatar_code'] ?? 'pulse',
+                'has_avatar' => (bool) ($notification['actor_has_avatar'] ?? false),
             ],
             'event' => $notification['activity_log_id'] === null ? null : [
                 'id' => (int) $notification['activity_log_id'],
@@ -307,6 +313,7 @@ final class SocialRepository
                 'name' => $event['name'],
                 'email' => $event['email'],
                 'avatar_code' => $event['avatar_code'] ?? 'pulse',
+                'has_avatar' => (bool) ($event['has_avatar'] ?? false),
             ],
         ];
     }
@@ -318,6 +325,7 @@ final class SocialRepository
             'name' => $user['name'],
             'email' => $user['email'],
             'avatar_code' => $user['avatar_code'] ?? 'pulse',
+            'has_avatar' => (bool) ($user['has_avatar'] ?? false),
             'is_following' => (bool) ($user['is_following'] ?? false),
             'followed_at' => $user['followed_at'] ?? null,
         ];

@@ -62,6 +62,7 @@ final class DashboardService
                 'email' => $user['email'],
                 'language' => $user['language'],
                 'avatar_code' => $user['avatar_code'] ?? 'pulse',
+                'has_avatar' => (bool) ($user['has_avatar'] ?? false),
             ],
             'profile' => $profile,
             'onboarding_completed' => (bool) ($profile['onboarding_completed'] ?? false),

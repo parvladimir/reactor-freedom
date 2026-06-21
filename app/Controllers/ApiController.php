@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Reactor\Controllers;
 
+use InvalidArgumentException;
 use Reactor\Helpers\Csrf;
 use Reactor\Helpers\I18n;
 use Reactor\Helpers\Input;
@@ -12,6 +13,7 @@ use Reactor\Repositories\AppRepository;
 use Reactor\Repositories\EmailVerificationRepository;
 use Reactor\Repositories\SocialRepository;
 use Reactor\Repositories\UserRepository;
+use Reactor\Services\AvatarService;
 use Reactor\Services\DashboardService;
 use Reactor\Services\Database;
 use Reactor\Services\EmailService;
@@ -25,6 +27,7 @@ final class ApiController
     private SocialRepository $social;
     private DashboardService $dashboard;
     private EmailService $emailService;
+    private AvatarService $avatarService;
     private array $config;
 
     public function __construct()
@@ -37,6 +40,7 @@ final class ApiController
         $this->social = new SocialRepository($pdo);
         $this->dashboard = new DashboardService($this->app);
         $this->emailService = new EmailService($this->config);
+        $this->avatarService = new AvatarService();
     }
 
     public static function dispatch(string $path, string $method): never
@@ -78,6 +82,9 @@ final class ApiController
             'POST /api/onboarding' => $this->onboarding(),
             'GET /api/settings' => $this->dashboard(),
             'POST /api/settings' => $this->settings(),
+            'GET /api/profile/avatar' => $this->profileAvatarImage(),
+            'POST /api/profile/avatar' => $this->profileAvatarUpload(),
+            'POST /api/profile/avatar/delete' => $this->profileAvatarDelete(),
             'POST /api/checkin' => $this->checkin(),
             'POST /api/craving/start' => $this->cravingStart(),
             'POST /api/craving/complete' => $this->cravingComplete(),
@@ -333,6 +340,80 @@ final class ApiController
         ]);
 
         Response::ok(['dashboard' => $this->dashboard->build($this->users->findById($userId) ?? ['id' => $userId])]);
+    }
+
+    private function profileAvatarImage(): never
+    {
+        AuthMiddleware::userId();
+        $targetId = isset($_GET['user_id']) && is_numeric($_GET['user_id']) ? (int) $_GET['user_id'] : 0;
+        if ($targetId < 1) {
+            Response::error('Avatar not found.', 404, 'avatar_not_found');
+        }
+
+        $avatar = $this->users->avatarStorageById($targetId);
+        $filename = is_array($avatar) ? (string) ($avatar['avatar_file'] ?? '') : '';
+        $mime = is_array($avatar) ? (string) ($avatar['avatar_mime'] ?? '') : '';
+        $path = $this->avatarService->path($filename);
+        if ($path === null || !in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            Response::error('Avatar not found.', 404, 'avatar_not_found');
+        }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . (string) filesize($path));
+        header('Cache-Control: private, no-store, max-age=0');
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
+        exit;
+    }
+
+    private function profileAvatarUpload(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $file = $_FILES['avatar'] ?? null;
+        if (!is_array($file)) {
+            Response::error('Choose an avatar image.', 422, 'avatar_invalid');
+        }
+
+        $uploadError = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if (in_array($uploadError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+            || (int) ($file['size'] ?? 0) > AvatarService::MAX_BYTES) {
+            Response::error('Avatar image is too large.', 422, 'avatar_too_large');
+        }
+        if ($uploadError !== UPLOAD_ERR_OK) {
+            Response::error('Avatar upload failed.', 422, 'avatar_invalid');
+        }
+
+        try {
+            $stored = $this->avatarService->store($file, $userId);
+        } catch (InvalidArgumentException) {
+            Response::error('Use a valid JPG, PNG or WebP image.', 422, 'avatar_invalid');
+        }
+
+        $previous = $this->users->avatarStorageById($userId);
+        try {
+            $this->users->updateAvatarImage($userId, (string) $stored['file'], (string) $stored['mime']);
+        } catch (Throwable $throwable) {
+            $this->avatarService->delete((string) $stored['file']);
+            throw $throwable;
+        }
+        $this->avatarService->delete(is_array($previous) ? (string) ($previous['avatar_file'] ?? '') : null);
+
+        $user = $this->users->findById($userId);
+        Response::ok(['dashboard' => $this->dashboard->build($user ?? ['id' => $userId])]);
+    }
+
+    private function profileAvatarDelete(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $previous = $this->users->avatarStorageById($userId);
+        $this->users->clearAvatarImage($userId);
+        $this->avatarService->delete(is_array($previous) ? (string) ($previous['avatar_file'] ?? '') : null);
+
+        $user = $this->users->findById($userId);
+        Response::ok(['dashboard' => $this->dashboard->build($user ?? ['id' => $userId])]);
     }
 
     private function checkin(): never

@@ -1767,6 +1767,7 @@ a {
 }
 
 .profile-button {
+  position: relative;
   display: grid;
   width: 46px;
   height: 46px;
@@ -1777,6 +1778,25 @@ a {
   border-radius: 50%;
   background: rgba(255, 255, 255, .05);
   transition: border-color .2s ease, transform .2s ease;
+}
+
+.profile-level {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  z-index: 4;
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border: 2px solid #111a2d;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #172033;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .profile-button:hover,
@@ -1816,6 +1836,16 @@ a {
   border-radius: 50%;
   background: var(--accent-3);
   box-shadow: 0 0 9px currentColor;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-avatar.has-photo {
+  background: #172033;
 }
 
 .avatar-pulse { background: linear-gradient(145deg, #5e4bc8, #087fac); }
@@ -2057,6 +2087,69 @@ a {
   border: 0;
 }
 
+.profile-photo-editor {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  margin: 14px 0 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.profile-photo-preview {
+  width: 96px;
+  height: 96px;
+  font-size: 25px;
+}
+
+.profile-photo-copy {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.profile-photo-copy > strong {
+  font-size: 17px;
+}
+
+.profile-photo-copy > span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.profile-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.photo-file-button {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.photo-file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.photo-file-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+#photoStatus {
+  min-height: 18px;
+  overflow-wrap: anywhere;
+}
+
 .avatar-picker legend {
   margin-bottom: 9px;
   color: var(--muted);
@@ -2195,6 +2288,25 @@ a {
 
   .progression-layout {
     grid-template-columns: 1fr;
+  }
+
+  .progression-panel {
+    order: -1;
+  }
+
+  .profile-photo-editor {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .profile-photo-copy {
+    justify-items: center;
+  }
+
+  .profile-photo-actions {
+    width: 100%;
+    justify-content: center;
   }
 
   .avatar-options {

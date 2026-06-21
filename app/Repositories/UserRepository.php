@@ -23,7 +23,8 @@ final class UserRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, name, email, language, avatar_code, email_verified_at, marketing_opt_in, marketing_opt_in_at, created_at, updated_at
+            'SELECT id, name, email, language, avatar_code, avatar_file IS NOT NULL AS has_avatar,
+                    email_verified_at, marketing_opt_in, marketing_opt_in_at, created_at, updated_at
              FROM users WHERE id = :id LIMIT 1'
         );
         $stmt->execute(['id' => $id]);
@@ -71,6 +72,34 @@ final class UserRepository
     {
         $stmt = $this->pdo->prepare('UPDATE users SET avatar_code = :avatar_code, updated_at = NOW() WHERE id = :id');
         $stmt->execute(['avatar_code' => $avatarCode, 'id' => $userId]);
+    }
+
+    public function avatarStorageById(int $userId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT avatar_file, avatar_mime FROM users
+             WHERE id = :id AND email_verified_at IS NOT NULL LIMIT 1'
+        );
+        $stmt->execute(['id' => $userId]);
+        $avatar = $stmt->fetch();
+
+        return is_array($avatar) ? $avatar : null;
+    }
+
+    public function updateAvatarImage(int $userId, string $filename, string $mime): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET avatar_file = :avatar_file, avatar_mime = :avatar_mime, updated_at = NOW() WHERE id = :id'
+        );
+        $stmt->execute(['avatar_file' => $filename, 'avatar_mime' => $mime, 'id' => $userId]);
+    }
+
+    public function clearAvatarImage(int $userId): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET avatar_file = NULL, avatar_mime = NULL, updated_at = NOW() WHERE id = :id'
+        );
+        $stmt->execute(['id' => $userId]);
     }
 
     public function markEmailVerified(int $userId): void

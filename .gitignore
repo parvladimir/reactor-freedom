@@ -2,8 +2,10 @@
 /storage/logs/*.log
 /storage/mail/*
 /storage/sessions/*
+/storage/avatars/*
 !/storage/mail/.gitkeep
 !/storage/sessions/.gitkeep
+!/storage/avatars/.gitkeep
 /.prototype/
 /tmp-theme-mobile-qa/
 /edge-theme-mobile-qa/

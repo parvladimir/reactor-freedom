@@ -79,7 +79,9 @@
     "generic": "Etwas ist schiefgelaufen.",
     "choose_habit": "Wähle mindestens eine Gewohnheit.",
     "choose_reason": "Wähle deinen Hauptgrund.",
-    "goal_amount": "Der Zielbetrag muss größer als null sein."
+    "goal_amount": "Der Zielbetrag muss größer als null sein.",
+    "avatar_invalid": "Wähle ein gültiges JPG-, PNG- oder WebP-Bild.",
+    "avatar_too_large": "Das Foto darf höchstens 4 MB groß sein."
   },
   "habits": {
     "smoking": "Zigaretten",
@@ -377,6 +379,16 @@
     "title": "Einstellungen",
     "account": "Konto",
     "avatar": "Reaktor-Avatar",
+    "avatar_fallback": "Design ohne Foto",
+    "photo_title": "Profilfoto",
+    "photo_help": "JPG, PNG oder WebP bis 4 MB. Das Foto wird quadratisch zugeschnitten.",
+    "photo_choose": "Foto wählen",
+    "photo_upload": "Hochladen",
+    "photo_uploading": "Wird hochgeladen...",
+    "photo_delete": "Foto löschen",
+    "photo_delete_confirm": "Profilfoto löschen?",
+    "photo_saved": "Profilfoto aktualisiert.",
+    "photo_deleted": "Foto gelöscht. Das gewählte Ersatzdesign ist aktiv.",
     "goal": "Finanzielles Ziel",
     "smoking": "Zigarettenparameter",
     "alcohol": "Alkoholparameter",

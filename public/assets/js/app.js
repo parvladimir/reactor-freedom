@@ -12,6 +12,7 @@ const state = {
   error: "",
   errorCode: "",
   notice: "",
+  photoPreviewUrl: null,
   pendingVerificationEmail: "",
   loading: false,
   social: {
@@ -71,9 +72,12 @@ const esc = (value) => String(value ?? "")
   .replaceAll('"', "&quot;")
   .replaceAll("'", "&#039;");
 
-function avatarMarkup(name, code = "pulse", extraClass = "") {
+function avatarMarkup(name, code = "pulse", extraClass = "", userId = null, hasAvatar = false) {
   const safeCode = AVATAR_CODES.includes(code) ? code : "pulse";
-  return `<span class="user-avatar avatar-${safeCode} ${esc(extraClass)}" aria-hidden="true"><span>${esc(initials(name))}</span><i></i></span>`;
+  const photo = hasAvatar && Number(userId) > 0
+    ? `<img src="${esc(apiPath(`/api/profile/avatar?user_id=${encodeURIComponent(userId)}`))}" alt="">`
+    : `<span>${esc(initials(name))}</span><i></i>`;
+  return `<span class="user-avatar avatar-${safeCode} ${hasAvatar ? "has-photo" : ""} ${esc(extraClass)}" aria-hidden="true">${photo}</span>`;
 }
 
 function readPath(object, path) {
@@ -216,6 +220,23 @@ async function api(path, options = {}) {
     const error = new Error(payload?.error?.message || t("errors.generic"));
     error.code = payload?.error?.code || "error";
     error.meta = payload?.meta || {};
+    throw error;
+  }
+  return payload.data || {};
+}
+
+async function apiForm(path, formData) {
+  const response = await fetch(apiPath(path), {
+    method: "POST",
+    headers: { Accept: "application/json", "X-CSRF-Token": boot.csrf || "" },
+    credentials: "same-origin",
+    body: formData
+  });
+  const payload = await response.json().catch(() => null);
+  if (payload?.csrf) boot.csrf = payload.csrf;
+  if (!response.ok || !payload || payload.ok !== true) {
+    const error = new Error(payload?.error?.message || t("errors.generic"));
+    error.code = payload?.error?.code || "error";
     throw error;
   }
   return payload.data || {};
@@ -786,7 +807,10 @@ function renderDashboardView() {
       <div class="top-actions">
         <button class="secondary-button journal-button" id="socialBtn" type="button">${icon("users")}<span>${esc(t("social.button"))}</span></button>
         <button class="secondary-button journal-button" id="journalBtn" type="button">${icon("star")}<span>${esc(t("dashboard.journal_button"))}</span></button>
-        <button class="profile-button" id="settingsBtn" aria-label="${esc(t("settings.title"))}" title="${esc(t("settings.title"))}">${avatarMarkup(data.user.name, data.user.avatar_code)}</button>
+        <button class="profile-button" id="settingsBtn" aria-label="${esc(t("settings.title"))}" title="${esc(t("settings.title"))}">
+          ${avatarMarkup(data.user.name, data.user.avatar_code, "", data.user.id, data.user.has_avatar)}
+          <span class="profile-level">${esc(progression.level)}</span>
+        </button>
         <button class="icon-button" id="logoutBtn" aria-label="${esc(t("settings.logout"))}">${icon("log-out")}</button>
       </div>
     </div>
@@ -844,6 +868,8 @@ function renderDashboardView() {
         </button>
       </section>
 
+      ${renderGrowthPanels(data, currency, motion)}
+
       ${renderMissionPanel(data)}
 
       <section class="stat-grid">
@@ -886,8 +912,6 @@ function renderDashboardView() {
       </section>
 
       ${renderInsightsPanel(data)}
-
-      ${renderGrowthPanels(data, currency, motion)}
 
       <section class="panel">
         <div class="section-head"><div><p class="eyebrow">${esc(t("dashboard.treats_kicker"))}</p><h3>${esc(t("dashboard.treats_title"))}</h3></div></div>
@@ -1191,7 +1215,7 @@ function renderSocialFeed(feed) {
 function renderSocialEvent(event) {
   return `
     <article class="social-event">
-      ${avatarMarkup(event.user?.name || "?", event.user?.avatar_code, "social-avatar")}
+      ${avatarMarkup(event.user?.name || "?", event.user?.avatar_code, "social-avatar", event.user?.id, event.user?.has_avatar)}
       <div class="social-event-main">
         <div class="social-event-head">
           <div>
@@ -1270,7 +1294,7 @@ function renderPersonCard(person, forceFollowing = false) {
   const isFollowing = forceFollowing || Boolean(person.is_following);
   return `
     <article class="person-card">
-      ${avatarMarkup(person.name || "?", person.avatar_code, "social-avatar")}
+      ${avatarMarkup(person.name || "?", person.avatar_code, "social-avatar", person.id, person.has_avatar)}
       <div>
         <strong>${esc(person.name)}</strong>
         <span>${esc(person.email)}</span>
@@ -1295,7 +1319,7 @@ function renderSocialNotifications(notifications, unreadCount) {
 function renderSocialNotification(notification) {
   return `
     <article class="notification-card ${notification.read ? "" : "unread"}">
-      ${avatarMarkup(notification.actor?.name || "?", notification.actor?.avatar_code, "social-avatar")}
+      ${avatarMarkup(notification.actor?.name || "?", notification.actor?.avatar_code, "social-avatar", notification.actor?.id, notification.actor?.has_avatar)}
       <div>
         <strong>${esc(socialNotificationTitle(notification))}</strong>
         ${notification.body ? `<p>${esc(notification.body)}</p>` : ""}
@@ -1450,11 +1474,30 @@ function renderSettings() {
     <section class="panel">
       <div class="section-head"><div><p class="eyebrow">${esc(t("settings.kicker"))}</p><h2>${esc(t("settings.title"))}</h2></div></div>
       ${state.error ? `<div class="alert">${esc(state.error)}</div>` : ""}
+      ${state.notice ? `<div class="alert success">${esc(state.notice)}</div>` : ""}
       <form id="settingsForm" class="form-grid">
         <div class="settings-section">
           <h3>${esc(t("settings.account"))}</h3>
+          <div class="profile-photo-editor">
+            <div id="profilePhotoPreview">
+              ${avatarMarkup(data.user.name, data.user.avatar_code, "profile-photo-preview", data.user.id, data.user.has_avatar)}
+            </div>
+            <div class="profile-photo-copy">
+              <strong>${esc(t("settings.photo_title"))}</strong>
+              <span>${esc(t("settings.photo_help"))}</span>
+              <div class="profile-photo-actions">
+                <label class="secondary-button photo-file-button">
+                  ${icon("camera")}<span>${esc(t("settings.photo_choose"))}</span>
+                  <input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/webp">
+                </label>
+                <button class="primary-button" id="uploadAvatarBtn" type="button" disabled>${esc(t("settings.photo_upload"))}</button>
+                ${data.user.has_avatar ? `<button class="danger-button" id="deleteAvatarBtn" type="button">${esc(t("settings.photo_delete"))}</button>` : ""}
+              </div>
+              <small id="photoStatus" class="muted"></small>
+            </div>
+          </div>
           <fieldset class="avatar-picker">
-            <legend>${esc(t("settings.avatar"))}</legend>
+            <legend>${esc(t("settings.avatar_fallback"))}</legend>
             <div class="avatar-options">
               ${AVATAR_CODES.map((code) => `
                 <label class="avatar-option">
@@ -1510,6 +1553,77 @@ function renderSettings() {
   app.querySelector("#backDashboard").addEventListener("click", () => { state.screen = "dashboard"; state.error = ""; render(); });
   app.querySelector("#logoutSettings").addEventListener("click", logout);
   app.querySelector("#settingsForm").addEventListener("submit", saveSettings);
+  app.querySelector("#avatarFileInput").addEventListener("change", previewProfilePhoto);
+  app.querySelector("#uploadAvatarBtn").addEventListener("click", uploadProfilePhoto);
+  app.querySelector("#deleteAvatarBtn")?.addEventListener("click", deleteProfilePhoto);
+}
+
+function previewProfilePhoto(event) {
+  const file = event.currentTarget.files?.[0];
+  const status = app.querySelector("#photoStatus");
+  const uploadButton = app.querySelector("#uploadAvatarBtn");
+  const preview = app.querySelector("#profilePhotoPreview");
+  if (!file || !status || !uploadButton || !preview) return;
+
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    event.currentTarget.value = "";
+    status.textContent = t("errors.avatar_invalid");
+    uploadButton.disabled = true;
+    return;
+  }
+  if (file.size > 4 * 1024 * 1024) {
+    event.currentTarget.value = "";
+    status.textContent = t("errors.avatar_too_large");
+    uploadButton.disabled = true;
+    return;
+  }
+
+  if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
+  state.photoPreviewUrl = URL.createObjectURL(file);
+  preview.innerHTML = `<span class="user-avatar has-photo profile-photo-preview" aria-hidden="true"><img src="${esc(state.photoPreviewUrl)}" alt=""></span>`;
+  status.textContent = `${file.name} · ${Math.max(1, Math.round(file.size / 1024))} KB`;
+  uploadButton.disabled = false;
+}
+
+async function uploadProfilePhoto() {
+  const input = app.querySelector("#avatarFileInput");
+  const button = app.querySelector("#uploadAvatarBtn");
+  const file = input?.files?.[0];
+  if (!file || !button) return;
+
+  button.disabled = true;
+  button.textContent = t("settings.photo_uploading");
+  const form = new FormData();
+  form.append("avatar", file);
+
+  try {
+    const data = await apiForm("/api/profile/avatar", form);
+    if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
+    state.photoPreviewUrl = null;
+    state.dashboard = data.dashboard;
+    state.user = data.dashboard.user;
+    state.error = "";
+    state.notice = t("settings.photo_saved");
+  } catch (error) {
+    const translated = readPath(state.messages, `errors.${error.code}`);
+    state.error = typeof translated === "string" ? translated : error.message;
+  }
+  renderSettings();
+}
+
+async function deleteProfilePhoto() {
+  if (!window.confirm(t("settings.photo_delete_confirm"))) return;
+
+  try {
+    const data = await api("/api/profile/avatar/delete", { method: "POST", body: {} });
+    state.dashboard = data.dashboard;
+    state.user = data.dashboard.user;
+    state.error = "";
+    state.notice = t("settings.photo_deleted");
+  } catch (error) {
+    state.error = error.message;
+  }
+  renderSettings();
 }
 
 async function saveSettings(event) {

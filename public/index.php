@@ -19,6 +19,7 @@ if (str_starts_with($requestPath, '/api/')) {
 
 $basePath = $scriptDir === '/' ? '' : $scriptDir;
 $csrf = Csrf::token();
+$assetVersion = '18';
 ?>
 <!doctype html>
 <html lang="en">
@@ -30,7 +31,7 @@ $csrf = Csrf::token();
   <title>REACTOR: Freedom</title>
   <link rel="manifest" href="<?= htmlspecialchars($basePath, ENT_QUOTES) ?>/manifest.webmanifest">
   <link rel="icon" href="<?= htmlspecialchars($basePath, ENT_QUOTES) ?>/assets/icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES) ?>/assets/css/app.css">
+  <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES) ?>/assets/css/app.css?v=<?= $assetVersion ?>">
 </head>
 <body>
   <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
@@ -80,9 +81,10 @@ $csrf = Csrf::token();
     window.REACTOR_BOOT = {
       csrf: <?= json_encode($csrf, JSON_UNESCAPED_SLASHES) ?>,
       basePath: <?= json_encode($basePath, JSON_UNESCAPED_SLASHES) ?>,
+      assetVersion: <?= json_encode($assetVersion) ?>,
       defaultLanguage: "en"
     };
   </script>
-  <script src="<?= htmlspecialchars($basePath, ENT_QUOTES) ?>/assets/js/app.js" defer></script>
+  <script src="<?= htmlspecialchars($basePath, ENT_QUOTES) ?>/assets/js/app.js?v=<?= $assetVersion ?>" defer></script>
 </body>
 </html>

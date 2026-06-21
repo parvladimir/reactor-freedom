@@ -255,6 +255,29 @@
       "freedom": { "title": "Freedom", "body": "Control is part of your system now. Your work is to strengthen and protect it." }
     }
   },
+  "return_brief": {
+    "kicker": "The reactor kept working",
+    "title": "While you were away",
+    "subtitle": "The system made visible progress over {time}.",
+    "control": "Time in control",
+    "control_value": "+{time}",
+    "saved": "Money returned",
+    "saved_value": "+{amount}",
+    "reactor": "Reactor progress",
+    "reactor_value": "+{percent}%",
+    "new_level": "New level",
+    "new_level_value": "Lv. {level}: {title}",
+    "xp": "Experience gained",
+    "xp_value": "+{xp} XP",
+    "milestone": "New milestone unlocked",
+    "continue": "Keep moving",
+    "close": "Close summary",
+    "next_signal": "Next signal",
+    "next_title": "Until “{reward}”",
+    "next_in": "Return in about {time} to see the next shift.",
+    "next_complete_title": "The reactor is at full power",
+    "next_complete_body": "Return tomorrow for a new summary of what came back to you."
+  },
   "avatars": {
     "pulse": "Pulse",
     "nova": "Nova",
@@ -459,7 +482,20 @@
       "You do not need to win your whole life today. Win the next five minutes.",
       "Addiction asks for tax. Today you do not pay.",
       "You are not giving something up. You are taking control back.",
-      "Today's refusal is tomorrow's pride."
+      "Today's refusal is tomorrow's pride.",
+      "Freedom rarely arrives loudly. It usually begins with a quiet no.",
+      "Every hour in control makes the next choice a little easier.",
+      "You are no longer at the starting point. The system remembers.",
+      "Do not wait for perfect motivation. A clean choice works without it.",
+      "The old script may knock. You do not have to open the door."
+    ],
+    "return": [
+      "Even while you were not watching the counter, your decision kept working.",
+      "Progress needs no audience. It accumulates in every clean hour.",
+      "You came back not to restart, but to see how far you have moved.",
+      "Yesterday's control became today's numbers.",
+      "Let this summary be proof that small decisions know how to grow.",
+      "The system is stronger. Your task today is to keep its direction."
     ],
     "craving": [
       "The urge is loud, but it is temporary.",

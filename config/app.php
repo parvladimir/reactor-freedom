@@ -8,6 +8,7 @@ return [
     'env' => Env::get('APP_ENV', 'production'),
     'url' => rtrim((string) Env::get('APP_URL', ''), '/'),
     'session_name' => Env::get('SESSION_NAME', 'reactor_session'),
+    'session_lifetime_days' => max(2, (int) Env::get('SESSION_LIFETIME_DAYS', 7)),
     'languages' => ['ru', 'en', 'de'],
     'default_language' => 'en',
     'mail' => [

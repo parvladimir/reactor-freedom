@@ -255,6 +255,29 @@
       "freedom": { "title": "Freiheit", "body": "Kontrolle ist jetzt Teil deines Systems. Du stärkst und schützt sie weiter." }
     }
   },
+  "return_brief": {
+    "kicker": "Der Reaktor lief weiter",
+    "title": "Während du weg warst",
+    "subtitle": "In {time} hat das System sichtbare Fortschritte gemacht.",
+    "control": "Zeit unter Kontrolle",
+    "control_value": "+{time}",
+    "saved": "Geld zurückgewonnen",
+    "saved_value": "+{amount}",
+    "reactor": "Reaktor-Fortschritt",
+    "reactor_value": "+{percent}%",
+    "new_level": "Neues Level",
+    "new_level_value": "Lv. {level}: {title}",
+    "xp": "Erfahrung gewonnen",
+    "xp_value": "+{xp} XP",
+    "milestone": "Neuer Meilenstein",
+    "continue": "Weitergehen",
+    "close": "Zusammenfassung schließen",
+    "next_signal": "Nächstes Signal",
+    "next_title": "Bis „{reward}“",
+    "next_in": "Komm in etwa {time} zurück und sieh die nächste Veränderung.",
+    "next_complete_title": "Der Reaktor läuft auf voller Leistung",
+    "next_complete_body": "Komm morgen für eine neue Zusammenfassung zurück."
+  },
   "avatars": {
     "pulse": "Impuls",
     "nova": "Nova",
@@ -459,7 +482,20 @@
       "Du musst heute nicht dein ganzes Leben gewinnen. Gewinne die nächsten fünf Minuten.",
       "Abhängigkeit verlangt Steuer. Heute zahlst du nicht.",
       "Du gibst nichts auf. Du holst Kontrolle zurück.",
-      "Die heutige Absage ist der Stolz von morgen."
+      "Die heutige Absage ist der Stolz von morgen.",
+      "Freiheit kommt selten laut. Meist beginnt sie mit einem ruhigen Nein.",
+      "Jede Stunde unter Kontrolle macht die nächste Entscheidung leichter.",
+      "Du bist nicht mehr am Ausgangspunkt. Das System erinnert sich.",
+      "Warte nicht auf perfekte Motivation. Eine saubere Wahl wirkt auch ohne sie.",
+      "Das alte Muster kann klopfen. Du musst nicht öffnen."
+    ],
+    "return": [
+      "Auch ohne Blick auf den Zähler hat deine Entscheidung weitergewirkt.",
+      "Fortschritt braucht kein Publikum. Er wächst mit jeder sauberen Stunde.",
+      "Du bist nicht zum Neustart zurück, sondern um deinen Weg zu sehen.",
+      "Die Kontrolle von gestern ist heute zu Zahlen geworden.",
+      "Diese Zusammenfassung beweist: Kleine Entscheidungen können wachsen.",
+      "Das System ist stärker. Halte heute seine Richtung."
     ],
     "craving": [
       "Der Drang ist laut, aber kurzlebig.",

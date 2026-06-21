@@ -23,6 +23,7 @@ DB_PASS=your_password
 APP_URL=https://example.com
 APP_ENV=production
 SESSION_NAME=reactor_session
+SESSION_LIFETIME_DAYS=7
 ```
 
 ## Миграции и seed

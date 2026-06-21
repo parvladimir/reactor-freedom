@@ -69,6 +69,7 @@ const state = {
 let socialPollTimer = null;
 let socialPollBusy = false;
 let socialPollingUserId = null;
+const RETURN_BRIEF_MIN_MS = 4 * 60 * 60 * 1000;
 
 const apiPath = (path) => `${boot.basePath || ""}${path}`;
 const icon = (name) => `<svg aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
@@ -143,6 +144,24 @@ function dashboardMotion(data) {
 
   const sameStage = previous?.stage === stage;
   const sameLevel = Number(previous?.level) === Number(progression.level);
+  const seenAt = Date.parse(previous?.seen_at || "");
+  const awayMs = Number.isFinite(seenAt) ? Math.max(0, Date.now() - seenAt) : 0;
+  const previousControlHours = Number(previous?.control_hours);
+  const controlHoursDelta = Number.isFinite(previousControlHours)
+    ? Math.max(0, Number(data.reactor.control_hours || 0) - previousControlHours)
+    : 0;
+  const savedDelta = Math.max(0, Number(data.money.saved_total || 0) - Number(previous?.saved_total || 0));
+  const xpDelta = Math.max(0, Number(progression.xp || 0) - Number(previous?.xp || 0));
+  const reactorDelta = sameStage ? Math.max(0, targetPercent - Number(previous?.percent || 0)) : 0;
+  const levelChanged = Boolean(previous) && Number(progression.level || 1) > Number(previous?.level || 1);
+  const unlockedRewards = Array.isArray(data.unlocked_now) ? data.unlocked_now : [];
+  const hasReturnProgress = controlHoursDelta >= 1
+    || savedDelta >= 0.01
+    || xpDelta > 0
+    || reactorDelta >= 1
+    || levelChanged
+    || unlockedRewards.length > 0;
+
   return {
     key,
     stage,
@@ -151,7 +170,16 @@ function dashboardMotion(data) {
     reactorTo: targetPercent,
     xpFrom: sameLevel ? Math.min(Number(progression.xp || 0), Math.max(0, Number(previous?.xp || 0))) : Number(progression.level_start_xp || 0),
     xpPercentFrom: sameLevel ? Math.min(Number(progression.progress_percent || 0), Math.max(0, Number(previous?.xp_percent || 0))) : 0,
-    savedFrom: Math.min(Number(data.money.saved_total || 0), Math.max(0, Number(previous?.saved_total || 0)))
+    savedFrom: Math.min(Number(data.money.saved_total || 0), Math.max(0, Number(previous?.saved_total || 0))),
+    returnBrief: previous && awayMs >= RETURN_BRIEF_MIN_MS && hasReturnProgress ? {
+      awayMs,
+      controlHoursDelta,
+      savedDelta,
+      xpDelta,
+      reactorDelta,
+      levelChanged,
+      unlockedRewards
+    } : null
   };
 }
 
@@ -178,6 +206,8 @@ function animateDashboardProgress(data, motion, currency) {
     xp: progression.xp,
     xp_percent: progression.progress_percent,
     saved_total: data.money.saved_total,
+    control_hours: data.reactor.control_hours,
+    control_days: data.reactor.control_days,
     seen_at: new Date().toISOString()
   }));
 
@@ -198,10 +228,110 @@ function animateDashboardProgress(data, motion, currency) {
       requestAnimationFrame(frame);
     } else {
       ringWrap?.classList.remove("is-counting");
+      window.setTimeout(() => openReturnBrief(data, motion, currency), reduceMotion ? 120 : 360);
     }
   }
 
   requestAnimationFrame(frame);
+}
+
+function returnBriefItems(data, motion, currency) {
+  const brief = motion.returnBrief;
+  if (!brief) return [];
+  const progression = data.progression || {};
+  const items = [];
+
+  if (brief.levelChanged) {
+    items.push({
+      icon: "trophy",
+      token: "token-violet",
+      label: t("return_brief.new_level"),
+      value: t("return_brief.new_level_value", { level: progression.level, title: t(progression.title_key) })
+    });
+  } else if (brief.xpDelta > 0) {
+    items.push({
+      icon: "trophy",
+      token: "token-violet",
+      label: t("return_brief.xp"),
+      value: t("return_brief.xp_value", { xp: Math.round(brief.xpDelta) })
+    });
+  }
+
+  if (brief.controlHoursDelta >= 1) {
+    items.push({
+      icon: "shield",
+      token: "token-green",
+      label: t("return_brief.control"),
+      value: t("return_brief.control_value", { time: duration(brief.controlHoursDelta) })
+    });
+  }
+
+  if (brief.savedDelta >= 0.01) {
+    items.push({
+      icon: "money",
+      token: "token-green",
+      label: t("return_brief.saved"),
+      value: t("return_brief.saved_value", { amount: money(brief.savedDelta, currency) })
+    });
+  }
+
+  if (!brief.unlockedRewards.length && brief.reactorDelta >= 1) {
+    items.push({
+      icon: "reactor",
+      token: "token-blue",
+      label: t("return_brief.reactor"),
+      value: t("return_brief.reactor_value", { percent: Math.round(brief.reactorDelta) })
+    });
+  }
+
+  brief.unlockedRewards.slice(0, 2).forEach((reward) => {
+    items.push({
+      icon: "star",
+      token: "token-gold",
+      label: t("return_brief.milestone"),
+      value: t(reward.title_key)
+    });
+  });
+
+  return items.slice(0, 4);
+}
+
+function openReturnBrief(data, motion, currency) {
+  if (!motion.returnBrief || state.screen !== "dashboard" || modalRoot.childElementCount > 0) return;
+  const items = returnBriefItems(data, motion, currency);
+  if (!items.length) return;
+
+  const away = duration(motion.returnBrief.awayMs / 3600000);
+  modalRoot.innerHTML = `
+    <div class="modal return-brief-overlay" role="dialog" aria-modal="true" aria-labelledby="returnBriefTitle">
+      <div class="modal-card return-brief-modal">
+        <button class="icon-button close-button" id="closeReturnBrief" type="button" aria-label="${esc(t("return_brief.close"))}">${icon("x")}</button>
+        <div class="return-brief-orbit" aria-hidden="true">
+          <span>${icon("reactor")}</span>
+        </div>
+        <div class="return-brief-heading">
+          <p class="eyebrow">${esc(t("return_brief.kicker"))}</p>
+          <h2 id="returnBriefTitle">${esc(t("return_brief.title"))}</h2>
+          <p>${esc(t("return_brief.subtitle", { time: away }))}</p>
+        </div>
+        <div class="return-brief-grid">
+          ${items.map((item) => `
+            <div class="return-brief-item">
+              <span class="icon-token ${esc(item.token)}">${icon(item.icon)}</span>
+              <div><small>${esc(item.label)}</small><strong>${esc(item.value)}</strong></div>
+            </div>`).join("")}
+        </div>
+        <blockquote>${esc(mentorPhrase("return"))}</blockquote>
+        <button class="primary-button full" id="continueReturnBrief" type="button">${esc(t("return_brief.continue"))}</button>
+      </div>
+    </div>`;
+
+  const close = () => closeModal();
+  modalRoot.querySelector("#closeReturnBrief").addEventListener("click", close);
+  modalRoot.querySelector("#continueReturnBrief").addEventListener("click", close);
+  modalRoot.querySelector(".return-brief-overlay").addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) close();
+  });
 }
 
 function startSocialNotificationPolling() {
@@ -447,7 +577,7 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register(apiPath("/service-worker.js")).catch(() => {});
+      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "18")}`)).catch(() => {});
     });
   }
 }
@@ -1001,6 +1131,7 @@ function renderDashboardView() {
               <p class="muted">${esc(t("dashboard.missions_text"))}</p>
             </div>
           </div>
+          ${renderNextSignal(data)}
         </div>
       </section>
 
@@ -1121,6 +1252,28 @@ function renderDashboardView() {
   animateDashboardProgress(data, motion, currency);
   startSocialNotificationPolling();
   updateSocialBadges();
+}
+
+function renderNextSignal(data) {
+  const nextReward = data.reactor?.next_reward;
+  if (!nextReward) {
+    return `
+      <div class="next-signal">
+        <span class="next-signal-icon">${icon("bell")}</span>
+        <div><small>${esc(t("return_brief.next_signal"))}</small><strong>${esc(t("return_brief.next_complete_title"))}</strong><span>${esc(t("return_brief.next_complete_body"))}</span></div>
+      </div>`;
+  }
+
+  const remainingHours = Math.max(1, Math.ceil(Number(nextReward.required_hours || 0) - Number(data.reactor.control_hours || 0)));
+  return `
+    <div class="next-signal">
+      <span class="next-signal-icon">${icon("bell")}</span>
+      <div>
+        <small>${esc(t("return_brief.next_signal"))}</small>
+        <strong>${esc(t("return_brief.next_title", { reward: t(nextReward.title_key) }))}</strong>
+        <span>${esc(t("return_brief.next_in", { time: duration(remainingHours) }))}</span>
+      </div>
+    </div>`;
 }
 
 function renderGrowthPanels(data, currency, motion) {

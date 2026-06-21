@@ -26,14 +26,17 @@ $app = require REACTOR_ROOT . '/config/app.php';
 
 if (PHP_SAPI !== 'cli' && session_status() !== PHP_SESSION_ACTIVE) {
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    $sessionLifetime = max(2, (int) ($app['session_lifetime_days'] ?? 7)) * 86400;
     $sessionPath = REACTOR_ROOT . '/storage/sessions';
     if (!is_dir($sessionPath)) {
         mkdir($sessionPath, 0775, true);
     }
     session_save_path($sessionPath);
     session_name((string) $app['session_name']);
+    ini_set('session.gc_maxlifetime', (string) $sessionLifetime);
+    ini_set('session.use_strict_mode', '1');
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => $sessionLifetime,
         'path' => '/',
         'domain' => '',
         'secure' => $secure,
@@ -41,6 +44,14 @@ if (PHP_SAPI !== 'cli' && session_status() !== PHP_SESSION_ACTIVE) {
         'samesite' => 'Lax',
     ]);
     session_start();
+    setcookie(session_name(), session_id(), [
+        'expires' => time() + $sessionLifetime,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 }
 
 if (PHP_SAPI !== 'cli') {

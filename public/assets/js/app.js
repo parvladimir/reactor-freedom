@@ -2,6 +2,8 @@ const boot = window.REACTOR_BOOT || { csrf: "", basePath: "", defaultLanguage: "
 const app = document.getElementById("app");
 const modalRoot = document.getElementById("modal-root");
 
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
 const state = {
   lang: localStorage.getItem("reactor_lang") || boot.defaultLanguage || "en",
   messages: {},
@@ -13,6 +15,7 @@ const state = {
   errorCode: "",
   notice: "",
   photoPreviewUrl: null,
+  enterDashboardAtTop: false,
   pendingVerificationEmail: "",
   loading: false,
   social: {
@@ -21,6 +24,7 @@ const state = {
     data: null,
     query: "",
     results: [],
+    unreadCount: 0,
     notice: "",
     invite: {
       email: "",
@@ -61,6 +65,10 @@ const state = {
     action: ""
   }
 };
+
+let socialPollTimer = null;
+let socialPollBusy = false;
+let socialPollingUserId = null;
 
 const apiPath = (path) => `${boot.basePath || ""}${path}`;
 const icon = (name) => `<svg aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
@@ -154,11 +162,14 @@ function animateDashboardProgress(data, motion, currency) {
   const xpValue = app.querySelector("#xpValueAnimated");
   const xpFill = app.querySelector("#xpProgressAnimated");
   const savedValue = app.querySelector("#savedTotalAnimated");
+  const ringWrap = app.querySelector(".ring-wrap");
   const radius = 96;
   const circumference = 2 * Math.PI * radius;
   const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const durationMs = reduceMotion ? 0 : 1450;
+  const durationMs = reduceMotion ? 0 : 2100;
   const startedAt = performance.now();
+
+  if (motion.reactorTo !== motion.reactorFrom) ringWrap?.classList.add("is-counting");
 
   localStorage.setItem(motion.key, JSON.stringify({
     stage: motion.stage,
@@ -183,10 +194,142 @@ function animateDashboardProgress(data, motion, currency) {
     if (xpValue) xpValue.textContent = t("progression.xp_value", { xp: Math.round(xp) });
     if (xpFill) xpFill.style.width = `${xpPercent}%`;
     if (savedValue) savedValue.textContent = money(saved, currency);
-    if (raw < 1) requestAnimationFrame(frame);
+    if (raw < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      ringWrap?.classList.remove("is-counting");
+    }
   }
 
   requestAnimationFrame(frame);
+}
+
+function startSocialNotificationPolling() {
+  const userId = Number(state.user?.id || 0);
+  if (!userId) return;
+  if (socialPollingUserId === userId && socialPollTimer) {
+    updateSocialBadges();
+    return;
+  }
+
+  stopSocialNotificationPolling();
+  socialPollingUserId = userId;
+  void pollSocialNotifications();
+  socialPollTimer = window.setInterval(pollSocialNotifications, 20000);
+}
+
+function stopSocialNotificationPolling() {
+  if (socialPollTimer) window.clearInterval(socialPollTimer);
+  socialPollTimer = null;
+  socialPollBusy = false;
+  socialPollingUserId = null;
+}
+
+async function pollSocialNotifications() {
+  if (socialPollBusy || !state.user?.id) return;
+  socialPollBusy = true;
+
+  try {
+    const data = await api("/api/social/notifications/poll");
+    const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+    state.social.unreadCount = Number(data.unread_count || 0);
+    if (state.social.data) {
+      state.social.data.notifications = notifications;
+      state.social.data.unread_count = state.social.unreadCount;
+    }
+    updateSocialBadges();
+
+    const storageKey = `reactor_social_notice_${state.user.id}`;
+    const lastAnnouncedId = Number(localStorage.getItem(storageKey) || 0);
+    const fresh = notifications
+      .filter((notification) => !notification.read && Number(notification.id) > lastAnnouncedId)
+      .sort((a, b) => Number(a.id) - Number(b.id));
+
+    fresh.slice(-3).forEach((notification) => {
+      showSocialToast(notification);
+      void showBrowserSocialNotification(notification);
+    });
+
+    const newestId = notifications.reduce((max, notification) => Math.max(max, Number(notification.id || 0)), lastAnnouncedId);
+    if (newestId > lastAnnouncedId) localStorage.setItem(storageKey, String(newestId));
+  } catch {
+    // The dashboard stays usable if a background notification check fails.
+  } finally {
+    socialPollBusy = false;
+  }
+}
+
+function updateSocialBadges() {
+  const count = Number(state.social.unreadCount || 0);
+  document.querySelectorAll("[data-social-unread]").forEach((badge) => {
+    badge.textContent = count > 99 ? "99+" : String(count);
+    badge.hidden = count < 1;
+  });
+}
+
+function showSocialToast(notification) {
+  const stack = app.querySelector("#socialToastStack");
+  if (!stack || stack.querySelector(`[data-notification-id="${Number(notification.id)}"]`)) return;
+
+  const toast = document.createElement("button");
+  toast.type = "button";
+  toast.className = "social-toast";
+  toast.dataset.notificationId = String(notification.id);
+  toast.innerHTML = `
+    ${avatarMarkup(notification.actor?.name || "?", notification.actor?.avatar_code, "social-toast-avatar", notification.actor?.id, notification.actor?.has_avatar)}
+    <span><strong>${esc(socialNotificationTitle(notification))}</strong>${notification.body ? `<small>${esc(notification.body)}</small>` : ""}</span>`;
+  toast.addEventListener("click", () => {
+    toast.remove();
+    void openSocialModal("notifications");
+  });
+  stack.appendChild(toast);
+  window.setTimeout(() => toast.remove(), 7500);
+}
+
+async function showBrowserSocialNotification(notification) {
+  if (!("Notification" in window) || Notification.permission !== "granted" || document.visibilityState === "visible") return;
+
+  const title = socialNotificationTitle(notification);
+  const options = {
+    body: notification.body || t("social.notification_open"),
+    icon: apiPath("/assets/icons/icon.svg"),
+    badge: apiPath("/assets/icons/icon.svg"),
+    tag: `reactor-social-${notification.id}`,
+    data: { url: `${location.pathname}?social=notifications` }
+  };
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, options);
+    } else {
+      new Notification(title, options);
+    }
+  } catch {
+    // In-app notifications remain available when the browser blocks system notifications.
+  }
+}
+
+function notificationPermissionMarkup() {
+  if (!("Notification" in window)) {
+    return `<span class="notification-permission-state">${esc(t("social.browser_notifications_unsupported"))}</span>`;
+  }
+  if (Notification.permission === "granted") {
+    return `<span class="notification-permission-state enabled">${icon("bell")}${esc(t("social.browser_notifications_enabled"))}</span>`;
+  }
+  if (Notification.permission === "denied") {
+    return `<span class="notification-permission-state">${esc(t("social.browser_notifications_denied"))}</span>`;
+  }
+  return `<button class="secondary-button compact-action" id="enableBrowserNotifications" type="button">${icon("bell")}${esc(t("social.browser_notifications_enable"))}</button>`;
+}
+
+async function enableBrowserNotifications() {
+  if (!("Notification" in window)) return;
+  const permission = await Notification.requestPermission();
+  state.social.notice = permission === "granted"
+    ? t("social.browser_notifications_enabled")
+    : t("social.browser_notifications_denied");
+  renderSocialModal();
 }
 
 function flattenPhrases() {
@@ -256,6 +399,7 @@ async function loadDashboard() {
   state.dashboard = data;
   state.user = data.user;
   state.screen = data.onboarding_completed ? "dashboard" : "onboarding";
+  state.enterDashboardAtTop = state.screen === "dashboard";
 }
 
 async function init() {
@@ -295,6 +439,11 @@ async function init() {
     state.error = error.code === "email_verification_invalid" ? t("auth.email_verify_failed") : error.message;
   }
   render();
+
+  if (state.screen === "dashboard" && urlParams.get("social") === "notifications") {
+    window.history.replaceState({}, document.title, location.pathname);
+    requestAnimationFrame(() => openSocialModal("notifications"));
+  }
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
@@ -752,6 +901,7 @@ async function finishOnboarding() {
     state.dashboard = data.dashboard;
     state.user = data.dashboard.user;
     state.screen = "dashboard";
+    state.enterDashboardAtTop = true;
   } catch (error) {
     state.error = error.message;
   } finally {
@@ -805,8 +955,9 @@ function renderDashboardView() {
     <div class="topbar">
       ${renderBrand(true)}
       <div class="top-actions">
-        <button class="secondary-button journal-button" id="socialBtn" type="button">${icon("users")}<span>${esc(t("social.button"))}</span></button>
+        <button class="secondary-button journal-button notification-anchor" id="socialBtn" type="button">${icon("users")}<span>${esc(t("social.button"))}</span><b class="unread-badge" data-social-unread hidden>0</b></button>
         <button class="secondary-button journal-button" id="journalBtn" type="button">${icon("star")}<span>${esc(t("dashboard.journal_button"))}</span></button>
+        <button class="icon-button notification-anchor" id="notificationBtn" type="button" aria-label="${esc(t("social.notifications"))}">${icon("bell")}<b class="unread-badge" data-social-unread hidden>0</b></button>
         <button class="profile-button" id="settingsBtn" aria-label="${esc(t("settings.title"))}" title="${esc(t("settings.title"))}">
           ${avatarMarkup(data.user.name, data.user.avatar_code, "", data.user.id, data.user.has_avatar)}
           <span class="profile-level">${esc(progression.level)}</span>
@@ -940,17 +1091,36 @@ function renderDashboardView() {
             </div>`).join("")}
         </div>
       </section>
-    </main>`;
+    </main>
+    <nav class="mobile-nav" aria-label="${esc(t("navigation.label"))}">
+      <button class="active" id="mobileHome" type="button">${icon("reactor")}<span>${esc(t("navigation.home"))}</span></button>
+      <button id="mobileProgress" type="button">${icon("trophy")}<span>${esc(t("navigation.progress"))}</span></button>
+      <button class="notification-anchor" id="mobileSocial" type="button">${icon("users")}<span>${esc(t("navigation.social"))}</span><b class="unread-badge" data-social-unread hidden>0</b></button>
+      <button id="mobileProfile" type="button">${icon("settings")}<span>${esc(t("navigation.profile"))}</span></button>
+    </nav>
+    <div class="social-toast-stack" id="socialToastStack" aria-live="polite"></div>`;
+
+  if (state.enterDashboardAtTop) {
+    state.enterDashboardAtTop = false;
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  }
 
   app.querySelector("#socialBtn").addEventListener("click", () => openSocialModal("feed"));
   app.querySelector("#journalBtn").addEventListener("click", openJournalModal);
+  app.querySelector("#notificationBtn").addEventListener("click", () => openSocialModal("notifications"));
   app.querySelector("#settingsBtn").addEventListener("click", () => { state.screen = "settings"; state.notice = ""; render(); });
   app.querySelector("#logoutBtn").addEventListener("click", logout);
   app.querySelector("#cravingBtn").addEventListener("click", openCraving);
   app.querySelector("#shareBtn").addEventListener("click", openShareModal);
   app.querySelectorAll("[data-checkin]").forEach((button) => button.addEventListener("click", () => saveCheckin(button.dataset.checkin)));
   app.querySelectorAll("[data-incident]").forEach((button) => button.addEventListener("click", () => openIncident(button.dataset.incident)));
+  app.querySelector("#mobileHome").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+  app.querySelector("#mobileProgress").addEventListener("click", () => app.querySelector(".progression-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  app.querySelector("#mobileSocial").addEventListener("click", () => openSocialModal("feed"));
+  app.querySelector("#mobileProfile").addEventListener("click", () => { state.screen = "settings"; state.notice = ""; render(); });
   animateDashboardProgress(data, motion, currency);
+  startSocialNotificationPolling();
+  updateSocialBadges();
 }
 
 function renderGrowthPanels(data, currency, motion) {
@@ -1151,6 +1321,8 @@ async function openSocialModal(view = "feed") {
   try {
     const data = await api("/api/social");
     state.social.data = data;
+    state.social.unreadCount = Number(data.unread_count || 0);
+    updateSocialBadges();
   } catch (error) {
     state.social.notice = error.message;
   }
@@ -1174,7 +1346,7 @@ function socialShell(loading = false) {
 function renderSocialModal() {
   modalRoot.innerHTML = socialShell(false);
   const content = modalRoot.querySelector("#socialContent");
-  const data = state.social.data || { feed: [], following: [], followers: [], notifications: [], unread_count: 0 };
+  const data = state.social.data || { feed: [], following: [], followers: [], notifications: [], unread_count: state.social.unreadCount };
   content.innerHTML = `
     <div class="social-tabs" role="tablist">
       ${socialTab("feed", t("social.feed"), data.feed?.length || 0)}
@@ -1307,6 +1479,10 @@ function renderPersonCard(person, forceFollowing = false) {
 
 function renderSocialNotifications(notifications, unreadCount) {
   return `
+    <div class="notification-permission">
+      <div><strong>${esc(t("social.browser_notifications_title"))}</strong><span>${esc(t("social.browser_notifications_body"))}</span></div>
+      ${notificationPermissionMarkup()}
+    </div>
     <div class="notification-head">
       <span>${esc(t("social.unread_count", { count: unreadCount }))}</span>
       <button class="secondary-button compact-action" id="markSocialRead" type="button">${esc(t("social.mark_read"))}</button>
@@ -1344,6 +1520,7 @@ function attachSocialEvents() {
   modalRoot.querySelectorAll("[data-like-log]").forEach((button) => button.addEventListener("click", () => likeSocialEvent(Number(button.dataset.likeLog))));
   modalRoot.querySelectorAll("[data-support-log]").forEach((button) => button.addEventListener("click", () => sendSocialSupport(Number(button.dataset.supportLog))));
   modalRoot.querySelector("#markSocialRead")?.addEventListener("click", markSocialNotificationsRead);
+  modalRoot.querySelector("#enableBrowserNotifications")?.addEventListener("click", enableBrowserNotifications);
 }
 
 async function searchSocialPeople(event) {
@@ -1420,6 +1597,8 @@ async function sendSocialSupport(logId) {
 async function markSocialNotificationsRead() {
   const data = await api("/api/social/notifications/read", { method: "POST", body: {} });
   state.social.data = data;
+  state.social.unreadCount = Number(data.unread_count || 0);
+  updateSocialBadges();
   renderSocialModal();
 }
 
@@ -1663,6 +1842,7 @@ async function saveSettings(event) {
     state.dashboard = data.dashboard;
     if (body.language !== state.lang) await loadLanguage(body.language);
     state.screen = "dashboard";
+    state.enterDashboardAtTop = true;
     state.notice = t("settings.saved");
   } catch (error) {
     state.error = error.message;
@@ -1671,6 +1851,7 @@ async function saveSettings(event) {
 }
 
 async function logout() {
+  stopSocialNotificationPolling();
   try {
     await api("/api/logout", { method: "POST", body: {} });
   } catch {}
@@ -1682,6 +1863,7 @@ async function logout() {
   state.screen = "auth";
   state.authMode = "login";
   state.notice = "";
+  state.social.unreadCount = 0;
   render();
 }
 
@@ -2173,5 +2355,9 @@ function closeModal() {
   clearInterval(state.craving.timer);
   modalRoot.innerHTML = "";
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && state.user?.id) void pollSocialNotifications();
+});
 
 init();

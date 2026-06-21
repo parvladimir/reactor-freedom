@@ -10,6 +10,13 @@
     "next": "Weiter",
     "important": "Wichtig:"
   },
+  "navigation": {
+    "label": "App-Navigation",
+    "home": "Start",
+    "progress": "Fortschritt",
+    "social": "Freunde",
+    "profile": "Profil"
+  },
   "time": {
     "hours": "{hours}h",
     "days_hours": "{days}T {hours}h",
@@ -326,6 +333,13 @@
     "notice_like": "{name} mag deinen Fortschritt.",
     "notice_support": "{name} hat Unterstützung gesendet.",
     "notice_generic": "{name} hat reagiert.",
+    "notification_open": "Öffne die App, um die Details zu sehen.",
+    "browser_notifications_title": "Gerätebenachrichtigungen",
+    "browser_notifications_body": "Likes, neue Follower und Unterstützung erscheinen als Systemmeldung, solange die App läuft.",
+    "browser_notifications_enable": "Benachrichtigungen aktivieren",
+    "browser_notifications_enabled": "Systembenachrichtigungen aktiviert",
+    "browser_notifications_denied": "Benachrichtigungen sind in den Browser-Einstellungen blockiert",
+    "browser_notifications_unsupported": "Dieser Browser unterstützt keine Systembenachrichtigungen",
     "followed": "Du folgst dieser Person jetzt.",
     "unfollowed": "Du folgst dieser Person nicht mehr.",
     "support_sent": "Unterstützung gesendet."

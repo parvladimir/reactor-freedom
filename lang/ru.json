@@ -10,6 +10,13 @@
     "next": "Дальше",
     "important": "Важно:"
   },
+  "navigation": {
+    "label": "Навигация приложения",
+    "home": "Главная",
+    "progress": "Прогресс",
+    "social": "Друзья",
+    "profile": "Профиль"
+  },
   "time": {
     "hours": "{hours}ч",
     "days_hours": "{days}д {hours}ч",
@@ -326,6 +333,13 @@
     "notice_like": "{name} поставил лайк твоему прогрессу.",
     "notice_support": "{name} отправил поддержку.",
     "notice_generic": "{name} отреагировал.",
+    "notification_open": "Открой приложение, чтобы посмотреть подробности.",
+    "browser_notifications_title": "Уведомления на устройстве",
+    "browser_notifications_body": "Лайки, подписки и поддержка будут появляться системным уведомлением, пока приложение запущено.",
+    "browser_notifications_enable": "Включить уведомления",
+    "browser_notifications_enabled": "Системные уведомления включены",
+    "browser_notifications_denied": "Уведомления запрещены в настройках браузера",
+    "browser_notifications_unsupported": "Этот браузер не поддерживает системные уведомления",
     "followed": "Теперь ты следишь за этим человеком.",
     "unfollowed": "Ты больше не следишь за этим человеком.",
     "support_sent": "Поддержка отправлена."

@@ -10,6 +10,13 @@
     "next": "Next",
     "important": "Important:"
   },
+  "navigation": {
+    "label": "App navigation",
+    "home": "Home",
+    "progress": "Progress",
+    "social": "Friends",
+    "profile": "Profile"
+  },
   "time": {
     "hours": "{hours}h",
     "days_hours": "{days}d {hours}h",
@@ -326,6 +333,13 @@
     "notice_like": "{name} liked your progress.",
     "notice_support": "{name} sent support.",
     "notice_generic": "{name} reacted.",
+    "notification_open": "Open the app to see the details.",
+    "browser_notifications_title": "Device notifications",
+    "browser_notifications_body": "Likes, follows and support will appear as system notifications while the app is running.",
+    "browser_notifications_enable": "Enable notifications",
+    "browser_notifications_enabled": "System notifications enabled",
+    "browser_notifications_denied": "Notifications are blocked in browser settings",
+    "browser_notifications_unsupported": "This browser does not support system notifications",
     "followed": "You are following this person now.",
     "unfollowed": "You unfollowed this person.",
     "support_sent": "Support sent."

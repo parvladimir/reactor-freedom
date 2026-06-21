@@ -96,6 +96,7 @@ final class ApiController
             'POST /api/social/like' => $this->socialLike(),
             'POST /api/social/support' => $this->socialSupport(),
             'POST /api/social/invite' => $this->socialInvite(),
+            'GET /api/social/notifications/poll' => $this->socialNotificationsPoll(),
             'POST /api/social/notifications/read' => $this->socialNotificationsRead(),
             'GET /api/rewards' => $this->rewards(),
             'GET /api/logs' => $this->logs(),
@@ -560,6 +561,15 @@ final class ApiController
         $this->social->markNotificationsRead($userId);
 
         Response::ok($this->social->summary($userId));
+    }
+
+    private function socialNotificationsPoll(): never
+    {
+        $userId = AuthMiddleware::userId();
+        Response::ok([
+            'notifications' => $this->social->notifications($userId, 12),
+            'unread_count' => $this->social->unreadCount($userId),
+        ]);
     }
 
     private function rewards(): never

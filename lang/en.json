@@ -85,7 +85,7 @@
   "errors": {
     "generic": "Something went wrong.",
     "choose_habit": "Choose at least one habit.",
-    "choose_reason": "Choose your main reason.",
+    "choose_reason": "Choose at least one reason.",
     "goal_amount": "Goal amount must be greater than zero.",
     "avatar_invalid": "Choose a valid JPG, PNG or WebP image.",
     "avatar_too_large": "The photo must be no larger than 4 MB."
@@ -104,7 +104,8 @@
       { "value": ["alcohol"], "icon": "alcohol", "token": "token-blue", "title": "Alcohol", "body": "Track sober time, risky moments and weekly spending." },
       { "value": ["smoking", "alcohol"], "icon": "reactor", "token": "token-violet", "title": "Both", "body": "Run a combined control system for both habits." }
     ],
-    "reason_title": "What is your main reason?",
+    "reason_title": "What are you changing these habits for?",
+    "reason_subtitle": "Choose more than one reason. The reactor will use them for personal signals on your dashboard.",
     "reason_options": [
       { "code": "health", "icon": "shield", "token": "token-green", "title": "Health", "body": "More breath, sleep and steady energy." },
       { "code": "money", "icon": "money", "token": "token-gold", "title": "Money", "body": "Turn old spending into visible progress." },
@@ -131,7 +132,7 @@
     "summary_kicker": "Confirmation",
     "summary_title": "Ready to start the reactor",
     "summary_habits": "Target",
-    "summary_reason": "Main reason",
+    "summary_reason": "Your reasons",
     "summary_goal": "Financial goal",
     "summary_savings": "Estimated savings",
     "launch": "Launch reactor"
@@ -146,6 +147,7 @@
   ],
   "dashboard": {
     "journal_button": "Journal",
+    "personal_signal": "Your personal signal",
     "missions_kicker": "Daily missions",
     "missions_title": "Control quests",
     "missions_text": "Small actions that keep today from drifting back to autopilot.",
@@ -232,6 +234,36 @@
     "logs_title": "Journal",
     "empty_logs": "The journal is empty. The first clean day is already becoming history.",
     "checkin_saved": "Daily check saved."
+  },
+  "health_visual": {
+    "kicker": "Living circuit",
+    "title": "How your system is recovering",
+    "mode_smoking": "smoke-free",
+    "mode_alcohol": "alcohol-free",
+    "mode_both": "dual recovery",
+    "figure_label": "Visual body recovery circuit",
+    "visual_progress": "visual stage",
+    "now": "Now",
+    "stage_percent": "{percent}% of stage",
+    "stages": {
+      "start": "The system is online",
+      "cleaning": "Your body is changing rhythm",
+      "adaptation": "The new pattern is settling in",
+      "stability": "Recovery is gaining depth",
+      "momentum": "Long-term progress is working"
+    },
+    "mode_body_smoking": "After quitting cigarettes, positive changes begin quickly and continue over months and years.",
+    "mode_body_alcohol": "Less alcohol can support sleep, energy and mood while reducing long-term strain on the body.",
+    "mode_body_both": "Your body gains more room for breathing, sleep, energy and steady cardiovascular function at the same time.",
+    "systems": {
+      "blood": { "title": "Blood and oxygen", "body": "During the first days, nicotine and carbon monoxide levels in the blood fall." },
+      "lungs": { "title": "Lungs and breathing", "body": "Over time, coughing and shortness of breath can decrease and breathing may feel easier." },
+      "heart": { "title": "Heart and circulation", "body": "Cardiovascular risks gradually fall as the change is maintained." },
+      "energy": { "title": "Energy and tone", "body": "Sleep, mornings and daytime energy can become more consistent." },
+      "sleep": { "title": "Sleep and focus", "body": "Cutting down alcohol can support deeper sleep, mood and clearer mornings." },
+      "balance": { "title": "Whole-body balance", "body": "Long-term strain on the heart, liver, kidneys and metabolism can decrease." }
+    },
+    "disclaimer": "This is a motivational visualization of general progress, not a medical diagnosis. The pace of change is individual."
   },
   "progression": {
     "kicker": "Progression",
@@ -426,6 +458,8 @@
     "photo_delete_confirm": "Delete your profile photo?",
     "photo_saved": "Profile photo updated.",
     "photo_deleted": "Photo deleted. Your selected fallback style is active.",
+    "motivation_title": "Reasons that hold your course",
+    "motivation_body": "Choose several motives. Dashboard messages will draw directly from them.",
     "goal": "Financial goal",
     "smoking": "Cigarette parameters",
     "alcohol": "Alcohol parameters",
@@ -497,6 +531,42 @@
       "Let this summary be proof that small decisions know how to grow.",
       "The system is stronger. Your task today is to keep its direction."
     ],
+    "reasons": {
+      "health": [
+        "Every clean choice gives your body time to do its work.",
+        "Today you are not borrowing health from your future self.",
+        "Easier breathing and steadier energy begin with one decision.",
+        "Your body remembers the hours you returned to it, not the promises."
+      ],
+      "money": [
+        "Today your money works for your life again, not the habit.",
+        "Every clean day moves old spending toward a real goal.",
+        "You are not saving on yourself. You are ending the habit's funding.",
+        "The amount grows because control became an action."
+      ],
+      "family": [
+        "The people close to you get more of your presence, not perfection.",
+        "Today's choice becomes calmer time beside your family.",
+        "You build an example through repeated choices, not speeches.",
+        "Attention returned to you can return to the people who matter."
+      ],
+      "control": [
+        "The impulse may appear, but the decision still belongs to you.",
+        "Control grows whenever a pause appears between craving and action.",
+        "You have already proved that the old command is optional.",
+        "You set today's course, not the old script."
+      ],
+      "energy": [
+        "Build today's charge from sleep, movement and a clean choice.",
+        "Your body is learning to answer with energy the habit no longer takes.",
+        "Every clean day frees capacity for forward motion.",
+        "Do not chase a sharp burst. Build power that remains."
+      ],
+      "custom": [
+        "Your own reason matters more than any universal advice.",
+        "Return to the reason you chose yourself. It already points forward."
+      ]
+    },
     "craving": [
       "The urge is loud, but it is temporary.",
       "Pause first. Decide later.",

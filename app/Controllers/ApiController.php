@@ -293,10 +293,15 @@ final class ApiController
         if ($habits === [] || array_diff($habits, ['smoking', 'alcohol']) !== []) {
             Response::error('Choose at least one habit.', 422, 'invalid_habits');
         }
+        $motivationReasons = $this->motivationReasons($data);
+        if ($motivationReasons === []) {
+            Response::error('Choose at least one reason.', 422, 'invalid_reasons');
+        }
 
         $payload = [
             'habits' => $habits,
-            'main_reason' => Input::string($data, 'main_reason'),
+            'main_reason' => $motivationReasons[0],
+            'motivation_reasons' => $motivationReasons,
             'custom_reason' => Input::string($data, 'custom_reason') ?: null,
             'goal_title' => Input::string($data, 'goal_title'),
             'goal_amount' => max(1, Input::number($data, 'goal_amount', 1)),
@@ -319,6 +324,10 @@ final class ApiController
         $language = I18n::normalize(Input::string($data, 'language', 'en'));
         $name = Input::string($data, 'name');
         $avatarCode = Input::string($data, 'avatar_code', 'pulse');
+        $motivationReasons = $this->motivationReasons($data);
+        if ($motivationReasons === []) {
+            Response::error('Choose at least one reason.', 422, 'invalid_reasons');
+        }
 
         if ($name !== '' && strlen($name) <= 80) {
             $this->users->touchName($userId, $name);
@@ -330,7 +339,8 @@ final class ApiController
 
         $this->app->updateSettings($userId, [
             'currency' => strtoupper(substr(Input::string($data, 'currency', 'EUR'), 0, 3)),
-            'main_reason' => Input::string($data, 'main_reason'),
+            'main_reason' => $motivationReasons[0] ?? '',
+            'motivation_reasons' => $motivationReasons,
             'custom_reason' => Input::string($data, 'custom_reason') ?: null,
             'goal_title' => Input::string($data, 'goal_title'),
             'goal_amount' => max(1, Input::number($data, 'goal_amount', 1)),
@@ -341,6 +351,21 @@ final class ApiController
         ]);
 
         Response::ok(['dashboard' => $this->dashboard->build($this->users->findById($userId) ?? ['id' => $userId])]);
+    }
+
+    private function motivationReasons(array $data): array
+    {
+        $allowed = ['health', 'money', 'family', 'control', 'energy', 'custom'];
+        $reasons = Input::array($data, 'motivation_reasons');
+        if ($reasons === []) {
+            $legacy = Input::string($data, 'main_reason');
+            $reasons = $legacy !== '' ? [$legacy] : [];
+        }
+
+        return array_slice(array_values(array_unique(array_filter(
+            $reasons,
+            static fn ($reason): bool => is_string($reason) && in_array($reason, $allowed, true)
+        ))), 0, 6);
     }
 
     private function profileAvatarImage(): never

@@ -33,7 +33,18 @@ final class AppRepository
         $stmt->execute(['user_id' => $userId]);
         $profile = $stmt->fetch();
 
-        return is_array($profile) ? $profile : null;
+        if (!is_array($profile)) {
+            return null;
+        }
+
+        $reasons = json_decode((string) ($profile['motivation_reasons'] ?? ''), true);
+        $reasons = is_array($reasons) ? array_values(array_filter($reasons, 'is_string')) : [];
+        if ($reasons === [] && (string) ($profile['main_reason'] ?? '') !== '') {
+            $reasons[] = (string) $profile['main_reason'];
+        }
+        $profile['motivation_reasons'] = $reasons;
+
+        return $profile;
     }
 
     public function getHabits(int $userId): array
@@ -78,15 +89,18 @@ final class AppRepository
 
         try {
             $currency = $data['currency'] ?? 'EUR';
+            $motivationReasons = $this->motivationReasons($data);
+            $mainReason = $motivationReasons[0] ?? '';
             $profile = $this->pdo->prepare(
-                'INSERT INTO user_profiles (user_id, main_reason, custom_reason, currency, onboarding_completed, created_at, updated_at)
-                 VALUES (:user_id, :main_reason, :custom_reason, :currency, 1, NOW(), NOW())
-                 ON DUPLICATE KEY UPDATE main_reason = VALUES(main_reason), custom_reason = VALUES(custom_reason),
+                'INSERT INTO user_profiles (user_id, main_reason, motivation_reasons, custom_reason, currency, onboarding_completed, created_at, updated_at)
+                 VALUES (:user_id, :main_reason, :motivation_reasons, :custom_reason, :currency, 1, NOW(), NOW())
+                 ON DUPLICATE KEY UPDATE main_reason = VALUES(main_reason), motivation_reasons = VALUES(motivation_reasons), custom_reason = VALUES(custom_reason),
                  currency = VALUES(currency), onboarding_completed = 1, updated_at = NOW()'
             );
             $profile->execute([
                 'user_id' => $userId,
-                'main_reason' => $data['main_reason'] ?? '',
+                'main_reason' => $mainReason,
+                'motivation_reasons' => json_encode($motivationReasons, JSON_UNESCAPED_UNICODE),
                 'custom_reason' => $data['custom_reason'] ?? null,
                 'currency' => $currency,
             ]);
@@ -146,13 +160,16 @@ final class AppRepository
 
         try {
             $currency = $data['currency'] ?? 'EUR';
+            $motivationReasons = $this->motivationReasons($data);
+            $mainReason = $motivationReasons[0] ?? '';
             $profile = $this->pdo->prepare(
-                'UPDATE user_profiles SET currency = :currency, main_reason = :main_reason,
+                'UPDATE user_profiles SET currency = :currency, main_reason = :main_reason, motivation_reasons = :motivation_reasons,
                  custom_reason = :custom_reason, updated_at = NOW() WHERE user_id = :user_id'
             );
             $profile->execute([
                 'currency' => $currency,
-                'main_reason' => $data['main_reason'] ?? '',
+                'main_reason' => $mainReason,
+                'motivation_reasons' => json_encode($motivationReasons, JSON_UNESCAPED_UNICODE),
                 'custom_reason' => $data['custom_reason'] ?? null,
                 'user_id' => $userId,
             ]);
@@ -189,6 +206,24 @@ final class AppRepository
             $this->pdo->rollBack();
             throw $throwable;
         }
+    }
+
+    private function motivationReasons(array $data): array
+    {
+        $reasons = $data['motivation_reasons'] ?? [];
+        if (!is_array($reasons)) {
+            $reasons = [];
+        }
+        $reasons = array_values(array_unique(array_filter(array_map(
+            static fn ($reason): string => is_string($reason) ? trim($reason) : '',
+            $reasons
+        ))));
+
+        if ($reasons === [] && (string) ($data['main_reason'] ?? '') !== '') {
+            $reasons[] = (string) $data['main_reason'];
+        }
+
+        return array_slice($reasons, 0, 6);
     }
 
     public function saveCheckin(int $userId, bool $smokeClean, bool $alcoholClean): void

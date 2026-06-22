@@ -47,6 +47,7 @@ const state = {
     step: 0,
     habits: [],
     main_reason: "",
+    motivation_reasons: [],
     custom_reason: "",
     goal_title: "",
     goal_amount: 300,
@@ -475,6 +476,33 @@ function mentorPhrase(category = "general") {
   return source[Math.floor(Date.now() / 30000) % source.length];
 }
 
+function profileMotivationReasons(profile = state.dashboard?.profile) {
+  const stored = Array.isArray(profile?.motivation_reasons) ? profile.motivation_reasons : [];
+  if (stored.length) return stored;
+  return profile?.main_reason ? [profile.main_reason] : [];
+}
+
+function renderMotivationReasonChoices(selectedReasons, inputName = "motivation_reasons", onboarding = false) {
+  const selected = Array.isArray(selectedReasons) ? selectedReasons : [];
+  return list("onboarding.reason_options").map((option) => `
+    <label class="reason-choice ${selected.includes(option.code) ? "selected" : ""}">
+      <input type="checkbox" name="${esc(inputName)}" value="${esc(option.code)}" ${selected.includes(option.code) ? "checked" : ""} ${onboarding ? "data-onboarding-reason" : ""}>
+      <span class="icon-token ${esc(option.token)}">${icon(option.icon)}</span>
+      <span class="reason-choice-copy"><strong>${esc(option.title)}</strong><small>${esc(option.body)}</small></span>
+      <span class="reason-checkmark">${icon("shield")}</span>
+    </label>`).join("");
+}
+
+function personalizedMentorPhrase() {
+  const reasons = profileMotivationReasons();
+  const customReason = String(state.dashboard?.profile?.custom_reason || "").trim();
+  const pool = reasons.flatMap((reason) => list(`phrases.reasons.${reason}`));
+  if (reasons.includes("custom") && customReason) pool.unshift(customReason);
+  const source = pool.length ? pool : list("phrases.general");
+  if (!source.length) return mentorPhrase("general");
+  return source[Math.floor(Date.now() / 30000) % source.length];
+}
+
 async function api(path, options = {}) {
   const method = options.method || "GET";
   const headers = { Accept: "application/json" };
@@ -577,7 +605,7 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "18")}`)).catch(() => {});
+      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "19")}`)).catch(() => {});
     });
   }
 }
@@ -883,15 +911,11 @@ function renderOnboardingStep(key) {
     return `
       <p class="eyebrow">${esc(t("onboarding.kicker"))}</p>
       <h2>${esc(t("onboarding.reason_title"))}</h2>
-      <div class="choice-grid two">
-        ${list("onboarding.reason_options").map((option) => `
-          <button class="choice-card ${state.onboarding.main_reason === option.code ? "selected" : ""}" type="button" data-reason="${esc(option.code)}">
-            <div class="icon-token ${esc(option.token)}">${icon(option.icon)}</div>
-            <strong>${esc(option.title)}</strong>
-            <span>${esc(option.body)}</span>
-          </button>`).join("")}
+      <p class="muted">${esc(t("onboarding.reason_subtitle"))}</p>
+      <div class="reason-choice-grid">
+        ${renderMotivationReasonChoices(state.onboarding.motivation_reasons, "motivation_reasons", true)}
       </div>
-      <div class="${state.onboarding.main_reason === "custom" ? "" : "hidden"}">
+      <div class="${state.onboarding.motivation_reasons.includes("custom") ? "" : "hidden"}">
         <label>${esc(t("onboarding.custom_reason"))}<input id="customReason" value="${esc(state.onboarding.custom_reason)}"></label>
       </div>`;
   }
@@ -957,9 +981,13 @@ function attachOnboardingEvents(key) {
   }
 
   if (key === "reason") {
-    app.querySelectorAll("[data-reason]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.onboarding.main_reason = button.dataset.reason;
+    app.querySelectorAll("[data-onboarding-reason]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const reason = input.value;
+        state.onboarding.motivation_reasons = input.checked
+          ? [...new Set([...state.onboarding.motivation_reasons, reason])]
+          : state.onboarding.motivation_reasons.filter((item) => item !== reason);
+        state.onboarding.main_reason = state.onboarding.motivation_reasons[0] || "";
         state.error = "";
         renderOnboarding();
       });
@@ -1011,7 +1039,7 @@ function validateOnboardingStep(key) {
     state.error = t("errors.choose_habit");
     return false;
   }
-  if (key === "reason" && !state.onboarding.main_reason) {
+  if (key === "reason" && state.onboarding.motivation_reasons.length === 0) {
     state.error = t("errors.choose_reason");
     return false;
   }
@@ -1061,9 +1089,11 @@ function summaryHabits() {
 }
 
 function summaryReason() {
-  if (state.onboarding.main_reason === "custom") return state.onboarding.custom_reason || t("onboarding.custom_reason");
-  const option = list("onboarding.reason_options").find((item) => item.code === state.onboarding.main_reason);
-  return option ? option.title : "";
+  const options = list("onboarding.reason_options");
+  return state.onboarding.motivation_reasons.map((reason) => {
+    if (reason === "custom") return state.onboarding.custom_reason || t("onboarding.custom_reason");
+    return options.find((item) => item.code === reason)?.title || reason;
+  }).join(" · ");
 }
 
 function renderDashboardView() {
@@ -1090,7 +1120,7 @@ function renderDashboardView() {
         <button class="icon-button notification-anchor" id="notificationBtn" type="button" aria-label="${esc(t("social.notifications"))}">${icon("bell")}<b class="unread-badge" data-social-unread hidden>0</b></button>
         <button class="profile-button" id="settingsBtn" aria-label="${esc(t("settings.title"))}" title="${esc(t("settings.title"))}">
           ${avatarMarkup(data.user.name, data.user.avatar_code, "", data.user.id, data.user.has_avatar)}
-          <span class="profile-level">${esc(progression.level)}</span>
+          <span class="profile-level">${esc(t("progression.level_short", { level: progression.level }))}</span>
         </button>
         <button class="icon-button" id="logoutBtn" aria-label="${esc(t("settings.logout"))}">${icon("log-out")}</button>
       </div>
@@ -1117,7 +1147,7 @@ function renderDashboardView() {
         <div class="hero-copy">
           <p class="eyebrow">${esc(t("dashboard.control_active", { name: data.user.name }))}</p>
           <h2>${esc(t("dashboard.status_line"))}</h2>
-          <p class="hero-quote">${esc(mentorPhrase("general"))}</p>
+          <p class="hero-quote personalized-quote"><span>${esc(t("dashboard.personal_signal"))}</span>${esc(personalizedMentorPhrase())}</p>
           <div class="chip-grid">
             <span class="chip">${icon("flame")}${esc(t("dashboard.clean_streak", { days: data.reactor.control_days }))}</span>
             <span class="chip">${icon("shield")}${esc(t("dashboard.craving_wins", { wins: data.stats.craving_wins }))}</span>
@@ -1149,6 +1179,8 @@ function renderDashboardView() {
           </span>
         </button>
       </section>
+
+      ${renderRecoveryVisual(data)}
 
       ${renderGrowthPanels(data, currency, motion)}
 
@@ -1274,6 +1306,110 @@ function renderNextSignal(data) {
         <span>${esc(t("return_brief.next_in", { time: duration(remainingHours) }))}</span>
       </div>
     </div>`;
+}
+
+function recoverySystemProgress(hours, targetHours) {
+  const ratio = Math.min(1, Math.max(0, Number(hours || 0)) / Math.max(1, Number(targetHours || 1)));
+  return Math.round(Math.sqrt(ratio) * 100);
+}
+
+function recoveryVisualModel(data) {
+  const hours = Number(data.reactor?.control_hours || 0);
+  const hasSmoking = data.habit_types.includes("smoking");
+  const hasAlcohol = data.habit_types.includes("alcohol");
+  const mode = hasSmoking && hasAlcohol ? "both" : hasSmoking ? "smoking" : "alcohol";
+  const catalogs = {
+    smoking: [
+      ["blood", "shield", 72],
+      ["lungs", "lungs", 720],
+      ["heart", "heart", 8760],
+      ["energy", "bolt", 336]
+    ],
+    alcohol: [
+      ["sleep", "brain", 168],
+      ["energy", "bolt", 336],
+      ["heart", "heart", 720],
+      ["balance", "shield", 720]
+    ],
+    both: [
+      ["lungs", "lungs", 720],
+      ["sleep", "brain", 168],
+      ["heart", "heart", 720],
+      ["energy", "bolt", 336]
+    ]
+  };
+  const systems = catalogs[mode].map(([code, iconName, target]) => ({
+    code,
+    icon: iconName,
+    progress: recoverySystemProgress(hours, target)
+  }));
+  const progress = Math.round(systems.reduce((sum, system) => sum + system.progress, 0) / systems.length);
+  const stage = hours < 24 ? "start" : hours < 72 ? "cleaning" : hours < 168 ? "adaptation" : hours < 720 ? "stability" : "momentum";
+
+  return { hours, mode, systems, progress, stage, hasSmoking, hasAlcohol };
+}
+
+function renderRecoveryVisual(data) {
+  const model = recoveryVisualModel(data);
+  return `
+    <section class="panel recovery-visual-panel">
+      <div class="section-head recovery-visual-head">
+        <div><p class="eyebrow">${esc(t("health_visual.kicker"))}</p><h3>${esc(t("health_visual.title"))}</h3></div>
+        <span class="badge">${esc(t(`health_visual.mode_${model.mode}`))}</span>
+      </div>
+      <div class="recovery-visual-layout">
+        <div class="recovery-figure" style="--recovery-level:${model.progress / 100}">
+          <svg class="recovery-body-svg" viewBox="0 0 300 420" role="img" aria-label="${esc(t("health_visual.figure_label"))}">
+            <defs>
+              <clipPath id="recoveryBodyClip">
+                <circle cx="150" cy="54" r="35"></circle>
+                <path d="M111 100 Q150 82 189 100 Q207 139 204 220 Q201 258 185 282 L115 282 Q99 258 96 220 Q93 139 111 100Z"></path>
+              </clipPath>
+            </defs>
+            <g class="body-guide">
+              <circle cx="150" cy="54" r="35"></circle>
+              <path d="M111 100 Q150 82 189 100 Q207 139 204 220 Q201 258 185 282 L115 282 Q99 258 96 220 Q93 139 111 100Z"></path>
+              <path d="M105 117 Q78 157 63 232 M195 117 Q222 157 237 232 M126 278 Q117 331 110 394 M174 278 Q183 331 190 394"></path>
+            </g>
+            <rect class="body-progress-fill" x="30" y="15" width="240" height="380" clip-path="url(#recoveryBodyClip)"></rect>
+            <g class="organ organ-brain ${model.hasAlcohol ? "active" : "supporting"}">
+              <path d="M130 48c-4-13 14-23 21-12 8-11 25 0 19 13 7 9-4 20-13 16-7 9-21 2-18-8-8 2-14-4-9-9Z"></path>
+            </g>
+            <g class="organ organ-lungs ${model.hasSmoking ? "active" : "supporting"}">
+              <path d="M145 118v59c-16 15-36 6-37-14-1-24 14-43 29-45 4 0 6 0 8 0Z"></path>
+              <path d="M155 118v59c16 15 36 6 37-14 1-24-14-43-29-45-4 0-6 0-8 0Z"></path>
+              <path class="organ-line" d="M150 101v42m0-18-14 15m14-15 14 15"></path>
+            </g>
+            <g class="organ organ-heart active">
+              <path d="M150 211c-25-16-29-35-15-43 8-5 15-1 19 6 5-8 14-11 21-5 13 11 1 29-25 42Z"></path>
+            </g>
+            <g class="organ organ-balance ${model.hasAlcohol ? "active" : "supporting"}">
+              <path d="M145 224c17-10 38-7 43 4-5 13-22 20-45 14-5-8-4-13 2-18Z"></path>
+            </g>
+          </svg>
+          <div class="recovery-figure-meter"><strong>${model.progress}%</strong><span>${esc(t("health_visual.visual_progress"))}</span></div>
+        </div>
+        <div class="recovery-visual-copy">
+          <div class="recovery-stage-copy">
+            <span>${esc(t("health_visual.now"))} · ${esc(duration(model.hours))}</span>
+            <strong>${esc(t(`health_visual.stages.${model.stage}`))}</strong>
+            <p>${esc(t(`health_visual.mode_body_${model.mode}`))}</p>
+          </div>
+          <div class="recovery-system-list">
+            ${model.systems.map((system) => `
+              <div class="recovery-system-row" style="--system-progress:${system.progress / 100}">
+                <span class="icon-token health-token-${esc(system.code)}">${icon(system.icon)}</span>
+                <div class="recovery-system-copy">
+                  <div><strong>${esc(t(`health_visual.systems.${system.code}.title`))}</strong><span>${esc(t("health_visual.stage_percent", { percent: system.progress }))}</span></div>
+                  <p>${esc(t(`health_visual.systems.${system.code}.body`))}</p>
+                  <div class="recovery-system-track"><i></i></div>
+                </div>
+              </div>`).join("")}
+          </div>
+        </div>
+      </div>
+      <p class="health-disclaimer">${icon("shield")}${esc(t("health_visual.disclaimer"))}</p>
+    </section>`;
 }
 
 function renderGrowthPanels(data, currency, motion) {
@@ -1798,6 +1934,7 @@ function renderSettings() {
   const goal = data.money.goal || {};
   const smoking = data.habits.smoking || {};
   const alcohol = data.habits.alcohol || {};
+  const motivationReasons = profileMotivationReasons(profile);
   app.innerHTML = `
     <div class="topbar">
       ${renderBrand(true)}
@@ -1846,6 +1983,17 @@ function renderSettings() {
           </div>
         </div>
         <div class="settings-section">
+          <h3>${esc(t("settings.motivation_title"))}</h3>
+          <p class="muted">${esc(t("settings.motivation_body"))}</p>
+          <div class="reason-choice-grid settings-reason-grid">
+            ${renderMotivationReasonChoices(motivationReasons)}
+          </div>
+          <div id="settingsCustomReasonWrap" class="${motivationReasons.includes("custom") ? "" : "hidden"}">
+            <label>${esc(t("onboarding.custom_reason"))}<input name="custom_reason" value="${esc(profile.custom_reason || "")}"></label>
+          </div>
+          <div class="alert hidden" id="settingsReasonError">${esc(t("errors.choose_reason"))}</div>
+        </div>
+        <div class="settings-section">
           <h3>${esc(t("settings.goal"))}</h3>
           <div class="settings-grid">
             <label>${esc(t("onboarding.goal_name"))}<input name="goal_title" value="${esc(goal.title || "")}"></label>
@@ -1888,6 +2036,12 @@ function renderSettings() {
   app.querySelector("#avatarFileInput").addEventListener("change", previewProfilePhoto);
   app.querySelector("#uploadAvatarBtn").addEventListener("click", uploadProfilePhoto);
   app.querySelector("#deleteAvatarBtn")?.addEventListener("click", deleteProfilePhoto);
+  app.querySelectorAll('[name="motivation_reasons"]').forEach((input) => input.addEventListener("change", () => {
+    input.closest(".reason-choice")?.classList.toggle("selected", input.checked);
+    const customSelected = Array.from(app.querySelectorAll('[name="motivation_reasons"]:checked')).some((item) => item.value === "custom");
+    app.querySelector("#settingsCustomReasonWrap")?.classList.toggle("hidden", !customSelected);
+    app.querySelector("#settingsReasonError")?.classList.add("hidden");
+  }));
 }
 
 function previewProfilePhoto(event) {
@@ -1961,13 +2115,21 @@ async function deleteProfilePhoto() {
 async function saveSettings(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
+  const motivationReasons = form.getAll("motivation_reasons").map(String);
+  if (!motivationReasons.length) {
+    const error = app.querySelector("#settingsReasonError");
+    error?.classList.remove("hidden");
+    error?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   const body = {
     name: String(form.get("name") || ""),
     avatar_code: String(form.get("avatar_code") || "pulse"),
     language: String(form.get("language") || state.lang),
     currency: String(form.get("currency") || "EUR").toUpperCase().slice(0, 3),
-    main_reason: state.dashboard.profile?.main_reason || "",
-    custom_reason: state.dashboard.profile?.custom_reason || "",
+    main_reason: motivationReasons[0],
+    motivation_reasons: motivationReasons,
+    custom_reason: String(form.get("custom_reason") || ""),
     goal_title: String(form.get("goal_title") || ""),
     goal_amount: Number(form.get("goal_amount") || 1),
     reset_progress: String(form.get("confirm_reset") || "") === "RESET",

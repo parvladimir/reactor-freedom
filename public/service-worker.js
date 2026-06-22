@@ -1,9 +1,9 @@
-const CACHE_NAME = "reactor-freedom-static-v18";
+const CACHE_NAME = "reactor-freedom-static-v19";
 const STATIC_ASSETS = [
   "./",
   "./offline.html",
-  "./assets/css/app.css?v=18",
-  "./assets/js/app.js?v=18",
+  "./assets/css/app.css?v=19",
+  "./assets/js/app.js?v=19",
   "./assets/icons/icon.svg",
   "./manifest.webmanifest"
 ];

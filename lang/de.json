@@ -85,7 +85,7 @@
   "errors": {
     "generic": "Etwas ist schiefgelaufen.",
     "choose_habit": "Wähle mindestens eine Gewohnheit.",
-    "choose_reason": "Wähle deinen Hauptgrund.",
+    "choose_reason": "Wähle mindestens einen Grund.",
     "goal_amount": "Der Zielbetrag muss größer als null sein.",
     "avatar_invalid": "Wähle ein gültiges JPG-, PNG- oder WebP-Bild.",
     "avatar_too_large": "Das Foto darf höchstens 4 MB groß sein."
@@ -104,7 +104,8 @@
       { "value": ["alcohol"], "icon": "alcohol", "token": "token-blue", "title": "Alkohol", "body": "Nüchterne Zeit, riskante Momente und Wochenkosten." },
       { "value": ["smoking", "alcohol"], "icon": "reactor", "token": "token-violet", "title": "Beides", "body": "Ein gemeinsames Kontrollsystem für beide Gewohnheiten." }
     ],
-    "reason_title": "Was ist dein wichtigstes Ziel?",
+    "reason_title": "Wofür veränderst du diese Gewohnheiten?",
+    "reason_subtitle": "Wähle mehrere Gründe. Der Reaktor nutzt sie für persönliche Signale auf deinem Dashboard.",
     "reason_options": [
       { "code": "health", "icon": "shield", "token": "token-green", "title": "Gesundheit", "body": "Mehr Atem, Schlaf und stabile Energie." },
       { "code": "money", "icon": "money", "token": "token-gold", "title": "Geld", "body": "Alte Ausgaben in sichtbaren Fortschritt verwandeln." },
@@ -131,7 +132,7 @@
     "summary_kicker": "Bestätigung",
     "summary_title": "Der Reaktor ist startklar",
     "summary_habits": "Ziel",
-    "summary_reason": "Hauptgrund",
+    "summary_reason": "Deine Gründe",
     "summary_goal": "Finanzielles Ziel",
     "summary_savings": "Geschätzte Ersparnis",
     "launch": "Reaktor starten"
@@ -146,6 +147,7 @@
   ],
   "dashboard": {
     "journal_button": "Journal",
+    "personal_signal": "Dein persönliches Signal",
     "missions_kicker": "Tagesmissionen",
     "missions_title": "Kontroll-Aufgaben",
     "missions_text": "Kleine Aktionen, die den Tag aus dem Autopilot holen.",
@@ -232,6 +234,36 @@
     "logs_title": "Journal",
     "empty_logs": "Das Journal ist noch leer. Der erste saubere Tag wird bereits Geschichte.",
     "checkin_saved": "Täglicher Check gespeichert."
+  },
+  "health_visual": {
+    "kicker": "Lebender Kreislauf",
+    "title": "Wie sich dein System erholt",
+    "mode_smoking": "rauchfrei",
+    "mode_alcohol": "alkoholfrei",
+    "mode_both": "doppelte Erholung",
+    "figure_label": "Visueller Erholungskreislauf des Körpers",
+    "visual_progress": "visuelle Stufe",
+    "now": "Jetzt",
+    "stage_percent": "{percent}% der Stufe",
+    "stages": {
+      "start": "Das System ist aktiv",
+      "cleaning": "Der Körper wechselt den Rhythmus",
+      "adaptation": "Das neue Muster stabilisiert sich",
+      "stability": "Die Erholung gewinnt Tiefe",
+      "momentum": "Langfristiger Fortschritt arbeitet"
+    },
+    "mode_body_smoking": "Nach dem Rauchstopp beginnen positive Veränderungen schnell und setzen sich über Monate und Jahre fort.",
+    "mode_body_alcohol": "Weniger Alkohol kann Schlaf, Energie und Stimmung unterstützen und den Körper langfristig entlasten.",
+    "mode_body_both": "Der Körper erhält gleichzeitig mehr Raum für Atmung, Schlaf, Energie und stabile Herz-Kreislauf-Funktion.",
+    "systems": {
+      "blood": { "title": "Blut und Sauerstoff", "body": "In den ersten Tagen sinken Nikotin und Kohlenmonoxid im Blut." },
+      "lungs": { "title": "Lunge und Atmung", "body": "Mit der Zeit können Husten und Kurzatmigkeit abnehmen und die Atmung leichter werden." },
+      "heart": { "title": "Herz und Kreislauf", "body": "Herz-Kreislauf-Risiken sinken schrittweise, wenn die Veränderung anhält." },
+      "energy": { "title": "Energie und Kraft", "body": "Schlaf, Morgenbefinden und Tagesenergie können gleichmäßiger werden." },
+      "sleep": { "title": "Schlaf und Fokus", "body": "Weniger Alkohol kann tieferen Schlaf, Stimmung und klarere Morgen unterstützen." },
+      "balance": { "title": "Gesamtbalance", "body": "Die langfristige Belastung für Herz, Leber, Nieren und Stoffwechsel kann sinken." }
+    },
+    "disclaimer": "Dies ist eine motivierende Visualisierung des allgemeinen Fortschritts, keine medizinische Diagnose. Veränderungen sind individuell."
   },
   "progression": {
     "kicker": "Entwicklung",
@@ -426,6 +458,8 @@
     "photo_delete_confirm": "Profilfoto löschen?",
     "photo_saved": "Profilfoto aktualisiert.",
     "photo_deleted": "Foto gelöscht. Das gewählte Ersatzdesign ist aktiv.",
+    "motivation_title": "Gründe, die deinen Kurs halten",
+    "motivation_body": "Wähle mehrere Motive. Die Hinweise auf dem Dashboard greifen sie direkt auf.",
     "goal": "Finanzielles Ziel",
     "smoking": "Zigarettenparameter",
     "alcohol": "Alkoholparameter",
@@ -497,6 +531,42 @@
       "Diese Zusammenfassung beweist: Kleine Entscheidungen können wachsen.",
       "Das System ist stärker. Halte heute seine Richtung."
     ],
+    "reasons": {
+      "health": [
+        "Jede saubere Wahl gibt deinem Körper Zeit für seine Arbeit.",
+        "Heute leihst du keine Gesundheit von deinem zukünftigen Ich.",
+        "Leichtere Atmung und stabilere Energie beginnen mit einer Entscheidung.",
+        "Dein Körper erinnert sich an zurückgewonnene Stunden, nicht an Versprechen."
+      ],
+      "money": [
+        "Heute arbeitet dein Geld wieder für dein Leben, nicht für die Gewohnheit.",
+        "Jeder saubere Tag lenkt alte Ausgaben zu einem echten Ziel.",
+        "Du sparst nicht an dir. Du beendest die Finanzierung der Abhängigkeit.",
+        "Der Betrag wächst, weil Kontrolle zur Handlung wurde."
+      ],
+      "family": [
+        "Wichtige Menschen bekommen mehr von deiner Präsenz, nicht Perfektion.",
+        "Die heutige Wahl wird zu ruhigerer Zeit mit deiner Familie.",
+        "Du wirst durch wiederholte Entscheidungen zum Vorbild, nicht durch Reden.",
+        "Zurückgewonnene Aufmerksamkeit kann wieder zu wichtigen Menschen fließen."
+      ],
+      "control": [
+        "Der Impuls darf erscheinen, doch die Entscheidung bleibt bei dir.",
+        "Kontrolle wächst, wenn zwischen Drang und Handlung eine Pause entsteht.",
+        "Du hast bereits bewiesen, dass der alte Befehl freiwillig ist.",
+        "Du bestimmst heute den Kurs, nicht das alte Muster."
+      ],
+      "energy": [
+        "Baue die Energie von heute aus Schlaf, Bewegung und einer sauberen Wahl.",
+        "Dein Körper lernt, mit Energie zu antworten, die die Gewohnheit nicht mehr nimmt.",
+        "Jeder saubere Tag schafft neue Kraft für Bewegung nach vorn.",
+        "Jage keinem kurzen Schub nach. Baue Kraft, die bleibt."
+      ],
+      "custom": [
+        "Dein eigener Grund zählt mehr als jeder allgemeine Rat.",
+        "Kehre zu deinem selbst gewählten Grund zurück. Er zeigt bereits nach vorn."
+      ]
+    },
     "craving": [
       "Der Drang ist laut, aber kurzlebig.",
       "Erst Pause. Dann Entscheidung.",

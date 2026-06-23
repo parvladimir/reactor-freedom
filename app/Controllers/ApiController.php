@@ -306,9 +306,11 @@ final class ApiController
             'goal_title' => Input::string($data, 'goal_title'),
             'goal_amount' => max(1, Input::number($data, 'goal_amount', 1)),
             'currency' => strtoupper(substr(Input::string($data, 'currency', 'EUR'), 0, 3)),
+            'smoking_product' => $this->smokingProduct(Input::string($data, 'smoking_product', 'tobacco')),
             'cigarettes_per_day' => max(0, Input::number($data, 'cigarettes_per_day')),
             'cigarettes_per_pack' => max(1, Input::number($data, 'cigarettes_per_pack', 20)),
             'pack_price' => max(0, Input::number($data, 'pack_price')),
+            'vape_weekly_spend' => max(0, Input::number($data, 'vape_weekly_spend')),
             'alcohol_weekly_spend' => max(0, Input::number($data, 'alcohol_weekly_spend')),
             'dangerous_days' => Input::array($data, 'dangerous_days'),
         ];
@@ -366,6 +368,11 @@ final class ApiController
             $reasons,
             static fn ($reason): bool => is_string($reason) && in_array($reason, $allowed, true)
         ))), 0, 6);
+    }
+
+    private function smokingProduct(string $product): string
+    {
+        return in_array($product, ['tobacco', 'vape'], true) ? $product : 'tobacco';
     }
 
     private function profileAvatarImage(): never

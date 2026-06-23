@@ -593,6 +593,100 @@ a {
   line-height: 1.35;
 }
 
+.smoking-product-fieldset {
+  min-width: 0;
+  margin: 14px 0;
+  padding: 0;
+  border: 0;
+}
+
+.smoking-product-fieldset legend {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.smoking-product-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(4, 10, 21, .36);
+}
+
+.smoking-product-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 82px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.smoking-product-option > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.smoking-product-option > span:last-child,
+.smoking-product-option strong,
+.smoking-product-option small {
+  display: block;
+  min-width: 0;
+}
+
+.smoking-product-option strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.smoking-product-option small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.smoking-product-option:has(input:checked) {
+  border-color: rgba(0, 215, 255, .38);
+  background: linear-gradient(135deg, rgba(138, 92, 255, .14), rgba(0, 215, 255, .1));
+  box-shadow: inset 0 0 0 1px rgba(123, 255, 207, .06);
+}
+
+.smoking-detail-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.smoking-detail-block > h3 {
+  margin-bottom: 5px;
+}
+
+.wizard-fields.one-field,
+.settings-grid.one-field {
+  grid-template-columns: minmax(0, 360px);
+}
+
+.settings-grid label > small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .reason-choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -962,27 +1056,27 @@ a {
   height: 18px;
 }
 
-.next-signal small,
-.next-signal strong,
-.next-signal span {
+.next-signal > div small,
+.next-signal > div strong,
+.next-signal > div span {
   display: block;
   overflow-wrap: anywhere;
 }
 
-.next-signal small {
+.next-signal > div small {
   color: var(--accent-2);
   font-size: 10px;
   font-weight: 850;
   text-transform: uppercase;
 }
 
-.next-signal strong {
+.next-signal > div strong {
   margin-top: 3px;
   font-size: 13px;
   line-height: 1.3;
 }
 
-.next-signal span {
+.next-signal > div span {
   margin-top: 2px;
   color: var(--muted);
   font-size: 12px;
@@ -2354,100 +2448,208 @@ a {
   position: relative;
   display: grid;
   min-height: 430px;
+  overflow: hidden;
   place-items: center;
   border-right: 1px solid var(--line-soft);
-  background-image:
-    linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px);
-  background-size: 28px 28px;
+  background:
+    linear-gradient(180deg, rgba(33, 52, 79, .32), rgba(6, 14, 28, .08) 58%),
+    #0a1323;
+  isolation: isolate;
+}
+
+.recovery-figure::before {
+  position: absolute;
+  z-index: -1;
+  inset: 12% 10% 7%;
+  border: 1px solid rgba(115, 219, 255, .1);
+  border-radius: 46% 46% 18% 18%;
+  background:
+    linear-gradient(rgba(255, 255, 255, .027) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .027) 1px, transparent 1px);
+  background-size: 24px 24px;
+  content: "";
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 86%, transparent);
+}
+
+.bio-scan-frame {
+  position: absolute;
+  z-index: 2;
+  inset: 22px;
+  pointer-events: none;
+}
+
+.bio-scan-frame i {
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  border-color: rgba(123, 255, 207, .46);
+  border-style: solid;
+}
+
+.bio-scan-frame i:nth-child(1) { top: 0; left: 0; border-width: 1px 0 0 1px; }
+.bio-scan-frame i:nth-child(2) { top: 0; right: 0; border-width: 1px 1px 0 0; }
+.bio-scan-frame i:nth-child(3) { right: 0; bottom: 0; border-width: 0 1px 1px 0; }
+.bio-scan-frame i:nth-child(4) { bottom: 0; left: 0; border-width: 0 0 1px 1px; }
+
+.bio-scan-sweep {
+  position: absolute;
+  z-index: 4;
+  top: 15%;
+  left: 14%;
+  width: 72%;
+  height: 52px;
+  border-top: 1px solid rgba(123, 255, 207, .55);
+  background: linear-gradient(to bottom, rgba(123, 255, 207, .1), transparent);
+  opacity: .7;
+  pointer-events: none;
+  animation: bioScanSweep 5.8s ease-in-out infinite;
 }
 
 .recovery-body-svg {
+  position: relative;
+  z-index: 3;
   display: block;
-  width: min(300px, 100%);
-  height: 410px;
+  width: min(340px, 100%);
+  height: 420px;
   overflow: visible;
 }
 
-.body-guide circle,
-.body-guide path {
-  fill: rgba(255, 255, 255, .025);
-  stroke: rgba(220, 235, 255, .22);
-  stroke-width: 2;
+.bio-stage ellipse {
+  fill: rgba(0, 8, 20, .7);
+  stroke: rgba(123, 255, 207, .2);
+  stroke-width: 1;
 }
 
-.body-guide path:nth-child(n+3) {
+.bio-stage circle {
   fill: none;
-  stroke-width: 23;
-  stroke-linecap: round;
+  stroke: rgba(87, 181, 227, .09);
+  stroke-width: 1;
+  stroke-dasharray: 3 9;
 }
 
-.body-progress-fill {
-  fill: rgba(0, 215, 255, .13);
+.bio-stage path {
+  fill: none;
+  stroke: rgba(87, 181, 227, .13);
+  stroke-width: 1;
+}
+
+.bio-body-shell {
+  fill: url(#bioShellGradient);
+  stroke: rgba(173, 222, 255, .21);
+  stroke-width: 1.2;
+  filter: drop-shadow(0 14px 11px rgba(0, 8, 20, .58));
+  animation: bioBodyBreathe 4.4s ease-in-out infinite;
+  transform-origin: 170px 230px;
+}
+
+.bio-body-shell use:nth-child(3),
+.bio-body-shell use:nth-child(4) {
+  fill: #14263a;
+}
+
+.bio-recovery-layer rect {
+  fill: url(#bioRecoveryGradient);
+  opacity: .75;
   transform: scaleY(var(--recovery-level));
   transform-box: fill-box;
   transform-origin: center bottom;
-  animation: bodyRecoveryFill 1.8s cubic-bezier(.2, .8, .2, 1) both;
+  animation: bioRecoveryFill 1.8s cubic-bezier(.2, .8, .2, 1) both;
 }
 
-.organ {
+.bio-energy-ribbon {
+  fill: none;
+  stroke: rgba(228, 255, 250, .58);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 10 20;
+  opacity: .58;
+  animation: bioEnergyFlow 2.8s linear infinite;
+}
+
+.bio-body-light rect {
+  fill: url(#bioSkinLight);
+  pointer-events: none;
+}
+
+.bio-body-light path {
+  fill: none;
+  stroke: rgba(220, 248, 255, .13);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.bio-organ {
   opacity: .28;
-  transition: opacity .3s ease;
+  transition: opacity .3s ease, filter .3s ease;
 }
 
-.organ path {
-  fill: rgba(255, 255, 255, .04);
-  stroke: currentColor;
-  stroke-width: 2;
+.bio-organ path {
+  stroke: rgba(255, 255, 255, .52);
+  stroke-width: 1;
   stroke-linejoin: round;
 }
 
-.organ.active {
-  opacity: 1;
-}
+.bio-organ.active { opacity: .96; }
+.bio-organ.supporting { opacity: .4; filter: saturate(.62); }
+.bio-brain { fill: url(#bioBrainGradient); filter: drop-shadow(0 0 5px rgba(159, 124, 255, .34)); }
+.bio-lungs { fill: url(#bioLungGradient); filter: drop-shadow(0 0 5px rgba(22, 204, 234, .32)); }
+.bio-heart { fill: url(#bioHeartGradient); filter: drop-shadow(0 0 5px rgba(255, 92, 127, .34)); }
+.bio-balance { fill: url(#bioBalanceGradient); filter: drop-shadow(0 0 5px rgba(233, 170, 53, .3)); }
 
-.organ.supporting {
-  opacity: .42;
-}
-
-.organ-brain { color: #b9a7ff; }
-.organ-lungs { color: #78e9ff; }
-.organ-heart { color: #ff8da9; }
-.organ-balance { color: #ffd166; }
-
-.organ-line {
+.bio-organ-detail,
+.bio-airway {
   fill: none !important;
-  stroke-width: 2 !important;
+  stroke: rgba(255, 255, 255, .65) !important;
+  stroke-width: 1.4 !important;
   stroke-linecap: round;
 }
 
-.organ-lungs.active {
-  animation: lungsBreathe 3.2s ease-in-out infinite;
-  transform-origin: 150px 150px;
+.bio-lungs.active {
+  animation: bioLungsBreathe 3.4s ease-in-out infinite;
+  transform-origin: 170px 182px;
 }
 
-.organ-heart.active {
-  animation: healthHeart 1.8s ease-in-out infinite;
-  transform-origin: 154px 188px;
+.bio-heart.active {
+  animation: bioHeartBeat 1.8s ease-in-out infinite;
+  transform-origin: 178px 211px;
 }
 
-.organ-brain.active {
-  animation: brainSignal 2.8s ease-in-out infinite;
+.bio-brain.active {
+  animation: bioBrainPulse 2.8s ease-in-out infinite;
+  transform-origin: 170px 69px;
+}
+
+.bio-flow-points circle {
+  fill: #e6fff8;
+  opacity: .8;
+  filter: drop-shadow(0 0 5px #7bffcf);
+  animation: bioFlowPoint 2.7s ease-in-out infinite;
+}
+
+.bio-flow-points circle:nth-child(2) { animation-delay: -.9s; }
+.bio-flow-points circle:nth-child(3) { animation-delay: -1.8s; }
+
+.bio-flow-points {
+  clip-path: url(#bioBodyClip);
 }
 
 .recovery-figure-meter {
   position: absolute;
-  right: 12px;
-  bottom: 18px;
+  z-index: 5;
+  right: 16px;
+  bottom: 20px;
   display: grid;
-  width: 82px;
-  height: 82px;
+  width: 88px;
+  height: 88px;
   place-items: center;
   align-content: center;
-  border: 1px solid rgba(123, 255, 207, .32);
+  border: 1px solid transparent;
   border-radius: 50%;
-  background: rgba(7, 16, 30, .92);
-  box-shadow: 0 0 28px rgba(0, 215, 255, .12);
+  background:
+    linear-gradient(#091524, #091524) padding-box,
+    conic-gradient(var(--accent-3) var(--recovery-percent), rgba(255, 255, 255, .09) 0) border-box;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .35), inset 0 0 24px rgba(0, 215, 255, .08);
   text-align: center;
 }
 
@@ -2457,9 +2659,10 @@ a {
 }
 
 .recovery-figure-meter strong {
-  color: var(--accent-3);
-  font-size: 23px;
+  color: #ecfffa;
+  font-size: 24px;
   line-height: 1;
+  text-shadow: 0 0 15px rgba(123, 255, 207, .42);
 }
 
 .recovery-figure-meter span {
@@ -2529,7 +2732,8 @@ a {
 }
 
 .health-token-lungs,
-.health-token-blood { color: #8cecff; background: rgba(0, 215, 255, .09); }
+.health-token-blood,
+.health-token-nicotine { color: #8cecff; background: rgba(0, 215, 255, .09); }
 .health-token-sleep { color: #c5b5ff; background: rgba(138, 92, 255, .12); }
 .health-token-heart { color: #ffadc0; background: rgba(255, 92, 127, .1); }
 .health-token-energy,
@@ -2605,7 +2809,7 @@ a {
   color: var(--accent-3);
 }
 
-@keyframes bodyRecoveryFill {
+@keyframes bioRecoveryFill {
   from { transform: scaleY(0); }
 }
 
@@ -2613,21 +2817,40 @@ a {
   from { transform: scaleX(0); }
 }
 
-@keyframes lungsBreathe {
+@keyframes bioBodyBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.008, 1.004); }
+}
+
+@keyframes bioScanSweep {
+  0%, 100% { transform: translateY(0); opacity: .2; }
+  50% { transform: translateY(285px); opacity: .8; }
+}
+
+@keyframes bioEnergyFlow {
+  to { stroke-dashoffset: -60; }
+}
+
+@keyframes bioLungsBreathe {
   0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(0, 215, 255, .18)); }
   50% { transform: scale(1.035); filter: drop-shadow(0 0 11px rgba(0, 215, 255, .42)); }
 }
 
-@keyframes healthHeart {
+@keyframes bioHeartBeat {
   0%, 72%, 100% { transform: scale(1); }
   78% { transform: scale(1.08); }
   85% { transform: scale(1); }
   91% { transform: scale(1.05); }
 }
 
-@keyframes brainSignal {
+@keyframes bioBrainPulse {
   0%, 100% { filter: drop-shadow(0 0 3px rgba(138, 92, 255, .2)); }
   50% { filter: drop-shadow(0 0 10px rgba(138, 92, 255, .55)); }
+}
+
+@keyframes bioFlowPoint {
+  0%, 100% { opacity: .15; transform: translateY(6px); }
+  50% { opacity: 1; transform: translateY(-7px); }
 }
 
 .growth-grid {
@@ -3029,23 +3252,28 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .smoking-product-picker {
+    grid-template-columns: 1fr;
+  }
+
   .recovery-system-list {
     grid-template-columns: 1fr;
   }
 
   .recovery-figure {
-    min-height: 360px;
+    min-height: 390px;
   }
 
   .recovery-body-svg {
-    height: 350px;
+    width: min(320px, 100%);
+    height: 375px;
   }
 
   .recovery-figure-meter {
-    right: 4px;
-    bottom: 12px;
-    width: 70px;
-    height: 70px;
+    right: 8px;
+    bottom: 14px;
+    width: 74px;
+    height: 74px;
   }
 
   .recovery-figure-meter strong {
@@ -3284,11 +3512,15 @@ a {
   .return-brief-modal,
   .return-brief-orbit::before,
   .return-brief-item,
-  .body-progress-fill,
+  .bio-body-shell,
+  .bio-scan-sweep,
+  .bio-recovery-layer rect,
+  .bio-energy-ribbon,
+  .bio-flow-points circle,
   .recovery-system-track i,
-  .organ-lungs.active,
-  .organ-heart.active,
-  .organ-brain.active {
+  .bio-lungs.active,
+  .bio-heart.active,
+  .bio-brain.active {
     animation: none;
   }
 }

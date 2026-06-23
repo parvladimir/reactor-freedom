@@ -52,9 +52,11 @@ const state = {
     goal_title: "",
     goal_amount: 300,
     currency: "EUR",
+    smoking_product: "tobacco",
     cigarettes_per_day: 20,
     cigarettes_per_pack: 20,
     pack_price: 8.5,
+    vape_weekly_spend: 35,
     alcohol_weekly_spend: 30,
     dangerous_days: []
   },
@@ -933,13 +935,24 @@ function renderOnboardingStep(key) {
   }
 
   if (key === "smoking") {
+    const isVape = state.onboarding.smoking_product === "vape";
     return `
       <p class="eyebrow">${esc(t("habits.smoking"))}</p>
       <h2>${esc(t("onboarding.smoking_title"))}</h2>
-      <div class="wizard-fields">
-        <label>${esc(t("onboarding.cigarettes_per_day"))}<input id="cigarettesPerDay" type="number" min="0" step="1" value="${esc(state.onboarding.cigarettes_per_day)}"></label>
-        <label>${esc(t("onboarding.cigarettes_per_pack"))}<input id="cigarettesPerPack" type="number" min="1" step="1" value="${esc(state.onboarding.cigarettes_per_pack)}"></label>
-        <label>${esc(t("onboarding.pack_price"))}<input id="packPrice" type="number" min="0" step="0.1" value="${esc(state.onboarding.pack_price)}"></label>
+      <p class="muted">${esc(t("onboarding.smoking_subtitle"))}</p>
+      ${renderSmokingProductPicker("onboarding_smoking_product", state.onboarding.smoking_product, "onboarding")}
+      <div class="smoking-detail-block">
+        <h3>${esc(t(isVape ? "onboarding.vape_details_title" : "onboarding.tobacco_details_title"))}</h3>
+        ${isVape ? `
+          <p class="muted">${esc(t("onboarding.vape_spend_help"))}</p>
+          <div class="wizard-fields one-field">
+            <label>${esc(t("onboarding.vape_weekly_spend"))}<input id="vapeWeeklySpend" type="number" min="0" step="0.1" value="${esc(state.onboarding.vape_weekly_spend)}"></label>
+          </div>` : `
+          <div class="wizard-fields">
+            <label>${esc(t("onboarding.cigarettes_per_day"))}<input id="cigarettesPerDay" type="number" min="0" step="1" value="${esc(state.onboarding.cigarettes_per_day)}"></label>
+            <label>${esc(t("onboarding.cigarettes_per_pack"))}<input id="cigarettesPerPack" type="number" min="1" step="1" value="${esc(state.onboarding.cigarettes_per_pack)}"></label>
+            <label>${esc(t("onboarding.pack_price"))}<input id="packPrice" type="number" min="0" step="0.1" value="${esc(state.onboarding.pack_price)}"></label>
+          </div>`}
       </div>`;
   }
 
@@ -967,6 +980,21 @@ function renderOnboardingStep(key) {
       <div class="goal-box"><strong>${esc(t("onboarding.summary_goal"))}</strong><p class="muted">${esc(state.onboarding.goal_title || t("onboarding.goal_placeholder"))} · ${money(state.onboarding.goal_amount, state.onboarding.currency)}</p></div>
       <div class="goal-box"><strong>${esc(t("onboarding.summary_savings"))}</strong><p class="muted">${money(estimate.day, state.onboarding.currency)} / ${esc(t("time.day"))} · ${money(estimate.week, state.onboarding.currency)} / ${esc(t("time.week"))} · ${money(estimate.month, state.onboarding.currency)} / ${esc(t("time.month"))}</p></div>
     </div>`;
+}
+
+function renderSmokingProductPicker(name, selected, context = "settings") {
+  return `
+    <fieldset class="smoking-product-fieldset ${context === "onboarding" ? "onboarding-product-fieldset" : ""}">
+      <legend>${esc(t("onboarding.smoking_product_legend"))}</legend>
+      <div class="smoking-product-picker">
+        ${["tobacco", "vape"].map((product) => `
+          <label class="smoking-product-option">
+            <input type="radio" name="${esc(name)}" value="${product}" ${selected === product ? "checked" : ""} data-${context}-smoking-product>
+            <span class="icon-token ${product === "vape" ? "token-blue" : "token-red"}">${icon(product === "vape" ? "vape" : "smoke")}</span>
+            <span><strong>${esc(t(`onboarding.smoking_product_${product}`))}</strong><small>${esc(t(`onboarding.smoking_product_${product}_body`))}</small></span>
+          </label>`).join("")}
+      </div>
+    </fieldset>`;
 }
 
 function attachOnboardingEvents(key) {
@@ -1002,9 +1030,14 @@ function attachOnboardingEvents(key) {
   }
 
   if (key === "smoking") {
+    app.querySelectorAll("[data-onboarding-smoking-product]").forEach((input) => input.addEventListener("change", () => {
+      state.onboarding.smoking_product = input.value === "vape" ? "vape" : "tobacco";
+      renderOnboarding();
+    }));
     app.querySelector("#cigarettesPerDay")?.addEventListener("input", (event) => state.onboarding.cigarettes_per_day = Number(event.target.value || 0));
     app.querySelector("#cigarettesPerPack")?.addEventListener("input", (event) => state.onboarding.cigarettes_per_pack = Number(event.target.value || 20));
     app.querySelector("#packPrice")?.addEventListener("input", (event) => state.onboarding.pack_price = Number(event.target.value || 0));
+    app.querySelector("#vapeWeeklySpend")?.addEventListener("input", (event) => state.onboarding.vape_weekly_spend = Number(event.target.value || 0));
   }
 
   if (key === "alcohol") {
@@ -1075,7 +1108,11 @@ function arraysEqual(a, b) {
 function onboardingSavings() {
   const hasSmoking = state.onboarding.habits.includes("smoking");
   const hasAlcohol = state.onboarding.habits.includes("alcohol");
-  const smoking = hasSmoking ? (Number(state.onboarding.cigarettes_per_day || 0) / Math.max(1, Number(state.onboarding.cigarettes_per_pack || 20))) * Number(state.onboarding.pack_price || 0) : 0;
+  const smoking = hasSmoking
+    ? (state.onboarding.smoking_product === "vape"
+      ? Number(state.onboarding.vape_weekly_spend || 0) / 7
+      : (Number(state.onboarding.cigarettes_per_day || 0) / Math.max(1, Number(state.onboarding.cigarettes_per_pack || 20))) * Number(state.onboarding.pack_price || 0))
+    : 0;
   const alcohol = hasAlcohol ? Number(state.onboarding.alcohol_weekly_spend || 0) / 7 : 0;
   const day = smoking + alcohol;
   return { day, week: day * 7, month: day * 30 };
@@ -1083,8 +1120,9 @@ function onboardingSavings() {
 
 function summaryHabits() {
   const habits = state.onboarding.habits;
-  if (habits.includes("smoking") && habits.includes("alcohol")) return t("habits.both");
-  if (habits.includes("smoking")) return t("habits.smoking");
+  const isVape = state.onboarding.smoking_product === "vape";
+  if (habits.includes("smoking") && habits.includes("alcohol")) return t(isVape ? "habits.vape_and_alcohol" : "habits.tobacco_and_alcohol");
+  if (habits.includes("smoking")) return t(isVape ? "habits.vape" : "habits.tobacco");
   return t("habits.alcohol");
 }
 
@@ -1094,6 +1132,19 @@ function summaryReason() {
     if (reason === "custom") return state.onboarding.custom_reason || t("onboarding.custom_reason");
     return options.find((item) => item.code === reason)?.title || reason;
   }).join(" · ");
+}
+
+function dashboardSmokingUi(data) {
+  const isVape = data?.habits?.smoking?.smoking_product === "vape";
+  return {
+    isVape,
+    icon: isVape ? "vape" : "smoke",
+    token: isVape ? "token-blue" : "token-red",
+    habitKey: isVape ? "habits.vape" : "habits.tobacco",
+    withoutKey: isVape ? "dashboard.without_vape" : "dashboard.without_smoking",
+    cleanKey: isVape ? "dashboard.mark_vape_clean" : "dashboard.mark_smoke_clean",
+    incidentKey: isVape ? "incident.vaped" : "incident.smoked"
+  };
 }
 
 function renderDashboardView() {
@@ -1107,6 +1158,7 @@ function renderDashboardView() {
   const offset = circumference - circumference * motion.reactorFrom / 100;
   const hasSmoking = data.habit_types.includes("smoking");
   const hasAlcohol = data.habit_types.includes("alcohol");
+  const smokingUi = dashboardSmokingUi(data);
   const currency = data.money.goal.currency || "EUR";
   const missions = data.missions || [];
   const missionSummary = data.missions_summary || { completed: 0, total: missions.length, percent: 0 };
@@ -1187,7 +1239,7 @@ function renderDashboardView() {
       ${renderMissionPanel(data)}
 
       <section class="stat-grid">
-        ${hasSmoking ? statCard("smoke", "token-red", t("dashboard.without_smoking"), duration(data.habits.smoking.hours), t("dashboard.series_days", { days: data.habits.smoking.days })) : ""}
+        ${hasSmoking ? statCard(smokingUi.icon, smokingUi.token, t(smokingUi.withoutKey), duration(data.habits.smoking.hours), t("dashboard.series_days", { days: data.habits.smoking.days })) : ""}
         ${hasAlcohol ? statCard("alcohol", "token-blue", t("dashboard.without_alcohol"), duration(data.habits.alcohol.hours), t("dashboard.series_days", { days: data.habits.alcohol.days })) : ""}
         ${statCard("money", "token-green", t("dashboard.saved"), money(data.money.saved_total, currency), t("dashboard.saved_today", { amount: money(data.money.saved_today, currency) }))}
         ${statCard("trophy", "token-violet", t("dashboard.level"), t(progression.title_key), t("progression.level_xp", { level: progression.level, xp: progression.xp }))}
@@ -1214,12 +1266,12 @@ function renderDashboardView() {
             <span class="badge">${esc(t("dashboard.checkin"))}</span>
           </div>
           <div class="check-grid">
-            ${hasSmoking ? `<button class="secondary-button" data-checkin="smoke">${icon("smoke")}${esc(t("dashboard.mark_smoke_clean"))}</button>` : ""}
+            ${hasSmoking ? `<button class="secondary-button" data-checkin="smoke">${icon(smokingUi.icon)}${esc(t(smokingUi.cleanKey))}</button>` : ""}
             ${hasAlcohol ? `<button class="secondary-button" data-checkin="alcohol">${icon("alcohol")}${esc(t("dashboard.mark_alcohol_clean"))}</button>` : ""}
           </div>
           <div style="height:10px"></div>
           <div class="incident-grid">
-            ${hasSmoking ? `<button class="danger-button" data-incident="smoking">${icon("smoke")}${esc(t("incident.smoked"))}</button>` : ""}
+            ${hasSmoking ? `<button class="danger-button" data-incident="smoking">${icon(smokingUi.icon)}${esc(t(smokingUi.incidentKey))}</button>` : ""}
             ${hasAlcohol ? `<button class="danger-button" data-incident="alcohol">${icon("alcohol")}${esc(t("incident.drank"))}</button>` : ""}
           </div>
         </section>
@@ -1317,12 +1369,19 @@ function recoveryVisualModel(data) {
   const hours = Number(data.reactor?.control_hours || 0);
   const hasSmoking = data.habit_types.includes("smoking");
   const hasAlcohol = data.habit_types.includes("alcohol");
-  const mode = hasSmoking && hasAlcohol ? "both" : hasSmoking ? "smoking" : "alcohol";
+  const isVape = dashboardSmokingUi(data).isVape;
+  const mode = hasSmoking && hasAlcohol ? "both" : hasSmoking ? (isVape ? "vape" : "smoking") : "alcohol";
   const catalogs = {
     smoking: [
       ["blood", "shield", 72],
       ["lungs", "lungs", 720],
       ["heart", "heart", 8760],
+      ["energy", "bolt", 336]
+    ],
+    vape: [
+      ["lungs", "lungs", 720],
+      ["heart", "heart", 8760],
+      ["nicotine", "shield", 336],
       ["energy", "bolt", 336]
     ],
     alcohol: [
@@ -1358,33 +1417,94 @@ function renderRecoveryVisual(data) {
         <span class="badge">${esc(t(`health_visual.mode_${model.mode}`))}</span>
       </div>
       <div class="recovery-visual-layout">
-        <div class="recovery-figure" style="--recovery-level:${model.progress / 100}">
-          <svg class="recovery-body-svg" viewBox="0 0 300 420" role="img" aria-label="${esc(t("health_visual.figure_label"))}">
+        <div class="recovery-figure" style="--recovery-level:${model.progress / 100};--recovery-percent:${model.progress}%">
+          <div class="bio-scan-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="bio-scan-sweep" aria-hidden="true"></div>
+          <svg class="recovery-body-svg" viewBox="0 0 340 430" role="img" aria-label="${esc(t("health_visual.figure_label"))}">
             <defs>
-              <clipPath id="recoveryBodyClip">
-                <circle cx="150" cy="54" r="35"></circle>
-                <path d="M111 100 Q150 82 189 100 Q207 139 204 220 Q201 258 185 282 L115 282 Q99 258 96 220 Q93 139 111 100Z"></path>
+              <linearGradient id="bioShellGradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#31415f"></stop>
+                <stop offset=".52" stop-color="#15283d"></stop>
+                <stop offset="1" stop-color="#0b1728"></stop>
+              </linearGradient>
+              <linearGradient id="bioRecoveryGradient" x1="0" x2=".8" y1="1" y2="0">
+                <stop offset="0" stop-color="#236cff"></stop>
+                <stop offset=".48" stop-color="#00d7ff"></stop>
+                <stop offset="1" stop-color="#7bffcf"></stop>
+              </linearGradient>
+              <radialGradient id="bioSkinLight" cx="38%" cy="22%" r="78%">
+                <stop offset="0" stop-color="#a7e9ff" stop-opacity=".28"></stop>
+                <stop offset=".48" stop-color="#5e82ad" stop-opacity=".08"></stop>
+                <stop offset="1" stop-color="#020712" stop-opacity=".24"></stop>
+              </radialGradient>
+              <linearGradient id="bioLungGradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#c1f7ff"></stop>
+                <stop offset="1" stop-color="#16ccea"></stop>
+              </linearGradient>
+              <linearGradient id="bioBrainGradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#e3d7ff"></stop>
+                <stop offset="1" stop-color="#9f7cff"></stop>
+              </linearGradient>
+              <linearGradient id="bioHeartGradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#ffbacb"></stop>
+                <stop offset="1" stop-color="#ff5c7f"></stop>
+              </linearGradient>
+              <linearGradient id="bioBalanceGradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#ffe6a1"></stop>
+                <stop offset="1" stop-color="#e9aa35"></stop>
+              </linearGradient>
+              <path id="bioHeadShape" d="M170 24c25 0 42 20 40 45-2 25-18 43-40 43s-38-18-40-43c-2-25 15-45 40-45Z"></path>
+              <path id="bioNeckShape" d="M150 101c7 7 33 7 40 0l7 29h-54Z"></path>
+              <path id="bioTorsoShape" d="M121 124c13-10 31-14 49-14s36 4 49 14c17 28 25 76 20 121-3 28-14 51-28 67-25 10-57 10-82 0-14-16-25-39-28-67-5-45 3-93 20-121Z"></path>
+              <path id="bioLeftArmShape" d="M122 127c-17 4-27 16-35 34l-31 92c-6 18 15 27 25 11l40-70c8-15 15-38 16-56Z"></path>
+              <path id="bioRightArmShape" d="M218 127c17 4 27 16 35 34l31 92c6 18-15 27-25 11l-40-70c-8-15-15-38-16-56Z"></path>
+              <path id="bioLeftLegShape" d="M129 296c-8 29-14 65-18 103-2 20 24 24 31 5l28-94-2-12Z"></path>
+              <path id="bioRightLegShape" d="M211 296c8 29 14 65 18 103 2 20-24 24-31 5l-28-94 2-12Z"></path>
+              <clipPath id="bioBodyClip">
+                <use href="#bioHeadShape"></use><use href="#bioNeckShape"></use><use href="#bioTorsoShape"></use>
+                <use href="#bioLeftArmShape"></use><use href="#bioRightArmShape"></use><use href="#bioLeftLegShape"></use><use href="#bioRightLegShape"></use>
               </clipPath>
             </defs>
-            <g class="body-guide">
-              <circle cx="150" cy="54" r="35"></circle>
-              <path d="M111 100 Q150 82 189 100 Q207 139 204 220 Q201 258 185 282 L115 282 Q99 258 96 220 Q93 139 111 100Z"></path>
-              <path d="M105 117 Q78 157 63 232 M195 117 Q222 157 237 232 M126 278 Q117 331 110 394 M174 278 Q183 331 190 394"></path>
+            <g class="bio-stage" aria-hidden="true">
+              <ellipse cx="170" cy="407" rx="105" ry="14"></ellipse>
+              <circle cx="170" cy="213" r="128"></circle>
+              <circle cx="170" cy="213" r="98"></circle>
+              <path d="M35 213h52m166 0h52M170 91V55m0 316v35"></path>
             </g>
-            <rect class="body-progress-fill" x="30" y="15" width="240" height="380" clip-path="url(#recoveryBodyClip)"></rect>
-            <g class="organ organ-brain ${model.hasAlcohol ? "active" : "supporting"}">
-              <path d="M130 48c-4-13 14-23 21-12 8-11 25 0 19 13 7 9-4 20-13 16-7 9-21 2-18-8-8 2-14-4-9-9Z"></path>
+            <g class="bio-body-shell">
+              <use href="#bioLeftLegShape"></use><use href="#bioRightLegShape"></use>
+              <use href="#bioLeftArmShape"></use><use href="#bioRightArmShape"></use>
+              <use href="#bioNeckShape"></use><use href="#bioTorsoShape"></use><use href="#bioHeadShape"></use>
             </g>
-            <g class="organ organ-lungs ${model.hasSmoking ? "active" : "supporting"}">
-              <path d="M145 118v59c-16 15-36 6-37-14-1-24 14-43 29-45 4 0 6 0 8 0Z"></path>
-              <path d="M155 118v59c16 15 36 6 37-14 1-24-14-43-29-45-4 0-6 0-8 0Z"></path>
-              <path class="organ-line" d="M150 101v42m0-18-14 15m14-15 14 15"></path>
+            <g class="bio-recovery-layer" clip-path="url(#bioBodyClip)">
+              <rect x="35" y="15" width="270" height="400"></rect>
+              <path class="bio-energy-ribbon" d="M83 363c70-45 85-116 65-181-13-41 4-80 71-124"></path>
             </g>
-            <g class="organ organ-heart active">
-              <path d="M150 211c-25-16-29-35-15-43 8-5 15-1 19 6 5-8 14-11 21-5 13 11 1 29-25 42Z"></path>
+            <g class="bio-body-light" clip-path="url(#bioBodyClip)">
+              <rect x="42" y="20" width="256" height="390"></rect>
+              <path d="M135 125c-13 38-15 98-3 145m76-144c14 38 15 98 3 145M146 307l-17 84m65-84 17 84"></path>
             </g>
-            <g class="organ organ-balance ${model.hasAlcohol ? "active" : "supporting"}">
-              <path d="M145 224c17-10 38-7 43 4-5 13-22 20-45 14-5-8-4-13 2-18Z"></path>
+            <g class="bio-organs">
+              <g class="bio-organ bio-brain ${model.hasAlcohol ? "active" : "supporting"}">
+                <path d="M149 65c-7-12 5-24 17-19 7-10 23-4 22 8 12 1 15 17 5 23 4 12-12 20-20 11-9 9-24 1-20-11-10-1-12-9-4-12Z"></path>
+                <path class="bio-organ-detail" d="M157 58c5 3 7 9 4 15m18-19c-5 5-6 11-2 17m-18 7c5-4 10-4 15 1"></path>
+              </g>
+              <g class="bio-organ bio-lungs ${model.hasSmoking ? "active" : "supporting"}">
+                <path d="M160 146c-20 3-35 23-36 47-1 22 16 35 34 23 7-5 7-20 7-35v-34Z"></path>
+                <path d="M180 146c20 3 35 23 36 47 1 22-16 35-34 23-7-5-7-20-7-35v-34Z"></path>
+                <path class="bio-airway" d="M170 128v42m0-12-18 17m18-17 18 17"></path>
+              </g>
+              <g class="bio-organ bio-heart active">
+                <path d="M174 235c-25-16-31-36-17-45 8-5 16-1 20 7 6-9 16-11 23-4 13 13-1 30-26 42Z"></path>
+                <path class="bio-organ-detail" d="M177 199c1 8 5 14 13 18"></path>
+              </g>
+              <g class="bio-organ bio-balance ${model.hasAlcohol ? "active" : "supporting"}">
+                <path d="M151 250c22-13 51-9 60 7-9 17-33 25-61 16-7-10-7-17 1-23Z"></path>
+                <path class="bio-organ-detail" d="M164 256c11 5 24 6 36 2"></path>
+              </g>
+            </g>
+            <g class="bio-flow-points" aria-hidden="true">
+              <circle cx="170" cy="119" r="3"></circle><circle cx="139" cy="239" r="3"></circle><circle cx="190" cy="286" r="3"></circle>
             </g>
           </svg>
           <div class="recovery-figure-meter"><strong>${model.progress}%</strong><span>${esc(t("health_visual.visual_progress"))}</span></div>
@@ -1933,6 +2053,7 @@ function renderSettings() {
   const profile = data.profile || {};
   const goal = data.money.goal || {};
   const smoking = data.habits.smoking || {};
+  const smokingProduct = smoking.smoking_product === "vape" ? "vape" : "tobacco";
   const alcohol = data.habits.alcohol || {};
   const motivationReasons = profileMotivationReasons(profile);
   app.innerHTML = `
@@ -2003,10 +2124,14 @@ function renderSettings() {
         ${data.habit_types.includes("smoking") ? `
         <div class="settings-section">
           <h3>${esc(t("settings.smoking"))}</h3>
-          <div class="settings-grid">
+          ${renderSmokingProductPicker("smoking_product", smokingProduct)}
+          <div class="settings-grid ${smokingProduct === "vape" ? "hidden" : ""}" data-smoking-settings="tobacco">
             <label>${esc(t("onboarding.cigarettes_per_day"))}<input name="cigarettes_per_day" type="number" min="0" step="1" value="${esc(smoking.cigarettes_per_day || 0)}"></label>
             <label>${esc(t("onboarding.cigarettes_per_pack"))}<input name="cigarettes_per_pack" type="number" min="1" step="1" value="${esc(smoking.cigarettes_per_pack || 20)}"></label>
             <label>${esc(t("onboarding.pack_price"))}<input name="pack_price" type="number" min="0" step="0.1" value="${esc(smoking.pack_price || 0)}"></label>
+          </div>
+          <div class="settings-grid one-field ${smokingProduct === "vape" ? "" : "hidden"}" data-smoking-settings="vape">
+            <label>${esc(t("onboarding.vape_weekly_spend"))}<input name="vape_weekly_spend" type="number" min="0" step="0.1" value="${esc(smoking.vape_weekly_spend || 0)}"><small>${esc(t("onboarding.vape_spend_help"))}</small></label>
           </div>
         </div>` : ""}
         ${data.habit_types.includes("alcohol") ? `
@@ -2036,6 +2161,9 @@ function renderSettings() {
   app.querySelector("#avatarFileInput").addEventListener("change", previewProfilePhoto);
   app.querySelector("#uploadAvatarBtn").addEventListener("click", uploadProfilePhoto);
   app.querySelector("#deleteAvatarBtn")?.addEventListener("click", deleteProfilePhoto);
+  app.querySelectorAll("[data-settings-smoking-product]").forEach((input) => input.addEventListener("change", () => {
+    app.querySelectorAll("[data-smoking-settings]").forEach((section) => section.classList.toggle("hidden", section.dataset.smokingSettings !== input.value));
+  }));
   app.querySelectorAll('[name="motivation_reasons"]').forEach((input) => input.addEventListener("change", () => {
     input.closest(".reason-choice")?.classList.toggle("selected", input.checked);
     const customSelected = Array.from(app.querySelectorAll('[name="motivation_reasons"]:checked')).some((item) => item.value === "custom");
@@ -2139,9 +2267,11 @@ async function saveSettings(event) {
   if (state.dashboard.habit_types.includes("smoking")) {
     body.smoking = {
       is_active: true,
+      smoking_product: String(form.get("smoking_product") || "tobacco") === "vape" ? "vape" : "tobacco",
       cigarettes_per_day: Number(form.get("cigarettes_per_day") || 0),
       cigarettes_per_pack: Number(form.get("cigarettes_per_pack") || 20),
-      pack_price: Number(form.get("pack_price") || 0)
+      pack_price: Number(form.get("pack_price") || 0),
+      vape_weekly_spend: Number(form.get("vape_weekly_spend") || 0)
     };
   }
   if (state.dashboard.habit_types.includes("alcohol")) {
@@ -2237,7 +2367,7 @@ function cravingSupportText() {
 }
 
 function renderCravingModal(phase) {
-  const reasons = list("craving.reasons");
+  const reasons = list(dashboardSmokingUi(state.dashboard).isVape ? "craving.reasons_vape" : "craving.reasons");
   const tools = list("craving.tools");
   const health = cravingHealthPercent();
   state.craving.phase = phase;
@@ -2365,16 +2495,17 @@ function sharePayload() {
   const currency = data.money.goal.currency || "EUR";
   const hasSmoking = data.habit_types.includes("smoking");
   const hasAlcohol = data.habit_types.includes("alcohol");
+  const isVape = dashboardSmokingUi(data).isVape;
   const controlDays = Number(data.reactor.control_days || 0);
   const habits = hasSmoking && hasAlcohol
-    ? t("habits.both")
+    ? t(isVape ? "habits.vape_and_alcohol" : "habits.tobacco_and_alcohol")
     : hasSmoking
-      ? t("habits.smoking")
+      ? t(isVape ? "habits.vape" : "habits.tobacco")
       : t("habits.alcohol");
   const motivationKey = hasSmoking && hasAlcohol
-    ? "share.motivation_both"
+    ? (isVape ? "share.motivation_vape_both" : "share.motivation_both")
     : hasSmoking
-      ? "share.motivation_smoking"
+      ? (isVape ? "share.motivation_vape" : "share.motivation_smoking")
       : "share.motivation_alcohol";
   const url = new URL(location.href);
   url.hash = "";

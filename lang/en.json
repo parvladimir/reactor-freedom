@@ -30,7 +30,7 @@
     "hero_motto": "Do not quit alone. Build your freedom reactor.",
     "hero_motto_body": "Track clean days, survive risky minutes, turn old spending into a goal and get support when the day gets loud.",
     "hero_features": [
-      { "icon": "shield", "token": "token-green", "title": "Daily control", "body": "Mark cigarettes and alcohol separately and see the streak that is really holding." },
+      { "icon": "shield", "token": "token-green", "title": "Daily control", "body": "Track smoking and alcohol separately and see the streak that is really holding." },
       { "icon": "bolt", "token": "token-blue", "title": "Emergency mode", "body": "Wait out the craving peak with quick tactics before impulse becomes action." },
       { "icon": "money", "token": "token-gold", "title": "Money to a goal", "body": "Every clean day shows what came back to you instead of disappearing into the old habit." },
       { "icon": "users", "token": "token-violet", "title": "Friends nearby", "body": "Follow people, like their wins and send support at the moment it matters." }
@@ -77,7 +77,7 @@
     "invite_title": "{name}, start a cleaner streak",
     "invite_lead": "{inviter} sent you an invitation to REACTOR: Freedom.",
     "invite_slogan": "One clean day is not small. It is proof that control can return.",
-    "invite_body": "{app} helps you track days without cigarettes or alcohol, beat cravings, save money toward a goal and get support from friends.",
+    "invite_body": "{app} helps you track days without smoking or alcohol, beat cravings, save money toward a goal and get support from friends.",
     "invite_button": "Open REACTOR",
     "invite_footer": "You received this email because a REACTOR user invited you. If it is not relevant, you can ignore it.",
     "invite_plain": "{name}, {inviter} invited you to {app}. {message} Open it here: {url}"
@@ -91,18 +91,22 @@
     "avatar_too_large": "The photo must be no larger than 4 MB."
   },
   "habits": {
-    "smoking": "Cigarettes",
+    "smoking": "Smoking",
+    "tobacco": "Cigarettes",
+    "vape": "E-cigarettes",
     "alcohol": "Alcohol",
-    "both": "Cigarettes and alcohol"
+    "both": "Smoking and alcohol",
+    "tobacco_and_alcohol": "Cigarettes and alcohol",
+    "vape_and_alcohol": "E-cigarettes and alcohol"
   },
   "onboarding": {
     "kicker": "Onboarding",
     "habit_title": "Which habit do you want to break?",
     "habit_subtitle": "Pick the reactor target. The dashboard will only show the systems you activate.",
     "habit_options": [
-      { "value": ["smoking"], "icon": "smoke", "token": "token-red", "title": "Cigarettes", "body": "Track clean hours, incidents, pack cost and money saved." },
+      { "value": ["smoking"], "icon": "smoke", "token": "token-red", "title": "Smoking", "body": "Cigarettes or e-cigarettes: clean hours, incidents and money saved." },
       { "value": ["alcohol"], "icon": "alcohol", "token": "token-blue", "title": "Alcohol", "body": "Track sober time, risky moments and weekly spending." },
-      { "value": ["smoking", "alcohol"], "icon": "reactor", "token": "token-violet", "title": "Both", "body": "Run a combined control system for both habits." }
+      { "value": ["smoking", "alcohol"], "icon": "reactor", "token": "token-violet", "title": "Both", "body": "Run a combined control system for smoking and alcohol." }
     ],
     "reason_title": "What are you changing these habits for?",
     "reason_subtitle": "Choose more than one reason. The reactor will use them for personal signals on your dashboard.",
@@ -121,10 +125,20 @@
     "goal_amount": "Goal amount",
     "currency": "Currency",
     "goal_placeholder": "Family trip",
-    "smoking_title": "Cigarette baseline",
+    "smoking_title": "What exactly do you want to quit?",
+    "smoking_subtitle": "Different nicotine products have different costs. Choose yours for an honest estimate.",
+    "smoking_product_legend": "Smoking type",
+    "smoking_product_tobacco": "Cigarettes",
+    "smoking_product_tobacco_body": "Track cigarettes, packs and pack price.",
+    "smoking_product_vape": "E-cigarettes",
+    "smoking_product_vape_body": "Disposables, pod systems, cartridges or liquids.",
+    "tobacco_details_title": "Cigarette use",
+    "vape_details_title": "E-cigarette spending",
     "cigarettes_per_day": "Cigarettes per day",
     "cigarettes_per_pack": "Cigarettes per pack",
     "pack_price": "Pack price",
+    "vape_weekly_spend": "Weekly e-cigarette spending",
+    "vape_spend_help": "Enter the total for disposables, cartridges, liquids and supplies. No need to count puffs.",
     "alcohol_title": "Alcohol baseline",
     "alcohol_weekly_spend": "Weekly alcohol spending",
     "dangerous_days": "Risky moments",
@@ -192,6 +206,7 @@
     "mission_title": "Protect the reactor",
     "mission_text": "Close the day clean and use emergency mode before any risky decision.",
     "without_smoking": "Without cigarettes",
+    "without_vape": "Without e-cigarettes",
     "without_alcohol": "Without alcohol",
     "saved": "Saved",
     "saved_today": "{amount} today",
@@ -208,6 +223,7 @@
     "today": "Today",
     "checkin": "Check-in",
     "mark_smoke_clean": "Day without cigarettes",
+    "mark_vape_clean": "Day without e-cigarettes",
     "mark_alcohol_clean": "Day without alcohol",
     "money_kicker": "Money signal",
     "money_title": "Money is coming back to you",
@@ -239,6 +255,7 @@
     "kicker": "Living circuit",
     "title": "How your system is recovering",
     "mode_smoking": "smoke-free",
+    "mode_vape": "vape-free",
     "mode_alcohol": "alcohol-free",
     "mode_both": "dual recovery",
     "figure_label": "Visual body recovery circuit",
@@ -253,10 +270,12 @@
       "momentum": "Long-term progress is working"
     },
     "mode_body_smoking": "After quitting cigarettes, positive changes begin quickly and continue over months and years.",
+    "mode_body_vape": "After quitting e-cigarettes, the body no longer receives nicotine and aerosol while breathing gradually adapts to the new routine.",
     "mode_body_alcohol": "Less alcohol can support sleep, energy and mood while reducing long-term strain on the body.",
     "mode_body_both": "Your body gains more room for breathing, sleep, energy and steady cardiovascular function at the same time.",
     "systems": {
       "blood": { "title": "Blood and oxygen", "body": "During the first days, nicotine and carbon monoxide levels in the blood fall." },
+      "nicotine": { "title": "Nicotine load", "body": "After quitting, the body no longer receives new nicotine doses and gradually adapts to life without them." },
       "lungs": { "title": "Lungs and breathing", "body": "Over time, coughing and shortness of breath can decrease and breathing may feel easier." },
       "heart": { "title": "Heart and circulation", "body": "Cardiovascular risks gradually fall as the change is maintained." },
       "energy": { "title": "Energy and tone", "body": "Sleep, mornings and daytime energy can become more consistent." },
@@ -332,8 +351,10 @@
     "download": "Download PNG",
     "fallback_downloaded": "The browser could not share the image directly, so the PNG was downloaded.",
     "motivation_smoking": "I have not smoked for {days} days.",
+    "motivation_vape": "I have been free from e-cigarettes for {days} days.",
     "motivation_alcohol": "I have not drunk alcohol for {days} days.",
     "motivation_both": "I have not smoked or drunk alcohol for {days} days.",
+    "motivation_vape_both": "I have been free from e-cigarettes and alcohol for {days} days.",
     "days": "Clean days",
     "saved": "Saved",
     "wins": "Cravings beaten",
@@ -461,7 +482,7 @@
     "motivation_title": "Reasons that hold your course",
     "motivation_body": "Choose several motives. Dashboard messages will draw directly from them.",
     "goal": "Financial goal",
-    "smoking": "Cigarette parameters",
+    "smoking": "Smoking settings",
     "alcohol": "Alcohol parameters",
     "reset_title": "Reset current streak",
     "reset_body": "Opening settings never resets progress. Type RESET only if you really want to restart active streaks.",
@@ -497,6 +518,7 @@
     "complete": "Done. Craving beaten.",
     "saved": "Craving beaten and saved.",
     "reasons": ["stress", "boredom", "anger", "after food", "after work", "company", "habit", "alcohol → cigarettes", "cigarettes → alcohol"],
+    "reasons_vape": ["stress", "boredom", "anger", "after food", "after work", "company", "habit", "phone or computer", "alcohol → e-cigarette", "e-cigarette → alcohol"],
     "actions": ["Drink a glass of water and leave the room for 3 minutes.", "Do 20 squats. No debate, just movement.", "Splash cold water on your face and take 10 slow breaths.", "Write: I do not obey the addiction command.", "Put on music and walk 300 steps.", "Brush your teeth or chew mint gum.", "Open a window and breathe slowly 10 times.", "Write one sentence of control to yourself."]
   },
   "incident": {
@@ -508,6 +530,7 @@
     "save": "Save and continue",
     "saved": "Incident recorded. Continue.",
     "smoked": "I smoked",
+    "vaped": "I used an e-cigarette",
     "drank": "I drank"
   },
   "phrases": {

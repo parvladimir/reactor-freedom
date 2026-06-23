@@ -267,9 +267,11 @@ final class DashboardService
                 'current_streak_start_at' => $habit['current_streak_start_at'],
                 'hours' => round($hours, 2),
                 'days' => floor($hours / 24),
+                'smoking_product' => $habit['smoking_product'] === 'vape' ? 'vape' : 'tobacco',
                 'cigarettes_per_day' => $this->floatOrNull($habit['cigarettes_per_day'] ?? null),
                 'cigarettes_per_pack' => $this->floatOrNull($habit['cigarettes_per_pack'] ?? null),
                 'pack_price' => $this->floatOrNull($habit['pack_price'] ?? null),
+                'vape_weekly_spend' => $this->floatOrNull($habit['vape_weekly_spend'] ?? null),
                 'alcohol_weekly_spend' => $this->floatOrNull($habit['alcohol_weekly_spend'] ?? null),
                 'dangerous_days' => $this->jsonArray($habit['dangerous_days'] ?? null),
             ];
@@ -288,10 +290,14 @@ final class DashboardService
         $alcoholLastWeek = 0.0;
 
         if (isset($habits['smoking'])) {
-            $perDay = (float) ($habits['smoking']['cigarettes_per_day'] ?? 0);
-            $perPack = max(1.0, (float) ($habits['smoking']['cigarettes_per_pack'] ?? 20));
-            $price = (float) ($habits['smoking']['pack_price'] ?? 0);
-            $dailySmoking = ($perDay / $perPack) * $price;
+            if (($habits['smoking']['smoking_product'] ?? 'tobacco') === 'vape') {
+                $dailySmoking = (float) ($habits['smoking']['vape_weekly_spend'] ?? 0) / 7;
+            } else {
+                $perDay = (float) ($habits['smoking']['cigarettes_per_day'] ?? 0);
+                $perPack = max(1.0, (float) ($habits['smoking']['cigarettes_per_pack'] ?? 20));
+                $price = (float) ($habits['smoking']['pack_price'] ?? 0);
+                $dailySmoking = ($perDay / $perPack) * $price;
+            }
             $smokingDays = $this->hoursSince($habits['smoking']['current_streak_start_at'] ?? null) / 24;
             $smokingTotal = $dailySmoking * $smokingDays;
             $smokingLastWeek = $dailySmoking * min(7, $smokingDays);

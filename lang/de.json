@@ -91,18 +91,22 @@
     "avatar_too_large": "Das Foto darf höchstens 4 MB groß sein."
   },
   "habits": {
-    "smoking": "Zigaretten",
+    "smoking": "Rauchen",
+    "tobacco": "Zigaretten",
+    "vape": "E-Zigaretten",
     "alcohol": "Alkohol",
-    "both": "Zigaretten und Alkohol"
+    "both": "Rauchen und Alkohol",
+    "tobacco_and_alcohol": "Zigaretten und Alkohol",
+    "vape_and_alcohol": "E-Zigaretten und Alkohol"
   },
   "onboarding": {
     "kicker": "Einrichtung",
     "habit_title": "Welche Gewohnheit willst du loswerden?",
     "habit_subtitle": "Wähle das Reaktor-Ziel. Das Dashboard zeigt nur aktive Systeme.",
     "habit_options": [
-      { "value": ["smoking"], "icon": "smoke", "token": "token-red", "title": "Zigaretten", "body": "Saubere Stunden, Vorfälle, Packungspreis und Ersparnis." },
+      { "value": ["smoking"], "icon": "smoke", "token": "token-red", "title": "Rauchen", "body": "Zigaretten oder E-Zigaretten: freie Stunden, Vorfälle und Ersparnis." },
       { "value": ["alcohol"], "icon": "alcohol", "token": "token-blue", "title": "Alkohol", "body": "Nüchterne Zeit, riskante Momente und Wochenkosten." },
-      { "value": ["smoking", "alcohol"], "icon": "reactor", "token": "token-violet", "title": "Beides", "body": "Ein gemeinsames Kontrollsystem für beide Gewohnheiten." }
+      { "value": ["smoking", "alcohol"], "icon": "reactor", "token": "token-violet", "title": "Beides", "body": "Ein gemeinsames Kontrollsystem für Rauchen und Alkohol." }
     ],
     "reason_title": "Wofür veränderst du diese Gewohnheiten?",
     "reason_subtitle": "Wähle mehrere Gründe. Der Reaktor nutzt sie für persönliche Signale auf deinem Dashboard.",
@@ -121,10 +125,20 @@
     "goal_amount": "Zielbetrag",
     "currency": "Währung",
     "goal_placeholder": "Familienreise",
-    "smoking_title": "Zigaretten-Basiswerte",
+    "smoking_title": "Was genau möchtest du aufgeben?",
+    "smoking_subtitle": "Verschiedene Nikotinprodukte verursachen unterschiedliche Kosten. Wähle deine Variante.",
+    "smoking_product_legend": "Art des Rauchens",
+    "smoking_product_tobacco": "Zigaretten",
+    "smoking_product_tobacco_body": "Zigaretten, Packungen und Packungspreis erfassen.",
+    "smoking_product_vape": "E-Zigaretten",
+    "smoking_product_vape_body": "Einweggeräte, Pods, Kartuschen oder Liquids.",
+    "tobacco_details_title": "Zigarettenkonsum",
+    "vape_details_title": "Ausgaben für E-Zigaretten",
     "cigarettes_per_day": "Zigaretten pro Tag",
     "cigarettes_per_pack": "Zigaretten pro Packung",
     "pack_price": "Packungspreis",
+    "vape_weekly_spend": "Ausgaben für E-Zigaretten pro Woche",
+    "vape_spend_help": "Gesamtkosten für Einweggeräte, Kartuschen, Liquids und Zubehör. Züge müssen nicht gezählt werden.",
     "alcohol_title": "Alkohol-Basiswerte",
     "alcohol_weekly_spend": "Alkoholausgaben pro Woche",
     "dangerous_days": "Riskante Momente",
@@ -192,6 +206,7 @@
     "mission_title": "Reaktor schützen",
     "mission_text": "Schließe den Tag sauber ab und nutze den Notfallmodus vor jeder riskanten Entscheidung.",
     "without_smoking": "Ohne Zigaretten",
+    "without_vape": "Ohne E-Zigaretten",
     "without_alcohol": "Ohne Alkohol",
     "saved": "Gespart",
     "saved_today": "{amount} heute",
@@ -208,6 +223,7 @@
     "today": "Heute",
     "checkin": "Check-in",
     "mark_smoke_clean": "Tag ohne Zigaretten",
+    "mark_vape_clean": "Tag ohne E-Zigaretten",
     "mark_alcohol_clean": "Tag ohne Alkohol",
     "money_kicker": "Geldsignal",
     "money_title": "Dein Geld kommt zu dir zurück",
@@ -239,6 +255,7 @@
     "kicker": "Lebender Kreislauf",
     "title": "Wie sich dein System erholt",
     "mode_smoking": "rauchfrei",
+    "mode_vape": "ohne E-Zigaretten",
     "mode_alcohol": "alkoholfrei",
     "mode_both": "doppelte Erholung",
     "figure_label": "Visueller Erholungskreislauf des Körpers",
@@ -253,10 +270,12 @@
       "momentum": "Langfristiger Fortschritt arbeitet"
     },
     "mode_body_smoking": "Nach dem Rauchstopp beginnen positive Veränderungen schnell und setzen sich über Monate und Jahre fort.",
+    "mode_body_vape": "Nach dem Verzicht auf E-Zigaretten erhält der Körper kein Nikotin und Aerosol mehr, während sich die Atmung anpasst.",
     "mode_body_alcohol": "Weniger Alkohol kann Schlaf, Energie und Stimmung unterstützen und den Körper langfristig entlasten.",
     "mode_body_both": "Der Körper erhält gleichzeitig mehr Raum für Atmung, Schlaf, Energie und stabile Herz-Kreislauf-Funktion.",
     "systems": {
       "blood": { "title": "Blut und Sauerstoff", "body": "In den ersten Tagen sinken Nikotin und Kohlenmonoxid im Blut." },
+      "nicotine": { "title": "Nikotinbelastung", "body": "Nach dem Aufhören erhält der Körper keine neuen Nikotindosen mehr und passt sich schrittweise daran an." },
       "lungs": { "title": "Lunge und Atmung", "body": "Mit der Zeit können Husten und Kurzatmigkeit abnehmen und die Atmung leichter werden." },
       "heart": { "title": "Herz und Kreislauf", "body": "Herz-Kreislauf-Risiken sinken schrittweise, wenn die Veränderung anhält." },
       "energy": { "title": "Energie und Kraft", "body": "Schlaf, Morgenbefinden und Tagesenergie können gleichmäßiger werden." },
@@ -332,8 +351,10 @@
     "download": "PNG herunterladen",
     "fallback_downloaded": "Der Browser konnte das Bild nicht direkt teilen, deshalb wurde das PNG heruntergeladen.",
     "motivation_smoking": "Ich rauche seit {days} Tagen nicht.",
+    "motivation_vape": "Ich bin seit {days} Tagen frei von E-Zigaretten.",
     "motivation_alcohol": "Ich trinke seit {days} Tagen keinen Alkohol.",
     "motivation_both": "Ich rauche und trinke seit {days} Tagen nicht.",
+    "motivation_vape_both": "Ich bin seit {days} Tagen frei von E-Zigaretten und Alkohol.",
     "days": "Saubere Tage",
     "saved": "Gespart",
     "wins": "Drang abgewehrt",
@@ -461,7 +482,7 @@
     "motivation_title": "Gründe, die deinen Kurs halten",
     "motivation_body": "Wähle mehrere Motive. Die Hinweise auf dem Dashboard greifen sie direkt auf.",
     "goal": "Finanzielles Ziel",
-    "smoking": "Zigarettenparameter",
+    "smoking": "Raucheinstellungen",
     "alcohol": "Alkoholparameter",
     "reset_title": "Aktuelle Serie zurücksetzen",
     "reset_body": "Das Öffnen der Einstellungen setzt nie Fortschritt zurück. Tippe RESET nur, wenn du aktive Serien wirklich neu starten willst.",
@@ -497,6 +518,7 @@
     "complete": "Erledigt. Drang abgewehrt.",
     "saved": "Drang abgewehrt und gespeichert.",
     "reasons": ["Stress", "Langeweile", "Wut", "nach dem Essen", "nach der Arbeit", "Gesellschaft", "Gewohnheit", "Alkohol → Zigaretten", "Zigaretten → Alkohol"],
+    "reasons_vape": ["Stress", "Langeweile", "Wut", "nach dem Essen", "nach der Arbeit", "Gesellschaft", "Gewohnheit", "Handy oder Computer", "Alkohol → E-Zigarette", "E-Zigarette → Alkohol"],
     "actions": ["Trinke ein Glas Wasser und verlasse den Raum für 3 Minuten.", "Mache 20 Kniebeugen. Keine Debatte, nur Bewegung.", "Wasche dein Gesicht kalt und atme 10-mal langsam.", "Schreibe: Ich gehorche dem Befehl der Abhängigkeit nicht.", "Mach Musik an und gehe 300 Schritte.", "Putze die Zähne oder kaue Minze.", "Öffne ein Fenster und atme 10-mal langsam.", "Schreibe dir einen Satz der Kontrolle."]
   },
   "incident": {
@@ -508,6 +530,7 @@
     "save": "Speichern und weiter",
     "saved": "Vorfall gespeichert. Weiter.",
     "smoked": "Ich habe geraucht",
+    "vaped": "Ich habe eine E-Zigarette benutzt",
     "drank": "Ich habe getrunken"
   },
   "phrases": {

@@ -109,11 +109,11 @@ final class AppRepository
             $habitTypes = $data['habits'] ?? [];
             $insertHabit = $this->pdo->prepare(
                 'INSERT INTO habits (
-                    user_id, type, is_active, start_at, current_streak_start_at, cigarettes_per_day,
-                    cigarettes_per_pack, pack_price, alcohol_weekly_spend, dangerous_days, created_at, updated_at
+                    user_id, type, is_active, start_at, current_streak_start_at, smoking_product, cigarettes_per_day,
+                    cigarettes_per_pack, pack_price, vape_weekly_spend, alcohol_weekly_spend, dangerous_days, created_at, updated_at
                  ) VALUES (
-                    :user_id, :type, 1, NOW(), NOW(), :cigarettes_per_day,
-                    :cigarettes_per_pack, :pack_price, :alcohol_weekly_spend, :dangerous_days, NOW(), NOW()
+                    :user_id, :type, 1, NOW(), NOW(), :smoking_product, :cigarettes_per_day,
+                    :cigarettes_per_pack, :pack_price, :vape_weekly_spend, :alcohol_weekly_spend, :dangerous_days, NOW(), NOW()
                  )'
             );
 
@@ -122,12 +122,15 @@ final class AppRepository
                     continue;
                 }
 
+                $smokingProduct = $this->smokingProduct($data['smoking_product'] ?? 'tobacco');
                 $insertHabit->execute([
                     'user_id' => $userId,
                     'type' => $type,
+                    'smoking_product' => $type === 'smoking' ? $smokingProduct : 'tobacco',
                     'cigarettes_per_day' => $type === 'smoking' ? $this->numberOrNull($data['cigarettes_per_day'] ?? null) : null,
                     'cigarettes_per_pack' => $type === 'smoking' ? $this->numberOrNull($data['cigarettes_per_pack'] ?? 20) : null,
                     'pack_price' => $type === 'smoking' ? $this->numberOrNull($data['pack_price'] ?? null) : null,
+                    'vape_weekly_spend' => $type === 'smoking' ? $this->numberOrNull($data['vape_weekly_spend'] ?? null) : null,
                     'alcohol_weekly_spend' => $type === 'alcohol' ? $this->numberOrNull($data['alcohol_weekly_spend'] ?? null) : null,
                     'dangerous_days' => $type === 'alcohol' ? json_encode($data['dangerous_days'] ?? [], JSON_UNESCAPED_UNICODE) : null,
                 ]);
@@ -507,22 +510,26 @@ final class AppRepository
         $dangerousDays = $type === 'alcohol' ? json_encode($data['dangerous_days'] ?? [], JSON_UNESCAPED_UNICODE) : null;
         $stmt = $this->pdo->prepare(
             'INSERT INTO habits (
-                user_id, type, is_active, start_at, current_streak_start_at, cigarettes_per_day,
-                cigarettes_per_pack, pack_price, alcohol_weekly_spend, dangerous_days, created_at, updated_at
+                user_id, type, is_active, start_at, current_streak_start_at, smoking_product, cigarettes_per_day,
+                cigarettes_per_pack, pack_price, vape_weekly_spend, alcohol_weekly_spend, dangerous_days, created_at, updated_at
              ) VALUES (
-                :user_id, :type, :is_active, NOW(), NOW(), :cigarettes_per_day,
-                :cigarettes_per_pack, :pack_price, :alcohol_weekly_spend, :dangerous_days, NOW(), NOW()
+                :user_id, :type, :is_active, NOW(), NOW(), :smoking_product, :cigarettes_per_day,
+                :cigarettes_per_pack, :pack_price, :vape_weekly_spend, :alcohol_weekly_spend, :dangerous_days, NOW(), NOW()
              ) ON DUPLICATE KEY UPDATE is_active = VALUES(is_active), cigarettes_per_day = VALUES(cigarettes_per_day),
-             cigarettes_per_pack = VALUES(cigarettes_per_pack), pack_price = VALUES(pack_price),
-             alcohol_weekly_spend = VALUES(alcohol_weekly_spend), dangerous_days = VALUES(dangerous_days), updated_at = NOW()'
+             cigarettes_per_pack = VALUES(cigarettes_per_pack), pack_price = VALUES(pack_price), smoking_product = VALUES(smoking_product),
+             vape_weekly_spend = VALUES(vape_weekly_spend), alcohol_weekly_spend = VALUES(alcohol_weekly_spend),
+             dangerous_days = VALUES(dangerous_days), updated_at = NOW()'
         );
+        $smokingProduct = $this->smokingProduct($data['smoking_product'] ?? 'tobacco');
         $stmt->execute([
             'user_id' => $userId,
             'type' => $type,
             'is_active' => !empty($data['is_active']) ? 1 : 0,
+            'smoking_product' => $type === 'smoking' ? $smokingProduct : 'tobacco',
             'cigarettes_per_day' => $type === 'smoking' ? $this->numberOrNull($data['cigarettes_per_day'] ?? null) : null,
             'cigarettes_per_pack' => $type === 'smoking' ? $this->numberOrNull($data['cigarettes_per_pack'] ?? 20) : null,
             'pack_price' => $type === 'smoking' ? $this->numberOrNull($data['pack_price'] ?? null) : null,
+            'vape_weekly_spend' => $type === 'smoking' ? $this->numberOrNull($data['vape_weekly_spend'] ?? null) : null,
             'alcohol_weekly_spend' => $type === 'alcohol' ? $this->numberOrNull($data['alcohol_weekly_spend'] ?? null) : null,
             'dangerous_days' => $dangerousDays,
         ]);
@@ -546,5 +553,10 @@ final class AppRepository
     private function numberOrNull(mixed $value): ?float
     {
         return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function smokingProduct(mixed $product): string
+    {
+        return is_string($product) && in_array($product, ['tobacco', 'vape'], true) ? $product : 'tobacco';
     }
 }

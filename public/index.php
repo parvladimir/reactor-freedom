@@ -19,7 +19,7 @@ if (str_starts_with($requestPath, '/api/')) {
 
 $basePath = $scriptDir === '/' ? '' : $scriptDir;
 $csrf = Csrf::token();
-$assetVersion = '19';
+$assetVersion = '21';
 ?>
 <!doctype html>
 <html lang="en">
@@ -53,6 +53,7 @@ $assetVersion = '19';
     <symbol id="i-reactor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.8 4.8l2.1 2.1M17.1 17.1l2.1 2.1M19.2 4.8l-2.1 2.1M6.9 17.1l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M10.3 2.6c.7-1 2.7-1 3.4 0l.8 1.2c.2.3.7.5 1 .4l1.4-.3c1.2-.3 2.6 1.1 2.3 2.3l-.3 1.4c-.1.4.1.8.4 1l1.2.8c1 .7 1 2.7 0 3.4l-1.2.8c-.3.2-.5.7-.4 1l.3 1.4c.3 1.2-1.1 2.6-2.3 2.3l-1.4-.3c-.4-.1-.8.1-1 .4l-.8 1.2c-.7 1-2.7 1-3.4 0l-.8-1.2c-.2-.3-.7-.5-1-.4l-1.4.3c-1.2.3-2.6-1.1-2.3-2.3l.3-1.4c.1-.4-.1-.8-.4-1l-1.2-.8c-1-.7-1-2.7 0-3.4l1.2-.8c.3-.2.5-.7.4-1l-.3-1.4C4.1 5 5.5 3.6 6.7 3.9l1.4.3c.4.1.8-.1 1-.4l.8-1.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
     <symbol id="i-smoke" viewBox="0 0 24 24"><path d="M4 15h11.8a2 2 0 0 1 0 4H4z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M18 15v4M20.7 14.4c.5-.7.8-1.3.8-2 0-1-.7-1.6-1.1-2.1-.4-.5-.8-.9-.8-1.5 0-.5.2-.9.6-1.4M16.7 13.4c.5-.7.8-1.3.8-2 0-1-.7-1.6-1.1-2.1-.4-.5-.8-.9-.8-1.5 0-.5.2-.9.6-1.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 4 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="i-vape" viewBox="0 0 24 24"><rect x="4" y="12" width="13" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M17 14h3v3h-3M8 12V8.5c0-1.3 1-2.4 2.3-2.4 1 0 1.7-.7 1.7-1.7V3M5 4 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-alcohol" viewBox="0 0 24 24"><path d="M8 3h8l-1 7a3 3 0 0 1-3 2 3 3 0 0 1-3-2L8 3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 12v7M9 19h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 4 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
     <symbol id="i-money" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7 9.5h.01M17 14.5h.01" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5.5 5.6v5.4c0 4.2 2.6 7.1 6.5 9 3.9-1.9 6.5-4.8 6.5-9V5.6L12 3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9.3 12 1.8 1.8 3.6-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>

@@ -86,6 +86,7 @@ final class ApiController
             'POST /api/profile/avatar' => $this->profileAvatarUpload(),
             'POST /api/profile/avatar/delete' => $this->profileAvatarDelete(),
             'POST /api/checkin' => $this->checkin(),
+            'POST /api/missions/commitment' => $this->missionCommitment(),
             'POST /api/craving/start' => $this->cravingStart(),
             'POST /api/craving/complete' => $this->cravingComplete(),
             'POST /api/incident' => $this->incident(),
@@ -462,6 +463,19 @@ final class ApiController
         Response::ok(['dashboard' => $this->dashboard->build($this->users->findById($userId) ?? ['id' => $userId])]);
     }
 
+    private function missionCommitment(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $data = Input::json();
+        $this->app->saveDailyCommitment(
+            $userId,
+            Input::string($data, 'reason_code', 'control'),
+            Input::string($data, 'note')
+        );
+
+        Response::ok(['dashboard' => $this->dashboard->build($this->users->findById($userId) ?? ['id' => $userId])]);
+    }
+
     private function cravingStart(): never
     {
         $userId = AuthMiddleware::userId();
@@ -548,9 +562,13 @@ final class ApiController
         $data = Input::json();
         $logId = isset($data['log_id']) && is_numeric($data['log_id']) ? (int) $data['log_id'] : 0;
         $message = Input::string($data, 'message');
-        $this->social->support($userId, $logId, $message);
+        if ($this->social->support($userId, $logId, $message)) {
+            $this->app->awardSocialSupportXp($userId);
+        }
 
-        Response::ok($this->social->summary($userId));
+        $summary = $this->social->summary($userId);
+        $summary['dashboard'] = $this->dashboard->build($this->users->findById($userId) ?? ['id' => $userId]);
+        Response::ok($summary);
     }
 
     private function socialInvite(): never

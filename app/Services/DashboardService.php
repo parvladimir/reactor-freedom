@@ -40,19 +40,18 @@ final class DashboardService
         $profile = $this->repository->getProfile($userId);
         $habits = $this->repository->getHabits($userId);
         $goal = $this->repository->getGoal($userId);
-        $stats = $this->repository->getStats($userId);
         $controlHours = $this->controlHours($habits);
+        $this->repository->awardQuietStreakXp($userId, $controlHours);
+        $stats = $this->repository->getStats($userId);
         $unlockedNow = $this->repository->unlockRewards($userId, $controlHours);
         $rewardCodes = array_flip($this->repository->userRewardCodes($userId));
         $rewards = $this->decorateRewards($this->repository->rewards(), $rewardCodes);
         $money = $this->money($habits, $goal);
         $todayCheckin = $this->repository->getTodayCheckin($userId);
-        $completedCravingsToday = $this->repository->completedCravingsToday($userId);
-        $triggerEventsToday = $this->repository->triggerEventsToday($userId);
         $recentCravings = $this->repository->cravingsLastDays($userId, 7);
         $recentIncidents = $this->repository->incidentsLastDays($userId, 7);
         $recentCheckins = $this->repository->dailyCheckinsLastDays($userId, 7);
-        $missions = $this->dailyMissions($habits, $todayCheckin, $completedCravingsToday, $triggerEventsToday);
+        $missions = $this->dailyMissions($userId, $habits, $todayCheckin);
         $triggerMap = $this->triggerMap($recentCravings, $recentIncidents);
 
         return [
@@ -98,7 +97,7 @@ final class DashboardService
         ];
     }
 
-    private function dailyMissions(array $habits, array $todayCheckin, int $completedCravingsToday, int $triggerEventsToday): array
+    private function dailyMissions(int $userId, array $habits, array $todayCheckin): array
     {
         return [
             [
@@ -107,26 +106,39 @@ final class DashboardService
                 'title_key' => 'dashboard.mission_daily_checkin_title',
                 'body_key' => 'dashboard.mission_daily_checkin_body',
                 'reward_key' => 'dashboard.mission_reward_xp',
-                'reward_xp' => 10,
+                'reward_xp' => 25,
                 'completed' => $this->activeCheckinDone($habits, $todayCheckin),
+                'action' => 'checkin',
             ],
             [
-                'code' => 'craving_win',
-                'icon' => 'bolt',
-                'title_key' => 'dashboard.mission_craving_title',
-                'body_key' => 'dashboard.mission_craving_body',
+                'code' => 'quiet_streak',
+                'icon' => 'reactor',
+                'title_key' => 'dashboard.mission_quiet_title',
+                'body_key' => 'dashboard.mission_quiet_body',
                 'reward_key' => 'dashboard.mission_reward_xp',
-                'reward_xp' => 35,
-                'completed' => $completedCravingsToday > 0,
+                'reward_xp' => 20,
+                'completed' => $this->repository->hasXpAwardToday($userId, 'quiet_streak'),
+                'action' => '',
             ],
             [
-                'code' => 'trigger_scan',
+                'code' => 'daily_commitment',
                 'icon' => 'star',
-                'title_key' => 'dashboard.mission_trigger_title',
-                'body_key' => 'dashboard.mission_trigger_body',
-                'reward_key' => 'dashboard.mission_reward_intel',
-                'reward_xp' => 0,
-                'completed' => $triggerEventsToday > 0,
+                'title_key' => 'dashboard.mission_commitment_title',
+                'body_key' => 'dashboard.mission_commitment_body',
+                'reward_key' => 'dashboard.mission_reward_xp',
+                'reward_xp' => 15,
+                'completed' => $this->repository->hasDailyCommitmentToday($userId),
+                'action' => 'commitment',
+            ],
+            [
+                'code' => 'social_support',
+                'icon' => 'users',
+                'title_key' => 'dashboard.mission_support_title',
+                'body_key' => 'dashboard.mission_support_body',
+                'reward_key' => 'dashboard.mission_reward_xp',
+                'reward_xp' => 10,
+                'completed' => $this->repository->hasSocialSupportToday($userId),
+                'action' => 'social',
             ],
         ];
     }

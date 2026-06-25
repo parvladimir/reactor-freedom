@@ -243,9 +243,18 @@ final class AppRepository
             'alcohol_clean' => $alcoholClean ? 1 : 0,
         ]);
 
-        $this->pdo->prepare('UPDATE user_stats SET xp = xp + 10, updated_at = NOW() WHERE user_id = :user_id')
-            ->execute(['user_id' => $userId]);
-        $this->addLog($userId, 'good', 'log.checkin_saved', 'log.checkin_saved_body');
+        $habits = $this->getHabits($userId);
+        $checkin = $this->getTodayCheckin($userId);
+        $allActiveHabitsChecked = $habits !== [];
+        foreach (['smoking' => 'smoke_clean', 'alcohol' => 'alcohol_clean'] as $habitType => $field) {
+            if (isset($habits[$habitType]) && (int) ($checkin[$field] ?? 0) !== 1) {
+                $allActiveHabitsChecked = false;
+            }
+        }
+
+        if ($allActiveHabitsChecked && $this->grantXpOnce($userId, 'daily_checkin', 25)) {
+            $this->addLog($userId, 'good', 'log.checkin_saved', 'log.checkin_saved_body');
+        }
     }
 
     public function getTodayCheckin(int $userId): array
@@ -312,8 +321,7 @@ final class AppRepository
             }
 
             $this->pdo->prepare(
-                'UPDATE user_stats SET xp = xp + 35, craving_wins = craving_wins + 1, updated_at = NOW()
-                 WHERE user_id = :user_id'
+                'UPDATE user_stats SET craving_wins = craving_wins + 1, updated_at = NOW() WHERE user_id = :user_id'
             )->execute(['user_id' => $userId]);
             $this->addLog($userId, 'good', 'log.craving_completed', $reason . ' / ' . $rescueAction);
             $this->pdo->commit();
@@ -332,6 +340,85 @@ final class AppRepository
         $stmt->execute(['user_id' => $userId]);
 
         return (int) $stmt->fetchColumn();
+    }
+
+    public function saveDailyCommitment(int $userId, string $reasonCode, string $note): bool
+    {
+        $reasonCode = in_array($reasonCode, ['health', 'money', 'family', 'control', 'energy', 'custom'], true)
+            ? $reasonCode
+            : 'control';
+        $note = trim($note);
+        if (function_exists('mb_substr')) {
+            $note = mb_substr($note, 0, 190);
+        } else {
+            $note = substr($note, 0, 190);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO daily_commitments (user_id, commitment_date, reason_code, note, created_at, updated_at)
+             VALUES (:user_id, CURDATE(), :reason_code, :note, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE reason_code = VALUES(reason_code), note = VALUES(note), updated_at = NOW()'
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+            'reason_code' => $reasonCode,
+            'note' => $note !== '' ? $note : null,
+        ]);
+
+        return $this->grantXpOnce($userId, 'daily_commitment', 15);
+    }
+
+    public function hasDailyCommitmentToday(int $userId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM daily_commitments WHERE user_id = :user_id AND commitment_date = CURDATE()'
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    public function hasSocialSupportToday(int $userId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM social_supports WHERE sender_id = :user_id AND DATE(created_at) = CURDATE()'
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    public function awardSocialSupportXp(int $userId): bool
+    {
+        return $this->grantXpOnce($userId, 'social_support', 10);
+    }
+
+    public function awardQuietStreakXp(int $userId, float $controlHours): bool
+    {
+        if ($controlHours < 24) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM incidents WHERE user_id = :user_id AND DATE(created_at) = CURDATE()'
+        );
+        $stmt->execute(['user_id' => $userId]);
+        if ((int) $stmt->fetchColumn() > 0) {
+            return false;
+        }
+
+        return $this->grantXpOnce($userId, 'quiet_streak', 20);
+    }
+
+    public function hasXpAwardToday(int $userId, string $awardCode): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM xp_awards
+             WHERE user_id = :user_id AND award_code = :award_code AND award_date = CURDATE()'
+        );
+        $stmt->execute(['user_id' => $userId, 'award_code' => $awardCode]);
+
+        return (int) $stmt->fetchColumn() > 0;
     }
 
     public function triggerEventsToday(int $userId): int
@@ -558,5 +645,32 @@ final class AppRepository
     private function smokingProduct(mixed $product): string
     {
         return is_string($product) && in_array($product, ['tobacco', 'vape'], true) ? $product : 'tobacco';
+    }
+
+    private function grantXpOnce(int $userId, string $awardCode, int $xp): bool
+    {
+        $this->ensureUserRecords($userId);
+        $this->pdo->beginTransaction();
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'INSERT IGNORE INTO xp_awards (user_id, award_code, award_date, xp, created_at)
+                 VALUES (:user_id, :award_code, CURDATE(), :xp, NOW())'
+            );
+            $stmt->execute(['user_id' => $userId, 'award_code' => $awardCode, 'xp' => max(0, $xp)]);
+            if ($stmt->rowCount() < 1) {
+                $this->pdo->commit();
+                return false;
+            }
+
+            $this->pdo->prepare('UPDATE user_stats SET xp = xp + :xp, updated_at = NOW() WHERE user_id = :user_id')
+                ->execute(['xp' => max(0, $xp), 'user_id' => $userId]);
+            $this->pdo->commit();
+
+            return true;
+        } catch (\Throwable $throwable) {
+            $this->pdo->rollBack();
+            throw $throwable;
+        }
     }
 }

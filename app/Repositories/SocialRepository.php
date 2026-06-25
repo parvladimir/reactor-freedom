@@ -105,12 +105,12 @@ final class SocialRepository
         }
     }
 
-    public function support(int $actorId, int $activityLogId, string $message): void
+    public function support(int $actorId, int $activityLogId, string $message): bool
     {
         $event = $this->publicEventById($activityLogId);
         $message = trim($this->textLimit($message, 300));
         if ($event === null || $message === '') {
-            return;
+            return false;
         }
 
         $ownerId = (int) $event['user_id'];
@@ -127,7 +127,10 @@ final class SocialRepository
 
         if ($ownerId !== $actorId) {
             $this->notify($ownerId, $actorId, $activityLogId, 'support', $message);
+            return true;
         }
+
+        return false;
     }
 
     public function markNotificationsRead(int $userId): void

@@ -8,6 +8,7 @@
   "common": {
     "back": "Zurück",
     "next": "Weiter",
+    "close": "Schließen",
     "important": "Wichtig:"
   },
   "navigation": {
@@ -164,18 +165,22 @@
     "personal_signal": "Dein persönliches Signal",
     "missions_kicker": "Tagesmissionen",
     "missions_title": "Kontroll-Aufgaben",
-    "missions_text": "Kleine Aktionen, die den Tag aus dem Autopilot holen.",
+    "missions_text": "Ruhige Handlungen, die deine Serie stärken, ohne Notfälle zu suchen.",
     "missions_progress": "{done}/{total} erledigt",
     "mission_daily_checkin_title": "Tag sauber schließen",
     "mission_daily_checkin_body": "Markiere die aktiven Gewohnheiten, die du heute kontrolliert hast.",
-    "mission_craving_title": "Einen Drang besiegen",
-    "mission_craving_body": "Nutze den Notfallmodus, bevor aus Impuls Handlung wird.",
-    "mission_trigger_title": "Trigger kartieren",
-    "mission_trigger_body": "Halte fest, was den Drang ausgelöst hat, damit morgen ein Gegenplan steht.",
+    "mission_quiet_title": "Ruhige Serie",
+    "mission_quiet_body": "Bleib ohne Vorfall. Nach den ersten 24 Stunden wird diese Mission täglich automatisch abgeschlossen.",
+    "mission_commitment_title": "Grund des Tages",
+    "mission_commitment_body": "Kehre für eine Minute zu dem Grund zurück, warum du heute Freiheit gewählt hast.",
+    "mission_support_title": "Unterstützung weitergeben",
+    "mission_support_body": "Schreibe einem Freund eine ehrliche Zeile Unterstützung unter sein Ereignis.",
     "mission_reward_xp": "+{xp} XP",
-    "mission_reward_intel": "+Risikokarte",
     "mission_done": "erledigt",
     "mission_open": "offen",
+    "mission_action_checkin": "Zur Markierung",
+    "mission_action_commitment": "Grund wählen",
+    "mission_action_social": "Zu Freunden",
     "trigger_kicker": "Risikokarte",
     "trigger_title": "Deine Trigger diese Woche",
     "trigger_events": "{count} Ereignisse",
@@ -204,7 +209,7 @@
     "craving_wins": "{wins} Drang-Angriffe abgewehrt",
     "mission_kicker": "Mission des Tages",
     "mission_title": "Reaktor schützen",
-    "mission_text": "Schließe den Tag sauber ab und nutze den Notfallmodus vor jeder riskanten Entscheidung.",
+    "mission_text": "Schließe den Tag sauber ab, wähle deinen Grund und gib Unterstützung weiter.",
     "without_smoking": "Ohne Zigaretten",
     "without_vape": "Ohne E-Zigaretten",
     "without_alcohol": "Ohne Alkohol",
@@ -261,7 +266,13 @@
     "figure_label": "Visueller Erholungskreislauf des Körpers",
     "visual_progress": "visuelle Stufe",
     "now": "Jetzt",
+    "progress_card": "Dein Fortschritt",
     "stage_percent": "{percent}% der Stufe",
+    "benefits": {
+      "energy": "Mehr Energie",
+      "heart": "Stärkeres Herz",
+      "wellbeing": "Besseres Befinden"
+    },
     "stages": {
       "start": "Das System ist aktiv",
       "cleaning": "Der Körper wechselt den Rhythmus",
@@ -274,12 +285,15 @@
     "mode_body_alcohol": "Weniger Alkohol kann Schlaf, Energie und Stimmung unterstützen und den Körper langfristig entlasten.",
     "mode_body_both": "Der Körper erhält gleichzeitig mehr Raum für Atmung, Schlaf, Energie und stabile Herz-Kreislauf-Funktion.",
     "systems": {
+      "brain": { "title": "Gehirn und Fokus", "body": "Impulse können leichter erkannt, Aufmerksamkeit gehalten und Entscheidungen bewusster getroffen werden." },
       "blood": { "title": "Blut und Sauerstoff", "body": "In den ersten Tagen sinken Nikotin und Kohlenmonoxid im Blut." },
       "nicotine": { "title": "Nikotinbelastung", "body": "Nach dem Aufhören erhält der Körper keine neuen Nikotindosen mehr und passt sich schrittweise daran an." },
       "lungs": { "title": "Lunge und Atmung", "body": "Mit der Zeit können Husten und Kurzatmigkeit abnehmen und die Atmung leichter werden." },
       "heart": { "title": "Herz und Kreislauf", "body": "Herz-Kreislauf-Risiken sinken schrittweise, wenn die Veränderung anhält." },
+      "detox": { "title": "Detox und Stoffwechsel", "body": "Der Körper verlässt nach und nach alte Belastungsmuster und gibt Ressourcen für Erholung frei." },
+      "immunity": { "title": "Immunsystem und Schutz", "body": "Je länger die Serie hält, desto mehr Raum hat der Körper für stabile Abwehr und Reparatur." },
       "energy": { "title": "Energie und Kraft", "body": "Schlaf, Morgenbefinden und Tagesenergie können gleichmäßiger werden." },
-      "sleep": { "title": "Schlaf und Fokus", "body": "Weniger Alkohol kann tieferen Schlaf, Stimmung und klarere Morgen unterstützen." },
+      "sleep": { "title": "Schlaf und Erholung", "body": "Weniger Alkohol kann tieferen Schlaf, Stimmung und klarere Morgen unterstützen." },
       "balance": { "title": "Gesamtbalance", "body": "Die langfristige Belastung für Herz, Leber, Nieren und Stoffwechsel kann sinken." }
     },
     "disclaimer": "Dies ist eine motivierende Visualisierung des allgemeinen Fortschritts, keine medizinische Diagnose. Veränderungen sind individuell."
@@ -305,6 +319,22 @@
       "momentum": { "title": "Freiheits-Impuls", "body": "Dein neuer Rhythmus trägt dich auch an Tagen mit wenig Motivation." },
       "freedom": { "title": "Freiheit", "body": "Kontrolle ist jetzt Teil deines Systems. Du stärkst und schützt sie weiter." }
     }
+  },
+  "level_up": {
+    "kicker": "System verstärkt",
+    "title": "Neues Level: {title}",
+    "xp_total": "Gesamterfahrung",
+    "systems": "Aktive Kreise",
+    "continue": "Neues Level annehmen"
+  },
+  "commitment": {
+    "kicker": "Tagesmission",
+    "title": "Wofür hältst du heute die Linie?",
+    "subtitle": "Wähle einen deiner Gründe. Kein Versprechen fürs Leben, nur eine klare Entscheidung für heute.",
+    "note": "Ein kurzer Satz an dich",
+    "placeholder": "Heute wähle ich Freiheit, weil...",
+    "save": "Grund festhalten · +15 XP",
+    "saved": "Grund des Tages festgehalten. +15 XP"
   },
   "return_brief": {
     "kicker": "Der Reaktor lief weiter",

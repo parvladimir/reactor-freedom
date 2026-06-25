@@ -19,7 +19,7 @@ if (str_starts_with($requestPath, '/api/')) {
 
 $basePath = $scriptDir === '/' ? '' : $scriptDir;
 $csrf = Csrf::token();
-$assetVersion = '21';
+$assetVersion = '23';
 ?>
 <!doctype html>
 <html lang="en">
@@ -65,6 +65,10 @@ $assetVersion = '21';
     <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.5S4.2 15.7 3.2 9.8C2.6 6.3 4.7 4 7.3 4c1.8 0 3.3 1 4.1 2.4C12.2 5 13.7 4 15.5 4c2.6 0 4.7 2.3 4.1 5.8-1 5.9-7.6 10.7-7.6 10.7Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
     <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.2 4.2A3.2 3.2 0 0 0 4.8 7a3.2 3.2 0 0 0-1.4 5.9A3.5 3.5 0 0 0 8 18.2c.4 1.4 1.6 2.3 3 2.3V4.8a3.2 3.2 0 0 0-1.8-.6Zm5.6 0A3.2 3.2 0 0 1 19.2 7a3.2 3.2 0 0 1 1.4 5.9 3.5 3.5 0 0 1-4.6 5.3c-.4 1.4-1.6 2.3-3 2.3V4.8a3.2 3.2 0 0 1 1.8-.6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.1 9.1c1.8 0 2.8 1 3.9 2.2M16.9 9.1c-1.8 0-2.8 1-3.9 2.2M7.8 15.3c1.2-.1 2.3.4 3.2 1.4M16.2 15.3c-1.2-.1-2.3.4-3.2 1.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
     <symbol id="i-lungs" viewBox="0 0 24 24"><path d="M11 4v8.2c-1.6-2.7-2.5-5.2-4-4.8-2.4.6-3.7 5.4-3.5 9.5.1 2.2 1.8 3.3 3.7 2.4 2.2-1 3.5-3.1 3.8-5.4M13 4v8.2c1.6-2.7 2.5-5.2 4-4.8 2.4.6 3.7 5.4 3.5 9.5-.1 2.2-1.8 3.3-3.7 2.4-2.2-1-3.5-3.1-3.8-5.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20.5 3.5C12.8 3.7 6 8.2 4.8 14.5c-.5 2.7 1.4 5.1 4.1 5.1 6.2 0 10.5-7.2 11.6-16.1Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M4 20c3.3-5.2 7.4-8.4 12.4-10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.2 15.4A8.6 8.6 0 0 1 8.6 3.8 8.6 8.6 0 1 0 20.2 15.4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.3 10h.01M15.7 10h.01M8.5 14.2c1 1.4 2.1 2.1 3.5 2.1s2.5-.7 3.5-2.1" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4.5 7.5h3L9 5h6l1.5 2.5h3A2.5 2.5 0 0 1 22 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 17.5V10a2.5 2.5 0 0 1 2.5-2.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
     <symbol id="i-bell" viewBox="0 0 24 24"><path d="M5 17h14l-1.7-2.4V10a5.3 5.3 0 0 0-10.6 0v4.6L5 17Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
     <symbol id="i-message" viewBox="0 0 24 24"><path d="M5 5.2h14a2.2 2.2 0 0 1 2.2 2.2v7.4A2.2 2.2 0 0 1 19 17H9.2L4 21v-3.8A2.2 2.2 0 0 1 2.8 15V7.4A2.2 2.2 0 0 1 5 5.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7.2 9.5h9.6M7.2 13h6.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>

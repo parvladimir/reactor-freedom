@@ -8,6 +8,7 @@
   "common": {
     "back": "Back",
     "next": "Next",
+    "close": "Close",
     "important": "Important:"
   },
   "navigation": {
@@ -164,18 +165,22 @@
     "personal_signal": "Your personal signal",
     "missions_kicker": "Daily missions",
     "missions_title": "Control quests",
-    "missions_text": "Small actions that keep today from drifting back to autopilot.",
+    "missions_text": "Calm actions that strengthen the streak without chasing emergencies.",
     "missions_progress": "{done}/{total} done",
     "mission_daily_checkin_title": "Close today clean",
     "mission_daily_checkin_body": "Mark the active habits you kept under control today.",
-    "mission_craving_title": "Beat one craving",
-    "mission_craving_body": "Use emergency mode before the impulse turns into action.",
-    "mission_trigger_title": "Map the trigger",
-    "mission_trigger_body": "Record what switched the urge on so tomorrow has a counter-plan.",
+    "mission_quiet_title": "Quiet streak",
+    "mission_quiet_body": "Stay incident-free. After the first 24 hours this quest completes automatically each day.",
+    "mission_commitment_title": "Reason of the day",
+    "mission_commitment_body": "Take one minute to return to why you chose freedom today.",
+    "mission_support_title": "Pass support forward",
+    "mission_support_body": "Write one genuine line of support under a friend's event.",
     "mission_reward_xp": "+{xp} XP",
-    "mission_reward_intel": "+risk map",
     "mission_done": "done",
     "mission_open": "open",
+    "mission_action_checkin": "Go to check-in",
+    "mission_action_commitment": "Choose a reason",
+    "mission_action_social": "Open friends",
     "trigger_kicker": "Risk map",
     "trigger_title": "Your triggers this week",
     "trigger_events": "{count} events",
@@ -204,7 +209,7 @@
     "craving_wins": "{wins} cravings beaten",
     "mission_kicker": "Mission of the day",
     "mission_title": "Protect the reactor",
-    "mission_text": "Close the day clean and use emergency mode before any risky decision.",
+    "mission_text": "Close the day clean, choose your reason and pass support forward.",
     "without_smoking": "Without cigarettes",
     "without_vape": "Without e-cigarettes",
     "without_alcohol": "Without alcohol",
@@ -261,7 +266,13 @@
     "figure_label": "Visual body recovery circuit",
     "visual_progress": "visual stage",
     "now": "Now",
+    "progress_card": "Your progress",
     "stage_percent": "{percent}% of stage",
+    "benefits": {
+      "energy": "More energy",
+      "heart": "Stronger heart",
+      "wellbeing": "Better wellbeing"
+    },
     "stages": {
       "start": "The system is online",
       "cleaning": "Your body is changing rhythm",
@@ -274,12 +285,15 @@
     "mode_body_alcohol": "Less alcohol can support sleep, energy and mood while reducing long-term strain on the body.",
     "mode_body_both": "Your body gains more room for breathing, sleep, energy and steady cardiovascular function at the same time.",
     "systems": {
+      "brain": { "title": "Brain and focus", "body": "It can become easier to notice impulses, keep attention and choose deliberately." },
       "blood": { "title": "Blood and oxygen", "body": "During the first days, nicotine and carbon monoxide levels in the blood fall." },
       "nicotine": { "title": "Nicotine load", "body": "After quitting, the body no longer receives new nicotine doses and gradually adapts to life without them." },
       "lungs": { "title": "Lungs and breathing", "body": "Over time, coughing and shortness of breath can decrease and breathing may feel easier." },
       "heart": { "title": "Heart and circulation", "body": "Cardiovascular risks gradually fall as the change is maintained." },
+      "detox": { "title": "Detox and metabolism", "body": "The body gradually leaves the old load pattern and returns resources to recovery." },
+      "immunity": { "title": "Immunity and defense", "body": "The longer the streak, the more room the body has for steady protection and repair." },
       "energy": { "title": "Energy and tone", "body": "Sleep, mornings and daytime energy can become more consistent." },
-      "sleep": { "title": "Sleep and focus", "body": "Cutting down alcohol can support deeper sleep, mood and clearer mornings." },
+      "sleep": { "title": "Sleep and recovery", "body": "Cutting down alcohol can support deeper sleep, mood and clearer mornings." },
       "balance": { "title": "Whole-body balance", "body": "Long-term strain on the heart, liver, kidneys and metabolism can decrease." }
     },
     "disclaimer": "This is a motivational visualization of general progress, not a medical diagnosis. The pace of change is individual."
@@ -305,6 +319,22 @@
       "momentum": { "title": "Freedom momentum", "body": "Your new rhythm supports you even on low-motivation days." },
       "freedom": { "title": "Freedom", "body": "Control is part of your system now. Your work is to strengthen and protect it." }
     }
+  },
+  "level_up": {
+    "kicker": "System upgraded",
+    "title": "New level: {title}",
+    "xp_total": "Total experience",
+    "systems": "Active circuits",
+    "continue": "Accept new level"
+  },
+  "commitment": {
+    "kicker": "Daily mission",
+    "title": "Why are you holding the line today?",
+    "subtitle": "Choose one of your reasons. This is not a promise for life, just a clear decision for today.",
+    "note": "A short line to yourself",
+    "placeholder": "Today I choose freedom because...",
+    "save": "Lock in the reason · +15 XP",
+    "saved": "Reason of the day locked in. +15 XP"
   },
   "return_brief": {
     "kicker": "The reactor kept working",

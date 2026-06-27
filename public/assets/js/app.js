@@ -1448,171 +1448,82 @@ function recoveryVisualModel(data) {
 
 function renderRecoveryVisual(data) {
   const model = recoveryVisualModel(data);
-  const callouts = ["brain", "heart", "detox", "lungs", "immunity", "sleep"]
-    .map((code) => model.systems.find((system) => system.code === code))
-    .filter(Boolean);
+  const referenceSrc = apiPath(`/assets/img/living-contour-body.png?v=${encodeURIComponent(boot.assetVersion || "36")}`);
+  const recoveryMetrics = model.systems.map((system) => ({
+    id: system.code,
+    icon: system.icon,
+    label: t(`health_visual.systems.${system.code}.title`),
+    value: system.progress
+  }));
 
   return `
-    <section class="panel recovery-visual-panel" style="--recovery-level:${model.progress / 100};--recovery-percent:${model.progress}%">
-      <div class="recovery-visual-hero">
-        <div class="recovery-visual-main">
-          <div class="recovery-visual-title">
-            <p class="eyebrow">${esc(t("health_visual.kicker"))}</p>
-            <h3>${esc(t("health_visual.title"))}</h3>
-            <span class="mode-pill">${icon("reactor")}${esc(t(`health_visual.mode_${model.mode}`))}</span>
-          </div>
-          <div class="recovery-figure">
-            <div class="contour-grid" aria-hidden="true"></div>
-            ${callouts.map((system) => `
-              <div class="body-callout body-callout-${esc(system.code)} health-system-${esc(system.code)}" style="--system-progress:${system.progress / 100}" aria-hidden="true">
-                <span>${icon(system.icon)}</span>
-                <strong>${esc(t(`health_visual.systems.${system.code}.title`))}</strong>
-              </div>`).join("")}
-            <svg class="recovery-body-svg" viewBox="0 0 420 640" role="img" aria-label="${esc(t("health_visual.figure_label"))}">
-              <defs>
-                <filter id="bioNeonGlow" x="-70%" y="-70%" width="240%" height="240%">
-                  <feGaussianBlur stdDeviation="6" result="blur"></feGaussianBlur>
-                  <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
-                </filter>
-                <linearGradient id="bioShellGradient" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#3cd9ff" stop-opacity=".42"></stop>
-                  <stop offset=".42" stop-color="#123657" stop-opacity=".72"></stop>
-                  <stop offset="1" stop-color="#07131f" stop-opacity=".92"></stop>
-                </linearGradient>
-                <linearGradient id="bioRecoveryGradient" x1="0" x2=".78" y1="1" y2="0">
-                  <stop offset="0" stop-color="#2d6cff"></stop>
-                  <stop offset=".44" stop-color="#00d7ff"></stop>
-                  <stop offset="1" stop-color="#7bffcf"></stop>
-                </linearGradient>
-                <radialGradient id="bioCoreGlow" cx="50%" cy="46%" r="54%">
-                  <stop offset="0" stop-color="#b6fff0" stop-opacity=".34"></stop>
-                  <stop offset=".46" stop-color="#23ccff" stop-opacity=".12"></stop>
-                  <stop offset="1" stop-color="#020915" stop-opacity="0"></stop>
-                </radialGradient>
-                <linearGradient id="bioLungGradient" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#c5f9ff"></stop>
-                  <stop offset=".52" stop-color="#1fd2ff"></stop>
-                  <stop offset="1" stop-color="#3d8fff"></stop>
-                </linearGradient>
-                <linearGradient id="bioBrainGradient" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#f0d9ff"></stop>
-                  <stop offset="1" stop-color="#a66dff"></stop>
-                </linearGradient>
-                <linearGradient id="bioHeartGradient" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#ffc2d2"></stop>
-                  <stop offset="1" stop-color="#ff4d7d"></stop>
-                </linearGradient>
-                <linearGradient id="bioDetoxGradient" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#ffe19e"></stop>
-                  <stop offset="1" stop-color="#ff9b35"></stop>
-                </linearGradient>
-                <linearGradient id="bioGutGradient" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#ff9bff"></stop>
-                  <stop offset="1" stop-color="#8a5cff"></stop>
-                </linearGradient>
-                <path id="bioHeadShape" d="M210 34c31 0 52 25 50 58-2 34-22 57-50 57s-48-23-50-57c-2-33 19-58 50-58Z"></path>
-                <path id="bioNeckShape" d="M186 137c10 10 38 10 48 0l9 39h-66Z"></path>
-                <path id="bioTorsoShape" d="M147 175c17-16 39-23 63-23s46 7 63 23c28 44 39 112 31 178-5 42-21 77-45 100-30 14-68 14-98 0-24-23-40-58-45-100-8-66 3-134 31-178Z"></path>
-                <path id="bioLeftArmShape" d="M148 181c-25 7-41 24-53 52L48 379c-10 31 25 43 42 18l57-111c13-27 20-66 20-92Z"></path>
-                <path id="bioRightArmShape" d="M272 181c25 7 41 24 53 52l47 146c10 31-25 43-42 18l-57-111c-13-27-20-66-20-92Z"></path>
-                <path id="bioLeftLegShape" d="M159 430c-16 50-25 106-30 164-3 31 35 36 47 8l42-165-4-15Z"></path>
-                <path id="bioRightLegShape" d="M261 430c16 50 25 106 30 164 3 31-35 36-47 8l-42-165 4-15Z"></path>
-                <clipPath id="bioBodyClip">
-                  <use href="#bioHeadShape"></use><use href="#bioNeckShape"></use><use href="#bioTorsoShape"></use>
-                  <use href="#bioLeftArmShape"></use><use href="#bioRightArmShape"></use><use href="#bioLeftLegShape"></use><use href="#bioRightLegShape"></use>
-                </clipPath>
-              </defs>
-              <g class="bio-stage" aria-hidden="true">
-                <ellipse cx="210" cy="594" rx="144" ry="23"></ellipse>
-                <circle cx="210" cy="322" r="213"></circle>
-                <circle cx="210" cy="322" r="162"></circle>
-                <circle cx="210" cy="322" r="112"></circle>
-                <path d="M38 322h84m176 0h84M210 104V44m0 418v130M82 447c58-36 110-55 156-58 45-3 80 9 109 34"></path>
-              </g>
-              <g class="bio-body-shell">
-                <use href="#bioLeftLegShape"></use><use href="#bioRightLegShape"></use>
-                <use href="#bioLeftArmShape"></use><use href="#bioRightArmShape"></use>
-                <use href="#bioNeckShape"></use><use href="#bioTorsoShape"></use><use href="#bioHeadShape"></use>
-              </g>
-              <g class="bio-recovery-layer" clip-path="url(#bioBodyClip)">
-                <rect x="37" y="28" width="346" height="586"></rect>
-                <path class="bio-energy-ribbon" d="M113 536c82-72 104-167 79-264-16-63 11-126 92-195"></path>
-              </g>
-              <g class="bio-body-light" clip-path="url(#bioBodyClip)">
-                <rect x="50" y="32" width="320" height="585"></rect>
-                <path d="M166 181c-24 66-28 162-8 238m96-238c24 66 28 162 8 238M181 450l-30 132m88-132 30 132M210 152v304"></path>
-              </g>
-              <circle class="bio-core-glow" cx="210" cy="303" r="156"></circle>
-              <g class="bio-organs">
-                <g class="bio-organ bio-brain active">
-                  <path d="M180 91c-9-17 7-34 24-27 9-14 32-7 31 10 16 1 21 23 7 32 6 17-16 27-28 14-12 12-33 1-27-15-13-1-17-12-7-14Z"></path>
-                  <path class="bio-organ-detail" d="M191 80c8 4 10 13 6 22m26-26c-7 7-8 17-3 25m-27 11c8-6 16-6 24 1"></path>
-                </g>
-                <g class="bio-organ bio-lungs active">
-                  <path d="M196 199c-28 4-50 35-52 75-2 35 22 58 49 39 11-8 12-34 12-59v-53Z"></path>
-                  <path d="M224 199c28 4 50 35 52 75 2 35-22 58-49 39-11-8-12-34-12-59v-53Z"></path>
-                  <path class="bio-airway" d="M210 169v78m0-27-28 30m28-30 28 30"></path>
-                </g>
-                <g class="bio-organ bio-heart active">
-                  <path d="M218 355c-38-25-47-55-25-70 13-9 27-2 33 11 9-14 25-17 36-6 20 21-2 47-44 65Z"></path>
-                  <path class="bio-organ-detail" d="M222 302c3 15 11 25 24 32"></path>
-                </g>
-                <g class="bio-organ bio-detox active">
-                  <path d="M165 355c37-25 82-17 98 8-16 28-54 39-99 23-10-14-10-24 1-31Z"></path>
-                  <path class="bio-organ-detail" d="M185 365c18 8 40 8 58 2"></path>
-                </g>
-                <g class="bio-organ bio-gut active">
-                  <path d="M174 414c-7-19 16-28 35-18 24-16 55-1 49 23-4 18-23 20-43 17-21 6-35-2-41-22Z"></path>
-                  <path class="bio-organ-detail" d="M190 412c14 6 29 5 43-2m-35 22c14 3 27 2 39-4"></path>
-                </g>
-              </g>
-              <g class="bio-flow-points" aria-hidden="true">
-                <circle cx="210" cy="163" r="4"></circle><circle cx="173" cy="346" r="4"></circle><circle cx="237" cy="405" r="4"></circle><circle cx="210" cy="536" r="4"></circle>
-              </g>
-            </svg>
-            <div class="recovery-ground" aria-hidden="true"></div>
-          </div>
+    <section class="panel recovery-visual-panel recovery-reference-panel" style="--recovery-percent:${model.progress}%">
+      <div class="recovery-contour-card">
+        <div class="recovery-reference-head">
+          <p class="eyebrow">${esc(t("health_visual.kicker"))}</p>
+          <h3>${esc(t("health_visual.title"))}</h3>
+          <span class="mode-pill">${icon("reactor")}${esc(t("health_visual.mode_both"))}</span>
         </div>
-        <aside class="recovery-visual-side">
-          <div class="recovery-main-meter">
-            <div class="meter-orbit" aria-hidden="true"></div>
-            <strong>${model.progress}<span>%</span></strong>
-            <small>${esc(t("health_visual.visual_progress"))}</small>
+
+        <div class="recovery-contour-layout">
+          <div class="recovery-reference-visual" aria-label="${esc(t("health_visual.figure_label"))}">
+            <div class="contour-scene-layer contour-grid-layer" aria-hidden="true"></div>
+            <div class="contour-scene-layer contour-rings" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="contour-energy-column" aria-hidden="true"></div>
+            <div class="contour-body-aura" aria-hidden="true"></div>
+            <img
+              class="recovery-reference-image"
+              src="${esc(referenceSrc)}"
+              alt="${esc(t("health_visual.figure_label"))}"
+              loading="lazy"
+              decoding="async"
+            >
+            <div class="contour-scan-beam" aria-hidden="true"><span></span></div>
+            <div class="contour-platform" aria-hidden="true"></div>
+            <div class="contour-particles" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
           </div>
-          <div class="recovery-progress-card">
-            <span>${icon("bolt")}${esc(t("health_visual.progress_card"))}</span>
-            <strong>${esc(duration(model.hours))}</strong>
-            <small>${esc(t("health_visual.now"))}</small>
-          </div>
-          <div class="recovery-system-list">
-            ${model.systems.map((system) => `
-              <div class="recovery-system-row health-system-${esc(system.code)}" style="--system-progress:${system.progress / 100}">
-                <span class="icon-token">${icon(system.icon)}</span>
-                <div class="recovery-system-copy">
-                  <div><strong>${esc(t(`health_visual.systems.${system.code}.title`))}</strong><span>${esc(t("health_visual.stage_percent", { percent: system.progress }))}</span></div>
-                  <div class="recovery-system-track"><i></i></div>
-                </div>
-                <span class="system-chevron">${icon("chevron-right")}</span>
-              </div>`).join("")}
-          </div>
-        </aside>
-      </div>
-      <div class="recovery-stage-banner">
-        <span class="stage-upgrade">${icon("bolt")}</span>
-        <div class="stage-copy">
-          <strong>${esc(t(`health_visual.stages.${model.stage}`))}</strong>
-          <p>${esc(t(`health_visual.mode_body_${model.mode}`))}</p>
+
+          <aside class="recovery-contour-ui">
+            <div class="recovery-main-meter">
+              <strong>${model.progress}<span>%</span></strong>
+              <small>${esc(t("health_visual.visual_progress"))}</small>
+            </div>
+
+            <div class="recovery-progress-card">
+              <span>${icon("bolt")}${esc(t("health_visual.progress_card"))}</span>
+              <strong>${esc(duration(model.hours))}</strong>
+              <small>${esc(t("health_visual.now"))}</small>
+            </div>
+
+            <div class="recovery-system-list">
+              ${recoveryMetrics.map((metric) => `
+                <div class="recovery-system-row health-system-${esc(metric.id)}" style="--system-progress:${metric.value / 100}">
+                  <span class="icon-token">${icon(metric.icon)}</span>
+                  <div class="recovery-system-copy">
+                    <div><strong>${esc(metric.label)}</strong><span>${esc(t("health_visual.stage_percent", { percent: metric.value }))}</span></div>
+                    <div class="recovery-system-track"><i></i></div>
+                  </div>
+                </div>`).join("")}
+            </div>
+          </aside>
         </div>
-        <div class="recovery-benefits">
-          <span>${icon("bolt")}<small>${esc(t("health_visual.benefits.energy"))}</small></span>
-          <span>${icon("heart")}<small>${esc(t("health_visual.benefits.heart"))}</small></span>
-          <span>${icon("smile")}<small>${esc(t("health_visual.benefits.wellbeing"))}</small></span>
+
+        <div class="recovery-reference-summary">
+          <span class="stage-upgrade">${icon("bolt")}</span>
+          <div class="stage-copy">
+            <strong>${esc(t("health_visual.stages.adaptation"))}</strong>
+            <p>${esc(t("health_visual.mode_body_both"))}</p>
+          </div>
         </div>
       </div>
-      <p class="health-disclaimer">${icon("shield")}${esc(t("health_visual.disclaimer"))}</p>
     </section>`;
 }
-
 function renderGrowthPanels(data, currency, motion) {
   const moneyData = data.money || {};
   const target = moneyData.next_target;

@@ -46,6 +46,7 @@ const state = {
   onboarding: {
     step: 0,
     habits: [],
+    recovery_mode: "quit_now",
     main_reason: "",
     motivation_reasons: [],
     custom_reason: "",
@@ -57,21 +58,46 @@ const state = {
     cigarettes_per_pack: 20,
     pack_price: 8.5,
     vape_weekly_spend: 35,
+    first_cigarette_after_wake: "31_60",
+    hard_in_forbidden_places: false,
+    most_important_cigarette: "stress",
+    smokes_when_ill: false,
     alcohol_weekly_spend: 30,
+    alcohol_frequency: "weekly",
+    alcohol_amount_typical: "moderate",
+    alcohol_binges: false,
+    alcohol_failed_to_reduce: false,
+    alcohol_withdrawal: {
+      tremor: false,
+      sweating: false,
+      anxiety: false,
+      insomnia: false,
+      palpitations: false
+    },
+    alcohol_drinks_alone: false,
+    alcohol_contexts: [],
     dangerous_days: []
   },
   craving: {
     id: null,
     timer: null,
     seconds: 90,
+    totalSeconds: 90,
     reason: "",
-    action: ""
+    action: "",
+    tool: "",
+    toolBody: "",
+    habitType: null,
+    initialIntensity: 7,
+    afterIntensity: 5,
+    completedCycles: 0
   }
 };
 
 let socialPollTimer = null;
 let socialPollBusy = false;
 let socialPollingUserId = null;
+let impulseTimer = null;
 const RETURN_BRIEF_MIN_MS = 4 * 60 * 60 * 1000;
 
 const apiPath = (path) => `${boot.basePath || ""}${path}`;
@@ -132,21 +158,321 @@ function duration(hours) {
   return t("time.hours", { hours: rest });
 }
 
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function clampPercent(value) {
+  return Math.max(0, Math.min(100, Math.round(Number(value || 0))));
+}
+
+function recoveryStoreKey(userId = state.dashboard?.user?.id) {
+  return userId ? `reactor_recovery_store_v1_${userId}` : "";
+}
+
+function defaultRecoveryProfile(data = state.dashboard) {
+  const now = new Date().toISOString();
+  const habitTypes = Array.isArray(data?.habit_types) && data.habit_types.length ? data.habit_types : ["smoking"];
+  const smoking = data?.habits?.smoking || {};
+  const alcohol = data?.habits?.alcohol || {};
+
+  return {
+    addictionTypes: habitTypes,
+    mode: "quit_now",
+    smoking: {
+      cigarettesPerDay: Number(smoking.cigarettes_per_day || 0),
+      packPrice: Number(smoking.pack_price || 0),
+      cigarettesPerPack: Number(smoking.cigarettes_per_pack || 20),
+      firstCigaretteAfterWake: "31_60",
+      hardInForbiddenPlaces: false,
+      mostImportantCigarette: "stress",
+      smokesWhenIll: false
+    },
+    alcohol: {
+      frequency: "weekly",
+      amountTypical: "moderate",
+      binges: false,
+      failedToReduce: false,
+      withdrawalSymptoms: {
+        tremor: false,
+        sweating: false,
+        anxiety: false,
+        insomnia: false,
+        palpitations: false
+      },
+      drinksAlone: false,
+      mainContext: Array.isArray(alcohol.dangerous_days) ? alcohol.dangerous_days : []
+    },
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+function defaultRecoveryStore(data = state.dashboard) {
+  const now = new Date().toISOString();
+  return {
+    version: 1,
+    recoveryProfile: defaultRecoveryProfile(data),
+    dailyCheckins: [],
+    cravingEvents: [],
+    incidents: [],
+    protectionProtocols: [],
+    achievements: [],
+    dailyMissions: [],
+    rescueContacts: [],
+    notificationSettings: {
+      enabled: false,
+      morningEnabled: true,
+      afterWorkEnabled: true,
+      afterWorkTime: "18:00",
+      eveningEnabled: true,
+      eveningTime: "21:00",
+      fridayWarning: true,
+      quietHours: { enabled: true, from: "22:00", to: "08:00" }
+    },
+    healthReactor: { money: 0, energy: 0, control: 0, health: 0 },
+    lastSeenAt: now
+  };
+}
+
+function mergeRecoveryProfile(profile, fallback) {
+  return {
+    ...fallback,
+    ...(profile || {}),
+    addictionTypes: Array.isArray(profile?.addictionTypes) && profile.addictionTypes.length ? profile.addictionTypes : fallback.addictionTypes,
+    smoking: { ...fallback.smoking, ...(profile?.smoking || {}) },
+    alcohol: {
+      ...fallback.alcohol,
+      ...(profile?.alcohol || {}),
+      withdrawalSymptoms: {
+        ...fallback.alcohol.withdrawalSymptoms,
+        ...(profile?.alcohol?.withdrawalSymptoms || {})
+      },
+      mainContext: Array.isArray(profile?.alcohol?.mainContext) ? profile.alcohol.mainContext : fallback.alcohol.mainContext
+    }
+  };
+}
+
+function loadRecoveryStore(data = state.dashboard) {
+  const key = recoveryStoreKey(data?.user?.id);
+  const fallback = defaultRecoveryStore(data);
+  if (!key) return fallback;
+
+  try {
+    const stored = JSON.parse(localStorage.getItem(key) || "null");
+    if (!stored || typeof stored !== "object") return fallback;
+    return {
+      ...fallback,
+      ...stored,
+      recoveryProfile: mergeRecoveryProfile(stored.recoveryProfile, fallback.recoveryProfile),
+      dailyCheckins: Array.isArray(stored.dailyCheckins) ? stored.dailyCheckins : [],
+      cravingEvents: Array.isArray(stored.cravingEvents) ? stored.cravingEvents : [],
+      incidents: Array.isArray(stored.incidents) ? stored.incidents : [],
+      protectionProtocols: Array.isArray(stored.protectionProtocols) ? stored.protectionProtocols : [],
+      achievements: Array.isArray(stored.achievements) ? stored.achievements : [],
+      dailyMissions: Array.isArray(stored.dailyMissions) ? stored.dailyMissions : [],
+      rescueContacts: Array.isArray(stored.rescueContacts) ? stored.rescueContacts : [],
+      notificationSettings: {
+        ...fallback.notificationSettings,
+        ...(stored.notificationSettings || {}),
+        quietHours: {
+          ...fallback.notificationSettings.quietHours,
+          ...(stored.notificationSettings?.quietHours || {})
+        }
+      },
+      healthReactor: { ...fallback.healthReactor, ...(stored.healthReactor || {}) }
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveRecoveryStore(store, userId = state.dashboard?.user?.id) {
+  const key = recoveryStoreKey(userId);
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify({ ...store, version: 1 }));
+  } catch {}
+}
+
+function updateRecoveryStore(updater) {
+  if (!state.dashboard?.user?.id) return loadRecoveryStore(state.dashboard);
+  const store = loadRecoveryStore(state.dashboard);
+  const next = updater(store) || store;
+  saveRecoveryStore(next, state.dashboard.user.id);
+  return next;
+}
+
+function profileFromOnboarding() {
+  const now = new Date().toISOString();
+  return {
+    addictionTypes: [...state.onboarding.habits],
+    mode: state.onboarding.recovery_mode || "quit_now",
+    smoking: {
+      cigarettesPerDay: Number(state.onboarding.cigarettes_per_day || 0),
+      packPrice: Number(state.onboarding.pack_price || 0),
+      cigarettesPerPack: Number(state.onboarding.cigarettes_per_pack || 20),
+      firstCigaretteAfterWake: state.onboarding.first_cigarette_after_wake || "31_60",
+      hardInForbiddenPlaces: Boolean(state.onboarding.hard_in_forbidden_places),
+      mostImportantCigarette: state.onboarding.most_important_cigarette || "stress",
+      smokesWhenIll: Boolean(state.onboarding.smokes_when_ill)
+    },
+    alcohol: {
+      frequency: state.onboarding.alcohol_frequency || "weekly",
+      amountTypical: state.onboarding.alcohol_amount_typical || "moderate",
+      binges: Boolean(state.onboarding.alcohol_binges),
+      failedToReduce: Boolean(state.onboarding.alcohol_failed_to_reduce),
+      withdrawalSymptoms: { ...state.onboarding.alcohol_withdrawal },
+      drinksAlone: Boolean(state.onboarding.alcohol_drinks_alone),
+      mainContext: [...state.onboarding.alcohol_contexts]
+    },
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+function startupRiskScore(profile = loadRecoveryStore().recoveryProfile) {
+  const smoking = profile.smoking || {};
+  const alcohol = profile.alcohol || {};
+  const withdrawal = alcohol.withdrawalSymptoms || {};
+  const alcoholMedical = Boolean(alcohol.binges || alcohol.failedToReduce || Object.values(withdrawal).some(Boolean));
+  let smokingScore = 0;
+  let alcoholScore = 0;
+
+  if (["0_5", "6_30"].includes(smoking.firstCigaretteAfterWake)) smokingScore += 25;
+  if (Number(smoking.cigarettesPerDay || 0) >= 20) smokingScore += 25;
+  if (smoking.hardInForbiddenPlaces) smokingScore += 18;
+  if (smoking.smokesWhenIll) smokingScore += 16;
+  if (smoking.mostImportantCigarette === "morning") smokingScore += 16;
+
+  if (["daily", "almost_daily"].includes(alcohol.frequency)) alcoholScore += 24;
+  if (["high", "very_high"].includes(alcohol.amountTypical)) alcoholScore += 20;
+  if (alcohol.drinksAlone) alcoholScore += 14;
+  if (Array.isArray(alcohol.mainContext) && alcohol.mainContext.includes("stress")) alcoholScore += 10;
+  if (alcoholMedical) alcoholScore = Math.max(alcoholScore, 86);
+
+  const maxScore = Math.max(smokingScore, alcoholScore);
+  const stateName = alcoholMedical ? "danger" : maxScore >= 55 ? "caution" : "normal";
+
+  return {
+    state: stateName,
+    score: clampPercent(maxScore),
+    smokingLevel: smokingScore >= 65 ? "high" : smokingScore >= 32 ? "medium" : "low",
+    alcoholLevel: alcoholMedical ? "medical" : alcoholScore >= 65 ? "high" : alcoholScore >= 32 ? "medium" : "low",
+    alcoholMedical
+  };
+}
+
+function calculateDailyRisk(profile, checkins = [], incidents = [], currentDate = new Date()) {
+  let score = 12;
+  const factors = [];
+  const day = currentDate.getDay();
+  const hour = currentDate.getHours();
+  const contexts = profile?.alcohol?.mainContext || [];
+  const recentCheckins = Array.isArray(checkins) ? [...checkins].sort((a, b) => String(b.date).localeCompare(String(a.date))) : [];
+  const latest = recentCheckins[0] || null;
+  const recentIncidents = Array.isArray(incidents) ? incidents.filter((item) => {
+    const time = Date.parse(item.createdAt || item.created_at || "");
+    return Number.isFinite(time) && Date.now() - time <= 7 * 24 * 60 * 60 * 1000;
+  }) : [];
+
+  if (day === 5) {
+    score += 14;
+    factors.push(t("recovery_assistant.factor_friday"));
+  }
+  if (day === 0 || day === 6) {
+    score += 12;
+    factors.push(t("recovery_assistant.factor_weekend"));
+  }
+  if (hour >= 17 && hour <= 22) {
+    score += 10;
+    factors.push(t("recovery_assistant.factor_evening"));
+  }
+  if (contexts.includes("after_work") && hour >= 16 && hour <= 20) {
+    score += 12;
+    factors.push(t("recovery_assistant.factor_after_work"));
+  }
+  if (latest) {
+    if (Number(latest.sleep || 0) > 0 && Number(latest.sleep || 0) <= 4) {
+      score += 16;
+      factors.push(t("recovery_assistant.factor_bad_sleep"));
+    }
+    if (Number(latest.stress || 0) >= 7) {
+      score += 18;
+      factors.push(t("recovery_assistant.factor_stress"));
+    }
+    if (Number(latest.craving || 0) >= 7) {
+      score += 20;
+      factors.push(t("recovery_assistant.factor_craving"));
+    }
+  }
+  if (recentIncidents.length > 0) {
+    score += Math.min(22, recentIncidents.length * 7);
+    factors.push(t("recovery_assistant.factor_recent_incident"));
+  }
+  if (recentIncidents.some((item) => {
+    const time = new Date(item.createdAt || item.created_at || "");
+    return Number.isFinite(time.getTime()) && Math.abs(time.getHours() - hour) <= 1;
+  })) {
+    score += 14;
+    factors.push(t("recovery_assistant.factor_same_time"));
+  }
+
+  const level = score >= 65 ? "high" : score >= 36 ? "medium" : "low";
+  const fallback = level === "high" ? "recovery_assistant.daily_recommendation_high" : level === "medium" ? "recovery_assistant.daily_recommendation_medium" : "recovery_assistant.daily_recommendation_low";
+  return {
+    level,
+    score: clampPercent(score),
+    factors: [...new Set(factors)].slice(0, 5),
+    recommendation: t(fallback)
+  };
+}
+
+function calculateHealthReactor(data = state.dashboard, store = loadRecoveryStore(data)) {
+  const cleanDays = Number(data?.reactor?.control_days || 0);
+  const wins = Number(data?.stats?.craving_wins || 0);
+  const goalPercent = Number(data?.money?.goal?.progress_percent || 0);
+  const recentIncidents = Array.isArray(store.incidents) ? store.incidents.slice(-10).length : 0;
+  const latestCheckin = Array.isArray(store.dailyCheckins) ? store.dailyCheckins.slice(-1)[0] : null;
+  const energyInput = latestCheckin ? ((Number(latestCheckin.energy || 5) + Number(latestCheckin.sleep || 5)) / 20) * 100 : 42 + cleanDays * 2;
+  const controlInput = 35 + wins * 5 + cleanDays * 2 - recentIncidents * 6;
+  const healthInput = 32 + cleanDays * 3 + wins * 2 - recentIncidents * 4;
+
+  return {
+    money: clampPercent(Math.max(goalPercent, Number(data?.money?.saved_total || 0) > 0 ? 24 + goalPercent : 18)),
+    energy: clampPercent(energyInput),
+    control: clampPercent(controlInput),
+    health: clampPercent(healthInput)
+  };
+}
+
 function dashboardMotion(data) {
   const key = `reactor_dashboard_snapshot_${data.user.id}`;
+  const levelSeenKey = `reactor_level_seen_${data.user.id}`;
   const stage = data.reactor.next_reward?.code || "complete";
   const targetPercent = Number(data.reactor.percent || 0);
   const progression = data.progression || {};
   let previous = null;
+  let seenLevel = 0;
 
   try {
     previous = JSON.parse(localStorage.getItem(key) || "null");
   } catch {
     previous = null;
   }
+  try {
+    seenLevel = Math.max(0, Number(localStorage.getItem(levelSeenKey) || 0));
+  } catch {
+    seenLevel = 0;
+  }
 
   const sameStage = previous?.stage === stage;
-  const sameLevel = Number(previous?.level) === Number(progression.level);
+  const currentLevel = Number(progression.level || 1);
+  const previousLevel = Number(previous?.level || 1);
+  const sameLevel = Number(previous?.level) === currentLevel;
   const seenAt = Date.parse(previous?.seen_at || "");
   const awayMs = Number.isFinite(seenAt) ? Math.max(0, Date.now() - seenAt) : 0;
   const previousControlHours = Number(previous?.control_hours);
@@ -156,7 +482,8 @@ function dashboardMotion(data) {
   const savedDelta = Math.max(0, Number(data.money.saved_total || 0) - Number(previous?.saved_total || 0));
   const xpDelta = Math.max(0, Number(progression.xp || 0) - Number(previous?.xp || 0));
   const reactorDelta = sameStage ? Math.max(0, targetPercent - Number(previous?.percent || 0)) : 0;
-  const levelChanged = Boolean(previous) && Number(progression.level || 1) > Number(previous?.level || 1);
+  const levelChanged = Boolean(previous) && currentLevel > previousLevel;
+  const shouldCelebrateLevel = currentLevel > 1 && currentLevel > seenLevel;
   const unlockedRewards = Array.isArray(data.unlocked_now) ? data.unlocked_now : [];
   const hasReturnProgress = controlHoursDelta >= 1
     || savedDelta >= 0.01
@@ -174,9 +501,10 @@ function dashboardMotion(data) {
     xpFrom: sameLevel ? Math.min(Number(progression.xp || 0), Math.max(0, Number(previous?.xp || 0))) : Number(progression.level_start_xp || 0),
     xpPercentFrom: sameLevel ? Math.min(Number(progression.progress_percent || 0), Math.max(0, Number(previous?.xp_percent || 0))) : 0,
     savedFrom: Math.min(Number(data.money.saved_total || 0), Math.max(0, Number(previous?.saved_total || 0))),
-    levelCelebration: levelChanged ? {
-      previousLevel: Number(previous?.level || 1),
-      level: Number(progression.level || 1),
+    levelCelebration: shouldCelebrateLevel ? {
+      key: levelSeenKey,
+      previousLevel: Math.max(1, Math.min(currentLevel - 1, Math.max(seenLevel, previousLevel))),
+      level: currentLevel,
       xpDelta
     } : null,
     returnBrief: previous && awayMs >= RETURN_BRIEF_MIN_MS && hasReturnProgress ? {
@@ -254,13 +582,23 @@ function openLevelCelebration(data, motion) {
   const progression = data.progression || {};
   const activeSystems = Math.min(3, Math.max(1, Math.ceil(Number(progression.level || 1) / 2)));
   const systemKeys = ["progression.brain", "progression.breath", "progression.heart"].slice(0, activeSystems);
+  try {
+    localStorage.setItem(motion.levelCelebration.key, String(progression.level || motion.levelCelebration.level));
+  } catch {}
 
   modalRoot.innerHTML = `
     <div class="modal level-up-overlay" role="dialog" aria-modal="true" aria-labelledby="levelUpTitle">
       <div class="modal-card level-up-modal">
+        <div class="level-up-shockwave" aria-hidden="true"></div>
+        <div class="level-up-confetti" aria-hidden="true">${Array.from({ length: 18 }, (_, index) => `<i style="--spark:${index}"></i>`).join("")}</div>
         <div class="level-up-rays" aria-hidden="true">${Array.from({ length: 12 }, (_, index) => `<i style="--ray:${index}"></i>`).join("")}</div>
         <div class="level-up-core" aria-hidden="true">
           <span>${icon("trophy")}</span>
+          <strong>${esc(t("progression.level_short", { level: progression.level }))}</strong>
+        </div>
+        <div class="level-up-levels" aria-hidden="true">
+          <span>${esc(t("progression.level_short", { level: motion.levelCelebration.previousLevel }))}</span>
+          <b>${icon("bolt")}</b>
           <strong>${esc(t("progression.level_short", { level: progression.level }))}</strong>
         </div>
         <p class="eyebrow">${esc(t("level_up.kicker"))}</p>
@@ -654,7 +992,7 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "19")}`)).catch(() => {});
+      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "38")}`)).catch(() => {});
     });
   }
 }
@@ -905,7 +1243,7 @@ async function resendVerificationEmail() {
 }
 
 function onboardingFlow() {
-  const flow = ["habit", "reason", "goal"];
+  const flow = ["habit", "mode", "reason", "goal"];
   if (state.onboarding.habits.includes("smoking")) flow.push("smoking");
   if (state.onboarding.habits.includes("alcohol")) flow.push("alcohol");
   flow.push("summary");
@@ -956,6 +1294,21 @@ function renderOnboardingStep(key) {
       </div>`;
   }
 
+  if (key === "mode") {
+    return `
+      <p class="eyebrow">${esc(t("recovery_assistant.profile_kicker"))}</p>
+      <h2>${esc(t("recovery_assistant.mode_title"))}</h2>
+      <p class="muted">${esc(t("recovery_assistant.mode_subtitle"))}</p>
+      <div class="choice-grid">
+        ${list("recovery_assistant.mode_options").map((option) => `
+          <button class="choice-card ${state.onboarding.recovery_mode === option.code ? "selected" : ""}" type="button" data-recovery-mode="${esc(option.code)}">
+            <div class="icon-token ${esc(option.token || "token-blue")}">${icon(option.icon || "shield")}</div>
+            <strong>${esc(option.title)}</strong>
+            <span>${esc(option.body)}</span>
+          </button>`).join("")}
+      </div>`;
+  }
+
   if (key === "reason") {
     return `
       <p class="eyebrow">${esc(t("onboarding.kicker"))}</p>
@@ -999,6 +1352,20 @@ function renderOnboardingStep(key) {
             <label>${esc(t("onboarding.cigarettes_per_day"))}<input id="cigarettesPerDay" type="number" min="0" step="1" value="${esc(state.onboarding.cigarettes_per_day)}"></label>
             <label>${esc(t("onboarding.cigarettes_per_pack"))}<input id="cigarettesPerPack" type="number" min="1" step="1" value="${esc(state.onboarding.cigarettes_per_pack)}"></label>
             <label>${esc(t("onboarding.pack_price"))}<input id="packPrice" type="number" min="0" step="0.1" value="${esc(state.onboarding.pack_price)}"></label>
+          </div>
+          <div class="risk-question-grid">
+            <label>${esc(t("recovery_assistant.first_cigarette"))}
+              <select id="firstCigaretteAfterWake">
+                ${list("recovery_assistant.first_cigarette_options").map((option) => `<option value="${esc(option.code)}" ${state.onboarding.first_cigarette_after_wake === option.code ? "selected" : ""}>${esc(option.title)}</option>`).join("")}
+              </select>
+            </label>
+            <label>${esc(t("recovery_assistant.important_cigarette"))}
+              <select id="mostImportantCigarette">
+                ${list("recovery_assistant.important_cigarette_options").map((option) => `<option value="${esc(option.code)}" ${state.onboarding.most_important_cigarette === option.code ? "selected" : ""}>${esc(option.title)}</option>`).join("")}
+              </select>
+            </label>
+            <label class="checkbox-line"><input id="hardForbiddenPlaces" type="checkbox" ${state.onboarding.hard_in_forbidden_places ? "checked" : ""}><span>${esc(t("recovery_assistant.hard_forbidden_places"))}</span></label>
+            <label class="checkbox-line"><input id="smokesWhenIll" type="checkbox" ${state.onboarding.smokes_when_ill ? "checked" : ""}><span>${esc(t("recovery_assistant.smokes_when_ill"))}</span></label>
           </div>`}
       </div>`;
   }
@@ -1009,6 +1376,30 @@ function renderOnboardingStep(key) {
       <h2>${esc(t("onboarding.alcohol_title"))}</h2>
       <div class="wizard-fields">
         <label>${esc(t("onboarding.alcohol_weekly_spend"))}<input id="alcoholWeeklySpend" type="number" min="0" step="0.1" value="${esc(state.onboarding.alcohol_weekly_spend)}"></label>
+        <label>${esc(t("recovery_assistant.alcohol_frequency"))}
+          <select id="alcoholFrequency">
+            ${list("recovery_assistant.alcohol_frequency_options").map((option) => `<option value="${esc(option.code)}" ${state.onboarding.alcohol_frequency === option.code ? "selected" : ""}>${esc(option.title)}</option>`).join("")}
+          </select>
+        </label>
+        <label>${esc(t("recovery_assistant.alcohol_amount"))}
+          <select id="alcoholAmountTypical">
+            ${list("recovery_assistant.alcohol_amount_options").map((option) => `<option value="${esc(option.code)}" ${state.onboarding.alcohol_amount_typical === option.code ? "selected" : ""}>${esc(option.title)}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+      <h3>${esc(t("recovery_assistant.alcohol_risk_title"))}</h3>
+      <div class="risk-question-grid">
+        <label class="checkbox-line"><input id="alcoholBinges" type="checkbox" ${state.onboarding.alcohol_binges ? "checked" : ""}><span>${esc(t("recovery_assistant.alcohol_binges"))}</span></label>
+        <label class="checkbox-line"><input id="alcoholFailedReduce" type="checkbox" ${state.onboarding.alcohol_failed_to_reduce ? "checked" : ""}><span>${esc(t("recovery_assistant.alcohol_failed_reduce"))}</span></label>
+        <label class="checkbox-line"><input id="alcoholDrinksAlone" type="checkbox" ${state.onboarding.alcohol_drinks_alone ? "checked" : ""}><span>${esc(t("recovery_assistant.alcohol_drinks_alone"))}</span></label>
+      </div>
+      <h3>${esc(t("recovery_assistant.withdrawal_title"))}</h3>
+      <div class="pill-grid">
+        ${list("recovery_assistant.withdrawal_options").map((option) => `<button class="pill ${state.onboarding.alcohol_withdrawal[option.code] ? "selected" : ""}" type="button" data-withdrawal="${esc(option.code)}">${esc(option.title)}</button>`).join("")}
+      </div>
+      <h3>${esc(t("recovery_assistant.alcohol_context_title"))}</h3>
+      <div class="pill-grid">
+        ${list("recovery_assistant.alcohol_context_options").map((option) => `<button class="pill ${state.onboarding.alcohol_contexts.includes(option.code) ? "selected" : ""}" type="button" data-alcohol-context="${esc(option.code)}">${esc(option.title)}</button>`).join("")}
       </div>
       <h3>${esc(t("onboarding.dangerous_days"))}</h3>
       <div class="pill-grid">
@@ -1044,11 +1435,127 @@ function renderSmokingProductPicker(name, selected, context = "settings") {
     </fieldset>`;
 }
 
+function renderRecoveryProfileSettings(profile, data = state.dashboard) {
+  const hasSmoking = data?.habit_types?.includes("smoking");
+  const hasAlcohol = data?.habit_types?.includes("alcohol");
+  const smoking = profile.smoking || {};
+  const alcohol = profile.alcohol || {};
+  const withdrawal = alcohol.withdrawalSymptoms || {};
+
+  return `
+    <div class="settings-section recovery-profile-settings">
+      <h3>${esc(t("recovery_assistant.profile_title"))}</h3>
+      <p class="muted">${esc(t("recovery_assistant.profile_body"))}</p>
+      <div class="choice-grid compact-choice-grid">
+        ${list("recovery_assistant.mode_options").map((option) => `
+          <label class="choice-card ${profile.mode === option.code ? "selected" : ""}">
+            <input type="radio" name="recovery_mode" value="${esc(option.code)}" ${profile.mode === option.code ? "checked" : ""}>
+            <div class="icon-token ${esc(option.token || "token-blue")}">${icon(option.icon || "shield")}</div>
+            <strong>${esc(option.title)}</strong>
+            <span>${esc(option.body)}</span>
+          </label>`).join("")}
+      </div>
+      ${hasSmoking ? `
+        <div class="risk-question-grid">
+          <label>${esc(t("recovery_assistant.first_cigarette"))}
+            <select name="first_cigarette_after_wake">
+              ${list("recovery_assistant.first_cigarette_options").map((option) => `<option value="${esc(option.code)}" ${smoking.firstCigaretteAfterWake === option.code ? "selected" : ""}>${esc(option.title)}</option>`).join("")}
+            </select>
+          </label>
+          <label>${esc(t("recovery_assistant.important_cigarette"))}
+            <select name="most_important_cigarette">
+              ${list("recovery_assistant.important_cigarette_options").map((option) => `<option value="${esc(option.code)}" ${smoking.mostImportantCigarette === option.code ? "selected" : ""}>${esc(option.title)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="checkbox-line"><input name="hard_in_forbidden_places" type="checkbox" value="1" ${smoking.hardInForbiddenPlaces ? "checked" : ""}><span>${esc(t("recovery_assistant.hard_forbidden_places"))}</span></label>
+          <label class="checkbox-line"><input name="smokes_when_ill" type="checkbox" value="1" ${smoking.smokesWhenIll ? "checked" : ""}><span>${esc(t("recovery_assistant.smokes_when_ill"))}</span></label>
+        </div>` : ""}
+      ${hasAlcohol ? `
+        <div class="settings-grid">
+          <label>${esc(t("recovery_assistant.alcohol_frequency"))}
+            <select name="alcohol_frequency">
+              ${list("recovery_assistant.alcohol_frequency_options").map((option) => `<option value="${esc(option.code)}" ${alcohol.frequency === option.code ? "selected" : ""}>${esc(option.title)}</option>`).join("")}
+            </select>
+          </label>
+          <label>${esc(t("recovery_assistant.alcohol_amount"))}
+            <select name="alcohol_amount_typical">
+              ${list("recovery_assistant.alcohol_amount_options").map((option) => `<option value="${esc(option.code)}" ${alcohol.amountTypical === option.code ? "selected" : ""}>${esc(option.title)}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <div class="risk-question-grid">
+          <label class="checkbox-line"><input name="alcohol_binges" type="checkbox" value="1" ${alcohol.binges ? "checked" : ""}><span>${esc(t("recovery_assistant.alcohol_binges"))}</span></label>
+          <label class="checkbox-line"><input name="alcohol_failed_reduce" type="checkbox" value="1" ${alcohol.failedToReduce ? "checked" : ""}><span>${esc(t("recovery_assistant.alcohol_failed_reduce"))}</span></label>
+          <label class="checkbox-line"><input name="alcohol_drinks_alone" type="checkbox" value="1" ${alcohol.drinksAlone ? "checked" : ""}><span>${esc(t("recovery_assistant.alcohol_drinks_alone"))}</span></label>
+        </div>
+        <div class="pill-grid checkbox-pill-grid">
+          ${list("recovery_assistant.withdrawal_options").map((option) => `
+            <label class="pill ${withdrawal[option.code] ? "selected" : ""}">
+              <input type="checkbox" name="withdrawal_${esc(option.code)}" value="1" ${withdrawal[option.code] ? "checked" : ""}>
+              ${esc(option.title)}
+            </label>`).join("")}
+        </div>
+        <div class="pill-grid checkbox-pill-grid">
+          ${list("recovery_assistant.alcohol_context_options").map((option) => `
+            <label class="pill ${Array.isArray(alcohol.mainContext) && alcohol.mainContext.includes(option.code) ? "selected" : ""}">
+              <input type="checkbox" name="alcohol_contexts" value="${esc(option.code)}" ${Array.isArray(alcohol.mainContext) && alcohol.mainContext.includes(option.code) ? "checked" : ""}>
+              ${esc(option.title)}
+            </label>`).join("")}
+        </div>` : ""}
+    </div>`;
+}
+
+function recoveryProfileFromSettings(form, data = state.dashboard) {
+  const previous = loadRecoveryStore(data).recoveryProfile;
+  const smoking = {
+    ...previous.smoking,
+    firstCigaretteAfterWake: String(form.get("first_cigarette_after_wake") || previous.smoking.firstCigaretteAfterWake || "31_60"),
+    hardInForbiddenPlaces: form.get("hard_in_forbidden_places") === "1",
+    mostImportantCigarette: String(form.get("most_important_cigarette") || previous.smoking.mostImportantCigarette || "stress"),
+    smokesWhenIll: form.get("smokes_when_ill") === "1"
+  };
+  const alcohol = {
+    ...previous.alcohol,
+    frequency: String(form.get("alcohol_frequency") || previous.alcohol.frequency || "weekly"),
+    amountTypical: String(form.get("alcohol_amount_typical") || previous.alcohol.amountTypical || "moderate"),
+    binges: form.get("alcohol_binges") === "1",
+    failedToReduce: form.get("alcohol_failed_reduce") === "1",
+    drinksAlone: form.get("alcohol_drinks_alone") === "1",
+    mainContext: form.getAll("alcohol_contexts").map(String),
+    withdrawalSymptoms: {
+      tremor: form.get("withdrawal_tremor") === "1",
+      sweating: form.get("withdrawal_sweating") === "1",
+      anxiety: form.get("withdrawal_anxiety") === "1",
+      insomnia: form.get("withdrawal_insomnia") === "1",
+      palpitations: form.get("withdrawal_palpitations") === "1"
+    }
+  };
+
+  return {
+    ...previous,
+    addictionTypes: Array.isArray(data?.habit_types) ? data.habit_types : previous.addictionTypes,
+    mode: String(form.get("recovery_mode") || previous.mode || "quit_now"),
+    smoking,
+    alcohol,
+    updatedAt: new Date().toISOString()
+  };
+}
+
 function attachOnboardingEvents(key) {
   if (key === "habit") {
     app.querySelectorAll("[data-habits]").forEach((button) => {
       button.addEventListener("click", () => {
         state.onboarding.habits = button.dataset.habits.split(",");
+        state.error = "";
+        renderOnboarding();
+      });
+    });
+  }
+
+  if (key === "mode") {
+    app.querySelectorAll("[data-recovery-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.onboarding.recovery_mode = button.dataset.recoveryMode || "quit_now";
         state.error = "";
         renderOnboarding();
       });
@@ -1085,10 +1592,35 @@ function attachOnboardingEvents(key) {
     app.querySelector("#cigarettesPerPack")?.addEventListener("input", (event) => state.onboarding.cigarettes_per_pack = Number(event.target.value || 20));
     app.querySelector("#packPrice")?.addEventListener("input", (event) => state.onboarding.pack_price = Number(event.target.value || 0));
     app.querySelector("#vapeWeeklySpend")?.addEventListener("input", (event) => state.onboarding.vape_weekly_spend = Number(event.target.value || 0));
+    app.querySelector("#firstCigaretteAfterWake")?.addEventListener("change", (event) => state.onboarding.first_cigarette_after_wake = event.target.value);
+    app.querySelector("#mostImportantCigarette")?.addEventListener("change", (event) => state.onboarding.most_important_cigarette = event.target.value);
+    app.querySelector("#hardForbiddenPlaces")?.addEventListener("change", (event) => state.onboarding.hard_in_forbidden_places = event.target.checked);
+    app.querySelector("#smokesWhenIll")?.addEventListener("change", (event) => state.onboarding.smokes_when_ill = event.target.checked);
   }
 
   if (key === "alcohol") {
     app.querySelector("#alcoholWeeklySpend")?.addEventListener("input", (event) => state.onboarding.alcohol_weekly_spend = Number(event.target.value || 0));
+    app.querySelector("#alcoholFrequency")?.addEventListener("change", (event) => state.onboarding.alcohol_frequency = event.target.value);
+    app.querySelector("#alcoholAmountTypical")?.addEventListener("change", (event) => state.onboarding.alcohol_amount_typical = event.target.value);
+    app.querySelector("#alcoholBinges")?.addEventListener("change", (event) => state.onboarding.alcohol_binges = event.target.checked);
+    app.querySelector("#alcoholFailedReduce")?.addEventListener("change", (event) => state.onboarding.alcohol_failed_to_reduce = event.target.checked);
+    app.querySelector("#alcoholDrinksAlone")?.addEventListener("change", (event) => state.onboarding.alcohol_drinks_alone = event.target.checked);
+    app.querySelectorAll("[data-withdrawal]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const code = button.dataset.withdrawal;
+        state.onboarding.alcohol_withdrawal[code] = !state.onboarding.alcohol_withdrawal[code];
+        renderOnboarding();
+      });
+    });
+    app.querySelectorAll("[data-alcohol-context]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const code = button.dataset.alcoholContext;
+        state.onboarding.alcohol_contexts = state.onboarding.alcohol_contexts.includes(code)
+          ? state.onboarding.alcohol_contexts.filter((item) => item !== code)
+          : [...state.onboarding.alcohol_contexts, code];
+        renderOnboarding();
+      });
+    });
     app.querySelectorAll("[data-danger]").forEach((button) => {
       button.addEventListener("click", () => {
         const code = button.dataset.danger;
@@ -1138,6 +1670,9 @@ async function finishOnboarding() {
     const data = await api("/api/onboarding", { method: "POST", body: state.onboarding });
     state.dashboard = data.dashboard;
     state.user = data.dashboard.user;
+    const store = defaultRecoveryStore(data.dashboard);
+    store.recoveryProfile = profileFromOnboarding();
+    saveRecoveryStore(store, data.dashboard.user.id);
     state.screen = "dashboard";
     state.enterDashboardAtTop = true;
   } catch (error) {
@@ -1209,6 +1744,10 @@ function renderDashboardView() {
   const currency = data.money.goal.currency || "EUR";
   const missions = data.missions || [];
   const missionSummary = data.missions_summary || { completed: 0, total: missions.length, percent: 0 };
+  const recoveryStore = loadRecoveryStore(data);
+  const startupRisk = startupRiskScore(recoveryStore.recoveryProfile);
+  const dailyRisk = calculateDailyRisk(recoveryStore.recoveryProfile, recoveryStore.dailyCheckins, recoveryStore.incidents, new Date());
+  const healthReactor = calculateHealthReactor(data, recoveryStore);
 
   app.innerHTML = `
     <div class="topbar">
@@ -1281,7 +1820,17 @@ function renderDashboardView() {
 
       ${renderRecoveryVisual(data)}
 
+      ${renderMedicalRiskBanner(startupRisk)}
+
+      ${renderDailyRiskPanel(dailyRisk)}
+
+      ${renderChainProtectionPanel(dailyRisk, recoveryStore)}
+
+      ${renderImpulsePanel(data)}
+
       ${renderGrowthPanels(data, currency, motion)}
+
+      ${renderHealthReactorPanel(healthReactor)}
 
       ${renderMissionPanel(data)}
 
@@ -1377,6 +1926,10 @@ function renderDashboardView() {
   app.querySelectorAll("[data-checkin]").forEach((button) => button.addEventListener("click", () => saveCheckin(button.dataset.checkin)));
   app.querySelectorAll("[data-incident]").forEach((button) => button.addEventListener("click", () => openIncident(button.dataset.incident)));
   app.querySelectorAll("[data-mission-action]").forEach((button) => button.addEventListener("click", () => handleMissionAction(button.dataset.missionAction)));
+  app.querySelectorAll("[data-impulse-action]").forEach((button) => button.addEventListener("click", () => handleImpulseAction(button.dataset.impulseAction)));
+  app.querySelectorAll("[data-risk-action]").forEach((button) => button.addEventListener("click", () => handleRiskAction(button.dataset.riskAction)));
+  app.querySelector("#dailyCheckinDetailed")?.addEventListener("click", openDailyCheckinModal);
+  app.querySelector("#chainProtectionSos")?.addEventListener("click", openCraving);
   app.querySelector("#mobileHome").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
   app.querySelector("#mobileProgress").addEventListener("click", () => app.querySelector(".progression-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   app.querySelector("#mobileSocial").addEventListener("click", () => openSocialModal("feed"));
@@ -1406,6 +1959,174 @@ function renderNextSignal(data) {
         <span>${esc(t("return_brief.next_in", { time: duration(remainingHours) }))}</span>
       </div>
     </div>`;
+}
+
+function renderMedicalRiskBanner(risk) {
+  const stateName = risk.state || "normal";
+  return `
+    <section class="medical-risk-banner risk-${esc(stateName)}">
+      <span class="risk-orb">${icon(stateName === "danger" ? "shield" : "heart")}</span>
+      <div>
+        <p class="eyebrow">${esc(t("recovery_assistant.medical_kicker"))}</p>
+        <strong>${esc(t(`recovery_assistant.medical_${stateName}_title`))}</strong>
+        <span>${esc(t(`recovery_assistant.medical_${stateName}_body`))}</span>
+      </div>
+      <b>${esc(t("recovery_assistant.risk_score", { score: risk.score }))}</b>
+    </section>`;
+}
+
+function renderDailyRiskPanel(risk) {
+  const factors = risk.factors.length ? risk.factors : [t("recovery_assistant.factor_no_data")];
+  return `
+    <section class="panel daily-risk-panel risk-${esc(risk.level)}">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">${esc(t("recovery_assistant.daily_risk_kicker"))}</p>
+          <h3>${esc(t("recovery_assistant.daily_risk_title"))}</h3>
+        </div>
+        <span class="risk-level-badge">${esc(t(`recovery_assistant.risk_${risk.level}`))}</span>
+      </div>
+      <div class="daily-risk-layout">
+        <div class="risk-meter" style="--risk-score:${risk.score}%">
+          <strong>${esc(risk.score)}</strong>
+          <span>${esc(t("recovery_assistant.risk_points"))}</span>
+        </div>
+        <div class="risk-copy">
+          <p>${esc(risk.recommendation)}</p>
+          <div class="risk-factor-list">
+            ${factors.map((factor) => `<span>${esc(factor)}</span>`).join("")}
+          </div>
+          <div class="risk-actions">
+            <button class="primary-button" type="button" data-risk-action="sos">${icon("shield")}${esc(t("recovery_assistant.enable_protection"))}</button>
+            <button class="secondary-button" type="button" id="dailyCheckinDetailed">${icon("star")}${esc(t("recovery_assistant.checkin_button"))}</button>
+          </div>
+        </div>
+      </div>
+    </section>`;
+}
+
+function renderChainProtectionPanel(risk, store) {
+  const incidents = Array.isArray(store.incidents) ? store.incidents : [];
+  const hasRecentIncident = incidents.some((incident) => {
+    const time = Date.parse(incident.createdAt || "");
+    return Number.isFinite(time) && Date.now() - time < 36 * 60 * 60 * 1000;
+  });
+  if (risk.level !== "high" && !hasRecentIncident) return "";
+
+  return `
+    <section class="panel chain-protection-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">${esc(t("recovery_assistant.chain_kicker"))}</p>
+          <h3>${esc(t("recovery_assistant.chain_title"))}</h3>
+        </div>
+        <span class="badge">${esc(t("recovery_assistant.chain_badge"))}</span>
+      </div>
+      <p class="muted">${esc(t(hasRecentIncident ? "recovery_assistant.chain_after_incident" : "recovery_assistant.chain_high_risk"))}</p>
+      <div class="chain-steps">
+        ${list("recovery_assistant.chain_steps").map((step) => `
+          <div><span class="icon-token ${esc(step.token || "token-blue")}">${icon(step.icon || "shield")}</span><strong>${esc(step.title)}</strong><small>${esc(step.body)}</small></div>`).join("")}
+      </div>
+      <button class="secondary-button full" type="button" id="chainProtectionSos">${icon("shield")}${esc(t("recovery_assistant.chain_button"))}</button>
+    </section>`;
+}
+
+function renderHealthReactorPanel(reactor) {
+  const items = [
+    ["money", "money", "token-green"],
+    ["energy", "bolt", "token-blue"],
+    ["control", "shield", "token-violet"],
+    ["health", "heart", "token-red"]
+  ];
+
+  return `
+    <section class="panel health-reactor-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">${esc(t("recovery_assistant.health_reactor_kicker"))}</p>
+          <h3>${esc(t("recovery_assistant.health_reactor_title"))}</h3>
+        </div>
+        <span class="badge">${esc(t("recovery_assistant.health_reactor_badge"))}</span>
+      </div>
+      <div class="health-reactor-grid">
+        ${items.map(([code, iconName, token]) => `
+          <div class="health-reactor-card" style="--reactor-value:${reactor[code] || 0}%">
+            <span class="icon-token ${token}">${icon(iconName)}</span>
+            <div>
+              <strong>${esc(t(`recovery_assistant.health_${code}`))}</strong>
+              <small>${esc(t(`recovery_assistant.health_${code}_body`))}</small>
+              <div class="health-reactor-track"><i></i></div>
+            </div>
+            <b>${esc(reactor[code] || 0)}%</b>
+          </div>`).join("")}
+      </div>
+      <p class="health-reactor-note">${esc(t("recovery_assistant.health_reactor_note"))}</p>
+    </section>`;
+}
+
+function handleRiskAction(action) {
+  if (action === "sos") {
+    openCraving();
+  }
+}
+
+function openDailyCheckinModal() {
+  const store = loadRecoveryStore(state.dashboard);
+  const today = localDateKey();
+  const existing = store.dailyCheckins.find((item) => item.date === today) || {};
+  const fields = ["sleep", "energy", "mood", "stress", "craving"];
+  const value = (field) => Number(existing[field] || (field === "stress" || field === "craving" ? 4 : 6));
+
+  modalRoot.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-card daily-checkin-modal">
+        <button class="icon-button close-button" id="closeModal">${icon("x")}</button>
+        <p class="eyebrow">${esc(t("recovery_assistant.checkin_kicker"))}</p>
+        <h2>${esc(t("recovery_assistant.checkin_title"))}</h2>
+        <p class="muted">${esc(t("recovery_assistant.checkin_body"))}</p>
+        <form id="detailedCheckinForm" class="checkin-slider-list">
+          ${fields.map((field) => `
+            <label>
+              <span><strong>${esc(t(`recovery_assistant.checkin_${field}`))}</strong><b data-checkin-value="${field}">${value(field)}</b></span>
+              <input type="range" min="1" max="10" value="${value(field)}" name="${field}" data-checkin-range="${field}">
+            </label>`).join("")}
+          <label>${esc(t("recovery_assistant.checkin_notes"))}<textarea name="notes" rows="3">${esc(existing.notes || "")}</textarea></label>
+          <button class="primary-button full" type="submit">${esc(t("recovery_assistant.checkin_save"))}</button>
+        </form>
+      </div>
+    </div>`;
+
+  modalRoot.querySelector("#closeModal").addEventListener("click", closeModal);
+  modalRoot.querySelectorAll("[data-checkin-range]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const out = modalRoot.querySelector(`[data-checkin-value="${input.dataset.checkinRange}"]`);
+      if (out) out.textContent = input.value;
+    });
+  });
+  modalRoot.querySelector("#detailedCheckinForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const entry = {
+      id: existing.id || `checkin_${Date.now()}`,
+      date: today,
+      sleep: Number(form.get("sleep") || 5),
+      energy: Number(form.get("energy") || 5),
+      mood: Number(form.get("mood") || 5),
+      stress: Number(form.get("stress") || 5),
+      craving: Number(form.get("craving") || 5),
+      notes: String(form.get("notes") || ""),
+      createdAt: existing.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    updateRecoveryStore((current) => ({
+      ...current,
+      dailyCheckins: [...current.dailyCheckins.filter((item) => item.date !== today), entry].slice(-45),
+      healthReactor: calculateHealthReactor(state.dashboard, { ...current, dailyCheckins: [...current.dailyCheckins.filter((item) => item.date !== today), entry] })
+    }));
+    state.notice = t("recovery_assistant.checkin_saved");
+    closeModal();
+    render();
+  });
 }
 
 function recoverySystemProgress(hours, targetHours) {
@@ -1448,7 +2169,7 @@ function recoveryVisualModel(data) {
 
 function renderRecoveryVisual(data) {
   const model = recoveryVisualModel(data);
-  const referenceSrc = apiPath(`/assets/img/living-contour-body.png?v=${encodeURIComponent(boot.assetVersion || "36")}`);
+  const referenceSrc = apiPath(`/assets/img/living-contour-body.png?v=${encodeURIComponent(boot.assetVersion || "38")}`);
   const recoveryMetrics = model.systems.map((system) => ({
     id: system.code,
     icon: system.icon,
@@ -1491,6 +2212,7 @@ function renderRecoveryVisual(data) {
 
           <aside class="recovery-contour-ui">
             <div class="recovery-main-meter">
+              <span class="meter-reactor-glow" aria-hidden="true"><i></i><i></i><i></i></span>
               <strong>${model.progress}<span>%</span></strong>
               <small>${esc(t("health_visual.visual_progress"))}</small>
             </div>
@@ -1625,6 +2347,157 @@ function renderMissionItem(mission) {
         ${!completed && mission.action ? `<button class="mission-action" type="button" data-mission-action="${esc(mission.action)}">${esc(t(`dashboard.mission_action_${mission.action}`))}</button>` : ""}
       </div>
     </article>`;
+}
+
+function impulseDeck(data) {
+  const habitTypes = Array.isArray(data.habit_types) ? data.habit_types : [];
+  const hasSmoking = habitTypes.includes("smoking");
+  const hasAlcohol = habitTypes.includes("alcohol");
+  const isVape = dashboardSmokingUi(data).isVape;
+  const seed = Math.floor(Number(data.reactor?.control_hours || 0)) + Number(data.stats?.craving_wins || 0) + new Date().getDate();
+  const facts = [
+    ...(hasSmoking ? list(isVape ? "impulse.facts_vape" : "impulse.facts_smoking") : []),
+    ...(hasAlcohol ? list("impulse.facts_alcohol") : []),
+    ...list("impulse.facts_control")
+  ].filter(Boolean);
+  const quests = list("impulse.quests").filter((item) => item && typeof item === "object");
+  const quest = quests.length ? quests[seed % quests.length] : {};
+  const fact = facts.length ? facts[(seed + 1) % facts.length] : t("impulse.fact_fallback");
+
+  return [
+    {
+      type: "game",
+      icon: "reactor",
+      token: "token-blue",
+      kicker: t("impulse.game_kicker"),
+      title: t("impulse.game_title"),
+      body: t("impulse.game_body"),
+      action: "focus",
+      actionLabel: t("impulse.game_action")
+    },
+    {
+      type: "quest",
+      icon: quest.icon || "bolt",
+      token: quest.token || "token-green",
+      kicker: t("impulse.quest_kicker"),
+      title: quest.title || t("impulse.quest_fallback_title"),
+      body: quest.body || t("impulse.quest_fallback_body"),
+      action: quest.action || "commitment",
+      actionLabel: quest.action_label || t("impulse.quest_action")
+    },
+    {
+      type: "fact",
+      icon: "star",
+      token: "token-violet",
+      kicker: t("impulse.fact_kicker"),
+      title: t("impulse.fact_title"),
+      body: fact,
+      action: "craving",
+      actionLabel: t("impulse.fact_action")
+    }
+  ];
+}
+
+function renderImpulsePanel(data) {
+  const cards = impulseDeck(data);
+  return `
+    <section class="panel impulse-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">${esc(t("impulse.kicker"))}</p>
+          <h3>${esc(t("impulse.title"))}</h3>
+        </div>
+        <span class="badge">${esc(t("impulse.badge"))}</span>
+      </div>
+      <p class="impulse-lead">${esc(t("impulse.subtitle"))}</p>
+      <div class="impulse-grid">
+        ${cards.map((card) => `
+          <article class="impulse-card impulse-${esc(card.type)}">
+            <span class="icon-token ${esc(card.token)}">${icon(card.icon)}</span>
+            <div>
+              <small>${esc(card.kicker)}</small>
+              <strong>${esc(card.title)}</strong>
+              <p>${esc(card.body)}</p>
+            </div>
+            <button class="mission-action" type="button" data-impulse-action="${esc(card.action)}">${esc(card.actionLabel)}</button>
+          </article>`).join("")}
+      </div>
+    </section>`;
+}
+
+function handleImpulseAction(action) {
+  if (action === "focus") {
+    openImpulseFocusGame();
+    return;
+  }
+  if (action === "craving") {
+    openCraving();
+    return;
+  }
+  if (action === "checkin") {
+    app.querySelector(".daily-check-panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  openCommitmentMission();
+}
+
+function openImpulseFocusGame() {
+  clearInterval(impulseTimer);
+  const phases = list("impulse.game_phases");
+  const phaseText = (index) => phases[index % Math.max(1, phases.length)] || t("impulse.game_phase_default");
+  let remaining = 60;
+  let started = false;
+
+  modalRoot.innerHTML = `
+    <div class="modal impulse-game-overlay" role="dialog" aria-modal="true" aria-labelledby="impulseGameTitle">
+      <div class="modal-card impulse-game-modal">
+        <button class="icon-button close-button" id="closeImpulseGame" type="button" aria-label="${esc(t("common.close"))}">${icon("x")}</button>
+        <p class="eyebrow">${esc(t("impulse.game_kicker"))}</p>
+        <h2 id="impulseGameTitle">${esc(t("impulse.game_modal_title"))}</h2>
+        <p class="muted">${esc(t("impulse.game_modal_body"))}</p>
+        <div class="impulse-breath-orb" id="impulseBreathOrb" style="--focus-progress:0">
+          <i aria-hidden="true"></i>
+          <strong id="impulseCountdown">60</strong>
+          <span id="impulsePhase">${esc(phaseText(0))}</span>
+        </div>
+        <div class="impulse-game-steps">
+          ${[0, 1, 2].map((index) => `<span>${esc(phaseText(index))}</span>`).join("")}
+        </div>
+        <button class="primary-button full" id="startImpulseGame" type="button">${esc(t("impulse.game_start"))}</button>
+      </div>
+    </div>`;
+
+  const countdown = modalRoot.querySelector("#impulseCountdown");
+  const phase = modalRoot.querySelector("#impulsePhase");
+  const orb = modalRoot.querySelector("#impulseBreathOrb");
+  const start = modalRoot.querySelector("#startImpulseGame");
+  const update = () => {
+    countdown.textContent = String(remaining);
+    phase.textContent = remaining <= 0 ? t("impulse.game_done") : phaseText(Math.floor((60 - remaining) / 10));
+    orb.style.setProperty("--focus-progress", String((60 - remaining) / 60));
+  };
+
+  modalRoot.querySelector("#closeImpulseGame").addEventListener("click", closeModal);
+  start.addEventListener("click", () => {
+    if (started) return;
+    if (remaining <= 0) remaining = 60;
+    started = true;
+    orb.classList.add("is-running");
+    start.disabled = true;
+    start.textContent = t("impulse.game_running");
+    update();
+    impulseTimer = window.setInterval(() => {
+      remaining -= 1;
+      update();
+      if (remaining <= 0) {
+        clearInterval(impulseTimer);
+        started = false;
+        orb.classList.remove("is-running");
+        start.disabled = false;
+        start.textContent = t("impulse.game_finish");
+      }
+    }, 1000);
+  });
 }
 
 function handleMissionAction(action) {
@@ -2114,6 +2987,8 @@ function renderSettings() {
   const smokingProduct = smoking.smoking_product === "vape" ? "vape" : "tobacco";
   const alcohol = data.habits.alcohol || {};
   const motivationReasons = profileMotivationReasons(profile);
+  const recoveryStore = loadRecoveryStore(data);
+  const recoveryProfile = recoveryStore.recoveryProfile;
   app.innerHTML = `
     <div class="topbar">
       ${renderBrand(true)}
@@ -2179,6 +3054,7 @@ function renderSettings() {
             <label>${esc(t("onboarding.goal_amount"))}<input name="goal_amount" type="number" min="1" step="1" value="${esc(goal.target_amount || 1)}"></label>
           </div>
         </div>
+        ${renderRecoveryProfileSettings(recoveryProfile, data)}
         ${data.habit_types.includes("smoking") ? `
         <div class="settings-section">
           <h3>${esc(t("settings.smoking"))}</h3>
@@ -2343,6 +3219,10 @@ async function saveSettings(event) {
   try {
     const data = await api("/api/settings", { method: "POST", body });
     state.dashboard = data.dashboard;
+    updateRecoveryStore((store) => ({
+      ...store,
+      recoveryProfile: recoveryProfileFromSettings(form, data.dashboard)
+    }));
     if (body.language !== state.lang) await loadLanguage(body.language);
     state.screen = "dashboard";
     state.enterDashboardAtTop = true;
@@ -2372,12 +3252,26 @@ async function logout() {
 
 async function openCraving() {
   const habitType = state.dashboard?.habit_types?.[0] || null;
-  state.craving = { id: null, timer: null, seconds: 90, totalSeconds: 90, reason: "", action: "", tool: "", toolBody: "", habitType };
+  state.craving = {
+    id: null,
+    timer: null,
+    seconds: 90,
+    totalSeconds: 90,
+    reason: "",
+    action: "",
+    tool: "",
+    toolBody: "",
+    habitType,
+    initialIntensity: 7,
+    afterIntensity: 5,
+    completedCycles: 0,
+    startedAt: new Date().toISOString()
+  };
   try {
     const data = await api("/api/craving/start", { method: "POST", body: { habit_type: habitType } });
     state.craving.id = data.craving_id;
   } catch {}
-  renderCravingModal("reason");
+  renderCravingModal("sos");
   startCravingTimer();
 }
 
@@ -2386,7 +3280,10 @@ function startCravingTimer() {
   state.craving.timer = setInterval(() => {
     state.craving.seconds = Math.max(0, state.craving.seconds - 1);
     updateCravingTimerDisplay();
-    if (state.craving.seconds <= 0) clearInterval(state.craving.timer);
+    if (state.craving.seconds <= 0) {
+      clearInterval(state.craving.timer);
+      renderCravingModal("result");
+    }
   }, 1000);
 }
 
@@ -2407,6 +3304,13 @@ function cravingWaveKey(percent) {
   return "craving.wave_control";
 }
 
+function cravingProtocolText(health) {
+  const protocolPhrases = list("craving.protocol_phrases");
+  if (!protocolPhrases.length) return t(cravingWaveKey(health));
+  const passed = Math.max(0, Number(state.craving.totalSeconds || 90) - Number(state.craving.seconds || 0));
+  return protocolPhrases[Math.min(protocolPhrases.length - 1, Math.floor(passed / 22))];
+}
+
 function updateCravingTimerDisplay() {
   const health = cravingHealthPercent();
   const timer = modalRoot.querySelector("#timerText");
@@ -2417,7 +3321,7 @@ function updateCravingTimerDisplay() {
   if (timer) timer.textContent = formatTimer(state.craving.seconds);
   if (bossFill) bossFill.style.width = `${health}%`;
   if (healthText) healthText.textContent = `${health}%`;
-  if (waveText) waveText.textContent = t(cravingWaveKey(health));
+  if (waveText) waveText.textContent = cravingProtocolText(health);
 }
 
 function cravingSupportText() {
@@ -2425,26 +3329,42 @@ function cravingSupportText() {
 }
 
 function renderCravingModal(phase) {
-  const reasons = list(dashboardSmokingUi(state.dashboard).isVape ? "craving.reasons_vape" : "craving.reasons");
+  const habitType = state.craving.habitType || state.dashboard?.habit_types?.[0] || "smoking";
+  const reasons = habitType === "alcohol"
+    ? list("craving.reasons_alcohol")
+    : list(dashboardSmokingUi(state.dashboard).isVape ? "craving.reasons_vape" : "craving.reasons");
   const tools = list("craving.tools");
   const health = cravingHealthPercent();
+  const isResult = phase === "result" || state.craving.seconds <= 0;
+  const bodyActions = list("craving.body_actions");
+  const intensityButtons = (field) => Array.from({ length: 10 }, (_, index) => {
+    const value = index + 1;
+    const selected = Number(state.craving[field] || 0) === value;
+    return `<button class="intensity-dot ${selected ? "selected" : ""}" type="button" data-intensity-field="${field}" data-intensity-value="${value}">${value}</button>`;
+  }).join("");
   state.craving.phase = phase;
   modalRoot.innerHTML = `
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-card">
+    <div class="modal sos-modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal-card sos-modal-card">
         <button class="icon-button close-button" id="closeModal">${icon("x")}</button>
         <p class="eyebrow">${esc(t("craving.kicker"))}</p>
         <h2>${esc(t("craving.title"))}</h2>
         <p class="muted">${esc(t("craving.subtitle"))}</p>
-        <div class="craving-boss">
-          <div class="boss-head"><span>${icon("bolt")}${esc(t("craving.boss"))}</span><strong id="cravingHealth">${health}%</strong></div>
-          <div class="boss-health"><div id="bossFill" style="width:${health}%"></div></div>
-          <small id="waveText">${esc(t(cravingWaveKey(health)))}</small>
+        <div class="sos-intensity-card">
+          <span>${esc(t("craving.intensity_before"))}</span>
+          <div class="intensity-scale">${intensityButtons("initialIntensity")}</div>
         </div>
-        <div class="timer-block"><div class="timer-ring"><div class="timer-ring-inner"><strong id="timerText">${formatTimer(state.craving.seconds)}</strong><span>${esc(t("craving.timer_label"))}</span></div></div></div>
-        ${phase === "reason" ? `
+        <div class="sos-reactor-stage">
+          <div class="craving-boss">
+            <div class="boss-head"><span>${icon("bolt")}${esc(t("craving.boss"))}</span><strong id="cravingHealth">${health}%</strong></div>
+            <div class="boss-health"><div id="bossFill" style="width:${health}%"></div></div>
+            <small id="waveText">${esc(cravingProtocolText(health))}</small>
+          </div>
+          <div class="timer-block"><div class="timer-ring"><div class="timer-ring-inner"><strong id="timerText">${formatTimer(state.craving.seconds)}</strong><span>${esc(t("craving.timer_label"))}</span></div></div></div>
+        </div>
+        ${!isResult ? `
           <h3>${esc(t("craving.reason_title"))}</h3>
-          <div class="pill-grid">${reasons.map((reason) => `<button class="pill" type="button" data-reason="${esc(reason)}">${esc(reason)}</button>`).join("")}</div>
+          <div class="pill-grid">${reasons.map((reason) => `<button class="pill ${state.craving.reason === reason ? "selected" : ""}" type="button" data-reason="${esc(reason)}">${esc(reason)}</button>`).join("")}</div>
           <h3>${esc(t("craving.tools_title"))}</h3>
           <div class="craving-tool-grid">
             ${tools.map((tool, index) => `
@@ -2453,26 +3373,47 @@ function renderCravingModal(phase) {
                 <span>${esc(tool.body)}</span>
               </button>`).join("")}
           </div>
+          <h3>${esc(t("craving.body_action_title"))}</h3>
+          <div class="pill-grid">${bodyActions.map((action) => `<button class="pill ${state.craving.action === action ? "selected" : ""}" type="button" data-body-action="${esc(action)}">${esc(action)}</button>`).join("")}</div>
         ` : `
+          <div class="sos-intensity-card after">
+            <span>${esc(t("craving.intensity_after"))}</span>
+            <div class="intensity-scale">${intensityButtons("afterIntensity")}</div>
+          </div>
+          <div class="sos-result-card">
+            <strong>${esc(t("craving.result_title", { before: state.craving.initialIntensity, after: state.craving.afterIntensity }))}</strong>
+            <span>${esc(t("craving.result_body"))}</span>
+          </div>
           <h3>${esc(t("craving.action_title"))}</h3>
-          <p class="rescue-action">${esc(state.craving.action)}</p>
+          <p class="rescue-action">${esc(state.craving.action || t("craving.default_action"))}</p>
           <div class="support-box">
             <strong>${esc(t("craving.support_title"))}</strong>
             <p>${esc(cravingSupportText())}</p>
             <button class="secondary-button full" id="copySupport" type="button">${esc(t("craving.copy_support"))}</button>
           </div>
-          <button class="primary-button full" id="completeCraving">${esc(t("craving.complete"))}</button>
+          <div class="sos-result-actions">
+            <button class="primary-button full" id="completeCraving">${esc(t("craving.complete"))}</button>
+            <button class="secondary-button full" id="extraCravingCycle" type="button">${esc(t("craving.extra_cycle"))}</button>
+            <button class="danger-button full" id="incidentFromCraving" type="button">${esc(t("craving.incident_button"))}</button>
+          </div>
         `}
       </div>
     </div>`;
 
   modalRoot.querySelector("#closeModal").addEventListener("click", closeModal);
+  modalRoot.querySelectorAll("[data-intensity-field]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.craving[button.dataset.intensityField] = Number(button.dataset.intensityValue || 5);
+      renderCravingModal(isResult ? "result" : "sos");
+    });
+  });
   modalRoot.querySelectorAll("[data-tool-index]").forEach((button) => {
     button.addEventListener("click", () => {
       const tool = tools[Number(button.dataset.toolIndex)] || {};
       state.craving.tool = tool.title || "";
       state.craving.toolBody = tool.body || "";
-      renderCravingModal("reason");
+      if (!state.craving.action && tool.body) state.craving.action = tool.body;
+      renderCravingModal("sos");
     });
   });
   modalRoot.querySelectorAll("[data-reason]").forEach((button) => {
@@ -2481,7 +3422,13 @@ function renderCravingModal(phase) {
       const actions = list("craving.actions");
       const action = actions[Math.floor(Math.random() * actions.length)] || "";
       state.craving.action = state.craving.tool ? `${state.craving.tool}: ${action}` : action;
-      renderCravingModal("action");
+      renderCravingModal("sos");
+    });
+  });
+  modalRoot.querySelectorAll("[data-body-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.craving.action = button.dataset.bodyAction || "";
+      renderCravingModal("sos");
     });
   });
   modalRoot.querySelector("#copySupport")?.addEventListener("click", async (event) => {
@@ -2493,21 +3440,51 @@ function renderCravingModal(phase) {
     }
   });
   modalRoot.querySelector("#completeCraving")?.addEventListener("click", completeCraving);
+  modalRoot.querySelector("#extraCravingCycle")?.addEventListener("click", () => {
+    state.craving.completedCycles += 1;
+    state.craving.seconds = 90;
+    state.craving.totalSeconds = 90;
+    renderCravingModal("sos");
+    startCravingTimer();
+  });
+  modalRoot.querySelector("#incidentFromCraving")?.addEventListener("click", () => {
+    const habit = state.craving.habitType || state.dashboard?.habit_types?.[0] || "smoking";
+    closeModal();
+    openIncident(habit);
+  });
   updateCravingTimerDisplay();
 }
 
 async function completeCraving() {
   try {
+    const rescueAction = state.craving.action || state.craving.toolBody || t("craving.default_action");
     const data = await api("/api/craving/complete", {
       method: "POST",
       body: {
         craving_id: state.craving.id,
         habit_type: state.craving.habitType,
-        reason: state.craving.reason,
-        rescue_action: state.craving.action
+        reason: state.craving.reason || t("craving.reason_unspecified"),
+        rescue_action: rescueAction
       }
     });
     state.dashboard = data.dashboard;
+    updateRecoveryStore((store) => ({
+      ...store,
+      cravingEvents: [
+        ...store.cravingEvents,
+        {
+          id: `craving_${Date.now()}`,
+          habitType: state.craving.habitType,
+          reason: state.craving.reason || t("craving.reason_unspecified"),
+          rescueAction,
+          initialIntensity: Number(state.craving.initialIntensity || 0),
+          afterIntensity: Number(state.craving.afterIntensity || 0),
+          completedCycles: Number(state.craving.completedCycles || 0),
+          startedAt: state.craving.startedAt || new Date().toISOString(),
+          completedAt: new Date().toISOString()
+        }
+      ].slice(-120)
+    }));
     state.notice = t("craving.saved");
     closeModal();
     render();
@@ -2537,6 +3514,18 @@ function openIncident(habitType) {
     try {
       const data = await api("/api/incident", { method: "POST", body: { habit_type: habitType, note: modalRoot.querySelector("#incidentNote").value } });
       state.dashboard = data.dashboard;
+      updateRecoveryStore((store) => ({
+        ...store,
+        incidents: [
+          ...store.incidents,
+          {
+            id: `incident_${Date.now()}`,
+            habitType,
+            note: modalRoot.querySelector("#incidentNote").value,
+            createdAt: new Date().toISOString()
+          }
+        ].slice(-80)
+      }));
       state.notice = t("incident.saved");
       closeModal();
       render();
@@ -2857,6 +3846,7 @@ async function downloadShareImage(canvas) {
 
 function closeModal() {
   clearInterval(state.craving.timer);
+  clearInterval(impulseTimer);
   modalRoot.innerHTML = "";
 }
 

@@ -566,6 +566,7 @@ a {
 }
 
 .choice-card {
+  position: relative;
   display: grid;
   gap: 10px;
   min-height: 138px;
@@ -574,9 +575,11 @@ a {
   border-radius: var(--radius);
   background: rgba(255, 255, 255, .055);
   text-align: left;
+  cursor: pointer;
 }
 
-.choice-card.selected {
+.choice-card.selected,
+.choice-card:has(input:checked) {
   border-color: rgba(0, 215, 255, .52);
   background: linear-gradient(135deg, rgba(138, 92, 255, .18), rgba(0, 215, 255, .12));
   box-shadow: 0 0 0 3px rgba(0, 215, 255, .08);
@@ -822,16 +825,19 @@ a {
 }
 
 .pill {
+  position: relative;
   min-height: 38px;
   padding: 9px 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 255, 255, .06);
   color: var(--text);
+  cursor: pointer;
   font-weight: 750;
 }
 
-.pill.selected {
+.pill.selected,
+.pill:has(input:checked) {
   border-color: rgba(0, 215, 255, .44);
   background: rgba(0, 215, 255, .12);
 }
@@ -1188,6 +1194,663 @@ a {
 .mission-action:focus-visible {
   border-color: rgba(123, 255, 207, .48);
   background: rgba(123, 255, 207, .12);
+}
+
+.impulse-panel {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(0, 215, 255, .14);
+  background:
+    radial-gradient(circle at 9% 16%, rgba(123, 255, 207, .12), transparent 30%),
+    radial-gradient(circle at 92% 0%, rgba(83, 105, 255, .12), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .025));
+}
+
+.impulse-panel::before {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, .024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .022) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  pointer-events: none;
+  content: "";
+}
+
+.impulse-panel .section-head,
+.impulse-lead,
+.impulse-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.impulse-lead {
+  max-width: 720px;
+  margin: -4px 0 14px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.impulse-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.impulse-card {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  min-height: 214px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .11);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(123, 255, 207, .11), transparent 32%),
+    rgba(4, 19, 34, .64);
+  box-shadow: inset 0 0 28px rgba(0, 215, 255, .04);
+}
+
+.impulse-card::before {
+  position: absolute;
+  right: -38px;
+  bottom: -48px;
+  width: 136px;
+  height: 136px;
+  border: 1px solid rgba(123, 255, 207, .12);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 215, 255, .14), transparent 68%);
+  content: "";
+}
+
+.impulse-card.impulse-game::after {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 42px;
+  height: 42px;
+  border: 1px dashed rgba(123, 255, 207, .26);
+  border-radius: 50%;
+  content: "";
+  animation: reactorMeterSweep 12s linear infinite;
+}
+
+.impulse-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.impulse-card .icon-token {
+  width: 46px;
+  height: 46px;
+}
+
+.impulse-card small,
+.impulse-card strong,
+.impulse-card p {
+  display: block;
+  min-width: 0;
+}
+
+.impulse-card small {
+  color: var(--accent-3);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.impulse-card strong {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.22;
+}
+
+.impulse-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.impulse-card .mission-action {
+  justify-self: start;
+  margin-left: 0;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(0, 215, 255, .1);
+}
+
+.impulse-game-overlay {
+  z-index: 145;
+  place-items: center;
+  overflow: auto;
+  background:
+    radial-gradient(circle at center, rgba(0, 215, 255, .14), transparent 42%),
+    rgba(3, 7, 17, .9);
+}
+
+.impulse-game-modal {
+  position: relative;
+  width: min(460px, 100%);
+  overflow: hidden;
+  padding: 28px;
+  border-color: rgba(123, 255, 207, .24);
+  background:
+    radial-gradient(circle at 50% 35%, rgba(123, 255, 207, .12), transparent 36%),
+    linear-gradient(rgba(255, 255, 255, .028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .024) 1px, transparent 1px),
+    #0c182b;
+  background-size: 30px 30px;
+  text-align: center;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .52);
+}
+
+.impulse-game-modal .close-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.impulse-game-modal h2 {
+  margin-bottom: 8px;
+  font-size: 28px;
+}
+
+.impulse-breath-orb {
+  --focus-progress: 0;
+  position: relative;
+  display: grid;
+  width: 214px;
+  height: 214px;
+  margin: 22px auto 16px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background:
+    linear-gradient(#081827, #081827) padding-box,
+    conic-gradient(var(--accent-3) calc(var(--focus-progress) * 360deg), rgba(255, 255, 255, .09) 0) border-box;
+  box-shadow: 0 0 42px rgba(0, 215, 255, .12), inset 0 0 36px rgba(123, 255, 207, .08);
+}
+
+.impulse-breath-orb.is-running {
+  animation: focusBreath 6s ease-in-out infinite;
+}
+
+.impulse-breath-orb::before {
+  position: absolute;
+  inset: 21px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(123, 255, 207, .2), rgba(0, 11, 22, .75) 64%);
+  content: "";
+}
+
+.impulse-breath-orb i {
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 74deg, rgba(123, 255, 207, .7) 82deg 88deg, transparent 102deg 360deg);
+  mask-image: radial-gradient(circle, transparent 71%, #000 72% 75%, transparent 76%);
+}
+
+.impulse-breath-orb.is-running i {
+  animation: focusOrbit 8s linear infinite;
+}
+
+.impulse-breath-orb strong,
+.impulse-breath-orb span {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.impulse-breath-orb strong {
+  color: #f8fcff;
+  font-size: 58px;
+  line-height: .9;
+  text-shadow: 0 0 26px rgba(123, 255, 207, .28);
+}
+
+.impulse-breath-orb span {
+  margin-top: 8px;
+  color: var(--accent-3);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.impulse-game-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+.impulse-game-steps span {
+  padding: 8px 6px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .045);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.medical-risk-banner,
+.daily-risk-panel,
+.chain-protection-panel,
+.health-reactor-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.medical-risk-banner {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid rgba(123, 255, 207, .2);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 5% 0%, rgba(123, 255, 207, .14), transparent 32%),
+    rgba(8, 23, 39, .78);
+  box-shadow: inset 0 0 28px rgba(0, 215, 255, .04);
+}
+
+.medical-risk-banner.risk-caution {
+  border-color: rgba(255, 209, 102, .3);
+  background:
+    radial-gradient(circle at 5% 0%, rgba(255, 209, 102, .15), transparent 32%),
+    rgba(28, 23, 15, .76);
+}
+
+.medical-risk-banner.risk-danger,
+.daily-risk-panel.risk-high {
+  border-color: rgba(255, 111, 145, .3);
+  background:
+    radial-gradient(circle at 5% 0%, rgba(255, 111, 145, .15), transparent 34%),
+    rgba(32, 14, 28, .76);
+}
+
+.risk-orb {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid rgba(123, 255, 207, .28);
+  border-radius: 50%;
+  color: var(--accent-3);
+  background: rgba(0, 215, 255, .08);
+  box-shadow: 0 0 24px rgba(0, 215, 255, .12);
+}
+
+.risk-orb svg {
+  width: 24px;
+  height: 24px;
+}
+
+.medical-risk-banner strong,
+.medical-risk-banner span {
+  display: block;
+  min-width: 0;
+}
+
+.medical-risk-banner strong {
+  font-size: 16px;
+}
+
+.medical-risk-banner span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.medical-risk-banner > b {
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(255, 255, 255, .06);
+  font-size: 12px;
+}
+
+.daily-risk-panel {
+  border-color: rgba(0, 215, 255, .16);
+  background:
+    radial-gradient(circle at 88% 8%, rgba(0, 215, 255, .12), transparent 30%),
+    rgba(7, 20, 35, .78);
+}
+
+.daily-risk-panel.risk-medium {
+  border-color: rgba(255, 209, 102, .24);
+}
+
+.daily-risk-layout {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.risk-level-badge {
+  padding: 7px 10px;
+  border: 1px solid rgba(123, 255, 207, .26);
+  border-radius: 999px;
+  color: var(--accent-3);
+  background: rgba(123, 255, 207, .08);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.risk-medium .risk-level-badge {
+  border-color: rgba(255, 209, 102, .32);
+  color: #ffe59e;
+  background: rgba(255, 209, 102, .1);
+}
+
+.risk-high .risk-level-badge {
+  border-color: rgba(255, 111, 145, .34);
+  color: #ff9eb6;
+  background: rgba(255, 111, 145, .1);
+}
+
+.risk-meter {
+  --risk-color: var(--accent-3);
+  display: grid;
+  width: 136px;
+  height: 136px;
+  place-items: center;
+  align-content: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(0, 215, 255, .16), transparent 58%) padding-box,
+    linear-gradient(#081827, #081827) padding-box,
+    conic-gradient(var(--risk-color) var(--risk-score), rgba(255, 255, 255, .09) 0) border-box;
+  box-shadow: inset 0 0 28px rgba(0, 215, 255, .08), 0 0 28px rgba(0, 215, 255, .1);
+}
+
+.risk-medium .risk-meter {
+  --risk-color: #ffd166;
+}
+
+.risk-high .risk-meter {
+  --risk-color: #ff6f91;
+}
+
+.risk-meter strong,
+.risk-meter span {
+  display: block;
+}
+
+.risk-meter strong {
+  color: #fff;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.risk-meter span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.risk-copy p {
+  margin: 0;
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.risk-factor-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.risk-factor-list span {
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .045);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.risk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chain-steps,
+.health-reactor-grid,
+.risk-question-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.chain-steps {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 14px 0;
+}
+
+.chain-steps > div {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+}
+
+.chain-steps strong,
+.chain-steps small {
+  display: block;
+  min-width: 0;
+}
+
+.chain-steps small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.health-reactor-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.health-reactor-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+}
+
+.health-reactor-card strong,
+.health-reactor-card small {
+  display: block;
+}
+
+.health-reactor-card small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.health-reactor-card b {
+  color: var(--accent-3);
+  font-size: 17px;
+}
+
+.health-reactor-track {
+  height: 7px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+
+.health-reactor-track i {
+  display: block;
+  width: var(--reactor-value);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+  box-shadow: 0 0 18px rgba(123, 255, 207, .22);
+}
+
+.health-reactor-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.risk-question-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.compact-choice-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.choice-card input[type="radio"],
+.checkbox-pill-grid input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.sos-modal-card {
+  width: min(680px, 100%);
+  border-color: rgba(0, 215, 255, .2);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(0, 215, 255, .13), transparent 34%),
+    radial-gradient(circle at 80% 20%, rgba(123, 255, 207, .1), transparent 30%),
+    #101a2e;
+}
+
+.sos-intensity-card {
+  display: grid;
+  gap: 9px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+}
+
+.sos-intensity-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.intensity-scale {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.intensity-dot {
+  min-width: 0;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .045);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.intensity-dot.selected {
+  border-color: rgba(123, 255, 207, .55);
+  color: #06111f;
+  background: linear-gradient(135deg, var(--accent-3), var(--accent-2));
+  box-shadow: 0 0 18px rgba(0, 215, 255, .2);
+}
+
+.sos-reactor-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  gap: 14px;
+  align-items: center;
+}
+
+.sos-result-card {
+  margin: 12px 0;
+  padding: 13px;
+  border: 1px solid rgba(123, 255, 207, .24);
+  border-radius: var(--radius);
+  background: rgba(123, 255, 207, .08);
+}
+
+.sos-result-card strong,
+.sos-result-card span {
+  display: block;
+}
+
+.sos-result-card strong {
+  color: var(--accent-3);
+  font-size: 18px;
+}
+
+.sos-result-card span {
+  margin-top: 5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.sos-result-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.daily-checkin-modal {
+  width: min(540px, 100%);
+}
+
+.checkin-slider-list {
+  display: grid;
+  gap: 12px;
+}
+
+.checkin-slider-list label > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.checkin-slider-list b {
+  color: var(--accent-3);
+}
+
+.checkin-slider-list input[type="range"] {
+  width: 100%;
 }
 
 .action-grid {
@@ -1722,12 +2385,78 @@ a {
   padding: 30px;
   border-color: rgba(123, 255, 207, .28);
   background:
+    radial-gradient(circle at 50% 20%, rgba(123, 255, 207, .16), transparent 32%),
+    radial-gradient(circle at 50% 42%, rgba(0, 215, 255, .12), transparent 38%),
     linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px),
     #101a2e;
   background-size: 28px 28px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .55), 0 0 70px rgba(0, 215, 255, .12);
   text-align: center;
   animation: levelUpIn .52s cubic-bezier(.17, .86, .29, 1.15) both;
+}
+
+.level-up-modal::before,
+.level-up-modal::after {
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(123, 255, 207, .08);
+  border-radius: calc(var(--radius) + 8px);
+  pointer-events: none;
+  content: "";
+}
+
+.level-up-modal::after {
+  inset: auto -18% -18% -18%;
+  height: 42%;
+  border: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 215, 255, .24), transparent 64%);
+  filter: blur(18px);
+}
+
+.level-up-shockwave {
+  position: absolute;
+  top: 98px;
+  left: 50%;
+  width: 260px;
+  height: 260px;
+  border: 1px solid rgba(123, 255, 207, .48);
+  border-radius: 50%;
+  box-shadow: 0 0 44px rgba(0, 215, 255, .18), inset 0 0 28px rgba(123, 255, 207, .12);
+  pointer-events: none;
+  animation: levelShockwave 1.15s ease-out both;
+}
+
+.level-up-confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.level-up-confetti i {
+  position: absolute;
+  top: 106px;
+  left: 50%;
+  width: 7px;
+  height: 17px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7bffcf, #00d7ff);
+  box-shadow: 0 0 12px rgba(123, 255, 207, .35);
+  opacity: 0;
+  transform-origin: 50% 132px;
+  animation: levelConfetti 1.25s cubic-bezier(.16, .84, .31, 1) both;
+  animation-delay: calc(var(--spark) * 22ms);
+}
+
+.level-up-confetti i:nth-child(3n) {
+  background: linear-gradient(180deg, #ffe59e, #ff7aa8);
+}
+
+.level-up-confetti i:nth-child(3n + 1) {
+  width: 5px;
+  height: 12px;
+  background: linear-gradient(180deg, #d7c8ff, #7bffcf);
 }
 
 .level-up-rays {
@@ -1755,6 +2484,7 @@ a {
 
 .level-up-core {
   position: relative;
+  z-index: 2;
   display: grid;
   width: 132px;
   height: 132px;
@@ -1797,9 +2527,58 @@ a {
   font-size: 11px;
 }
 
+.level-up-levels {
+  position: relative;
+  z-index: 2;
+  display: inline-grid;
+  grid-template-columns: auto 34px auto;
+  gap: 8px;
+  align-items: center;
+  margin: -6px auto 16px;
+  padding: 7px 10px;
+  border: 1px solid rgba(123, 255, 207, .22);
+  border-radius: 999px;
+  background: rgba(3, 18, 32, .72);
+  box-shadow: inset 0 0 22px rgba(0, 215, 255, .08);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.level-up-levels b {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  color: #03111f;
+  background: linear-gradient(135deg, var(--accent-3), var(--accent-2));
+  box-shadow: 0 0 20px rgba(123, 255, 207, .28);
+}
+
+.level-up-levels svg {
+  width: 16px;
+  height: 16px;
+}
+
+.level-up-levels strong {
+  color: var(--accent-3);
+}
+
 .level-up-modal h2 {
+  position: relative;
+  z-index: 2;
   margin-bottom: 8px;
   font-size: 30px;
+}
+
+.level-up-modal .eyebrow,
+.level-up-body,
+.level-up-xp,
+.level-up-systems,
+.level-up-modal .primary-button {
+  position: relative;
+  z-index: 2;
 }
 
 .level-up-body {
@@ -1910,6 +2689,17 @@ a {
   45% { opacity: .9; }
 }
 
+@keyframes levelShockwave {
+  from { opacity: .8; transform: translate(-50%, -50%) scale(.55); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(1.55); }
+}
+
+@keyframes levelConfetti {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(.4) rotate(0deg); }
+  14% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(calc(var(--spark) * 20deg)) translateY(-140px) scale(1) rotate(220deg); }
+}
+
 @keyframes returnBriefIn {
   from { opacity: 0; transform: translateY(16px) scale(.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -1921,6 +2711,19 @@ a {
 }
 
 @keyframes returnOrbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes reactorMeterSweep {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes focusBreath {
+  0%, 100% { transform: scale(.86); box-shadow: 0 0 26px rgba(0, 215, 255, .24); }
+  45% { transform: scale(1.06); box-shadow: 0 0 54px rgba(123, 255, 207, .36); }
+}
+
+@keyframes focusOrbit {
   to { transform: rotate(360deg); }
 }
 
@@ -2851,21 +3654,99 @@ a {
   justify-self: center;
   place-items: center;
   align-content: center;
+  overflow: visible;
   border: 1px solid transparent;
   border-radius: 50%;
   background:
-    linear-gradient(#071629, #071629) padding-box,
-    conic-gradient(var(--accent-3) var(--recovery-percent), rgba(255, 255, 255, .08) 0) border-box;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, .33), inset 0 0 36px rgba(0, 215, 255, .13);
+    radial-gradient(circle at 50% 50%, rgba(123, 255, 207, .22), transparent 36%) padding-box,
+    linear-gradient(#06192d, #06111f) padding-box,
+    conic-gradient(from -38deg, #7bffcf 0 var(--recovery-percent), rgba(63, 86, 116, .28) var(--recovery-percent) 100%) border-box;
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, .38),
+    0 0 38px rgba(0, 215, 255, .12),
+    inset 0 0 38px rgba(0, 215, 255, .16);
   text-align: center;
 }
 
 .recovery-main-meter::before {
   position: absolute;
-  inset: 22px;
+  z-index: 0;
+  inset: 18px;
   border-radius: 50%;
-  background: radial-gradient(circle at center, rgba(0, 215, 255, .2), rgba(0, 8, 20, .45));
+  background:
+    radial-gradient(circle at center, rgba(3, 42, 68, .96) 0 40%, rgba(0, 10, 24, .86) 68%),
+    repeating-conic-gradient(from 0deg, rgba(123, 255, 207, .18) 0 2deg, transparent 2deg 14deg);
+  box-shadow:
+    inset 0 0 28px rgba(0, 215, 255, .18),
+    0 0 24px rgba(123, 255, 207, .08);
   content: "";
+}
+
+.recovery-main-meter::after {
+  position: absolute;
+  z-index: 1;
+  inset: -10px;
+  border: 1px dashed rgba(123, 255, 207, .28);
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg, transparent 0 72deg, rgba(123, 255, 207, .52) 84deg 92deg, transparent 106deg 360deg);
+  mask-image: radial-gradient(circle, transparent 64%, #000 65% 70%, transparent 71%);
+  content: "";
+  animation: reactorMeterSweep 14s linear infinite;
+}
+
+.meter-reactor-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.meter-reactor-glow::before,
+.meter-reactor-glow::after {
+  position: absolute;
+  border-radius: 50%;
+  content: "";
+}
+
+.meter-reactor-glow::before {
+  inset: 34px;
+  border: 1px solid rgba(0, 215, 255, .18);
+  box-shadow: inset 0 0 24px rgba(0, 215, 255, .16), 0 0 18px rgba(123, 255, 207, .08);
+}
+
+.meter-reactor-glow::after {
+  inset: 54px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(123, 255, 207, .32), transparent 38%),
+    radial-gradient(circle at 50% 50%, rgba(0, 215, 255, .18), transparent 64%);
+  filter: blur(1px);
+}
+
+.meter-reactor-glow i {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from calc(var(--node, 0) * 120deg), transparent 0 8deg, rgba(123, 255, 207, .9) 8deg 11deg, transparent 11deg 360deg);
+  mask-image: radial-gradient(circle, transparent 69%, #000 70% 73%, transparent 74%);
+  animation: reactorMeterSweep 18s linear infinite;
+}
+
+.meter-reactor-glow i:nth-child(2) {
+  --node: 1;
+  inset: 27px;
+  opacity: .7;
+  animation-duration: 12s;
+  animation-direction: reverse;
+}
+
+.meter-reactor-glow i:nth-child(3) {
+  --node: 2;
+  inset: 47px;
+  opacity: .55;
+  animation-duration: 9s;
 }
 
 .meter-orbit {
@@ -2878,7 +3759,7 @@ a {
 .recovery-main-meter strong,
 .recovery-main-meter small {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: block;
 }
 
@@ -2886,7 +3767,7 @@ a {
   color: #f7fbff;
   font-size: 72px;
   line-height: .9;
-  text-shadow: 0 0 20px rgba(123, 255, 207, .28);
+  text-shadow: 0 0 12px rgba(255, 255, 255, .18), 0 0 28px rgba(123, 255, 207, .32);
 }
 
 .recovery-main-meter strong span {
@@ -2900,6 +3781,7 @@ a {
   font-size: 13px;
   font-weight: 850;
   text-transform: uppercase;
+  letter-spacing: .02em;
 }
 
 .recovery-progress-card {
@@ -3475,6 +4357,9 @@ a {
   .stat-grid,
   .rewards-grid,
   .treat-grid,
+  .impulse-grid,
+  .health-reactor-grid,
+  .chain-steps,
   .mission-list,
   .craving-tool-grid,
   .friends-grid {
@@ -3544,6 +4429,13 @@ a {
   .social-search,
   .support-row,
   .check-grid,
+  .impulse-grid,
+  .daily-risk-layout,
+  .risk-question-grid,
+  .compact-choice-grid,
+  .health-reactor-grid,
+  .chain-steps,
+  .sos-reactor-stage,
   .incident-grid {
     grid-template-columns: 1fr;
   }
@@ -3560,8 +4452,92 @@ a {
     padding: 24px 16px 18px;
   }
 
+  .level-up-shockwave {
+    top: 86px;
+    width: 210px;
+    height: 210px;
+  }
+
+  .level-up-confetti i {
+    top: 92px;
+  }
+
   .level-up-modal h2 {
     font-size: 25px;
+  }
+
+  .level-up-levels {
+    grid-template-columns: auto 30px auto;
+    margin-bottom: 12px;
+    font-size: 11px;
+  }
+
+  .level-up-core {
+    width: 116px;
+    height: 116px;
+  }
+
+  .impulse-card {
+    min-height: auto;
+  }
+
+  .impulse-game-modal {
+    padding: 24px 16px 18px;
+  }
+
+  .impulse-game-modal h2 {
+    font-size: 24px;
+  }
+
+  .impulse-breath-orb {
+    width: 184px;
+    height: 184px;
+  }
+
+  .impulse-breath-orb strong {
+    font-size: 48px;
+  }
+
+  .medical-risk-banner {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .medical-risk-banner > b {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .risk-orb {
+    width: 42px;
+    height: 42px;
+  }
+
+  .risk-meter {
+    width: 122px;
+    height: 122px;
+    justify-self: center;
+  }
+
+  .risk-actions {
+    display: grid;
+  }
+
+  .health-reactor-card {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    padding: 10px;
+  }
+
+  .intensity-scale {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .sos-modal-card {
+    padding: 18px 14px;
+  }
+
+  .sos-reactor-stage .timer-block {
+    justify-self: center;
   }
 
   .recovery-visual-hero {
@@ -4447,8 +5423,15 @@ a {
   }
 
   .level-up-modal,
+  .level-up-shockwave,
+  .level-up-confetti i,
   .level-up-rays i,
-  .level-up-core::before {
+  .level-up-core::before,
+  .recovery-main-meter::after,
+  .meter-reactor-glow i,
+  .impulse-card.impulse-game::after,
+  .impulse-breath-orb,
+  .impulse-breath-orb i {
     animation: none;
   }
 }

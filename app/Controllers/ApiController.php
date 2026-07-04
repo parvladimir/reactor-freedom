@@ -87,6 +87,7 @@ final class ApiController
             'POST /api/profile/avatar/delete' => $this->profileAvatarDelete(),
             'POST /api/checkin' => $this->checkin(),
             'POST /api/missions/commitment' => $this->missionCommitment(),
+            'POST /api/missions/complete' => $this->missionComplete(),
             'POST /api/craving/start' => $this->cravingStart(),
             'POST /api/craving/complete' => $this->cravingComplete(),
             'POST /api/incident' => $this->incident(),
@@ -472,6 +473,16 @@ final class ApiController
             Input::string($data, 'reason_code', 'control'),
             Input::string($data, 'note')
         );
+
+        Response::ok(['dashboard' => $this->dashboard->build($this->users->findById($userId) ?? ['id' => $userId])]);
+    }
+
+    private function missionComplete(): never
+    {
+        $userId = AuthMiddleware::userId();
+        $data = Input::json();
+        $code = Input::string($data, 'code');
+        $this->app->awardMissionXp($userId, $code);
 
         Response::ok(['dashboard' => $this->dashboard->build($this->users->findById($userId) ?? ['id' => $userId])]);
     }

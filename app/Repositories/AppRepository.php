@@ -326,9 +326,13 @@ final class AppRepository
             $this->addLog($userId, 'good', 'log.craving_completed', $reason . ' / ' . $rescueAction);
             $this->pdo->commit();
         } catch (\Throwable $throwable) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw $throwable;
         }
+
+        $this->awardMissionXp($userId, 'sos_craving');
     }
 
     public function completedCravingsToday(int $userId): int
@@ -391,6 +395,26 @@ final class AppRepository
     public function awardSocialSupportXp(int $userId): bool
     {
         return $this->grantXpOnce($userId, 'social_support', 10);
+    }
+
+    public function awardMissionXp(int $userId, string $missionCode): bool
+    {
+        $catalog = [
+            'after_lunch_craving' => 15,
+            'evening_no_alcohol' => 25,
+            'sos_craving' => 20,
+            'steps_3000' => 12,
+            'buy_self_3' => 12,
+            'trigger_note' => 15,
+            'sleep_without_alcohol' => 18,
+            'clean_evening' => 25,
+        ];
+
+        if (!array_key_exists($missionCode, $catalog)) {
+            return false;
+        }
+
+        return $this->grantXpOnce($userId, 'mission_' . $missionCode, $catalog[$missionCode]);
     }
 
     public function awardQuietStreakXp(int $userId, float $controlHours): bool

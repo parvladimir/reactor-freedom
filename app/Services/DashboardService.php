@@ -99,48 +99,113 @@ final class DashboardService
 
     private function dailyMissions(int $userId, array $habits, array $todayCheckin): array
     {
-        return [
-            [
-                'code' => 'daily_checkin',
-                'icon' => 'shield',
-                'title_key' => 'dashboard.mission_daily_checkin_title',
-                'body_key' => 'dashboard.mission_daily_checkin_body',
-                'reward_key' => 'dashboard.mission_reward_xp',
-                'reward_xp' => 25,
-                'completed' => $this->activeCheckinDone($habits, $todayCheckin),
-                'action' => 'checkin',
-            ],
-            [
-                'code' => 'quiet_streak',
-                'icon' => 'reactor',
-                'title_key' => 'dashboard.mission_quiet_title',
-                'body_key' => 'dashboard.mission_quiet_body',
-                'reward_key' => 'dashboard.mission_reward_xp',
-                'reward_xp' => 20,
-                'completed' => $this->repository->hasXpAwardToday($userId, 'quiet_streak'),
-                'action' => '',
-            ],
-            [
-                'code' => 'daily_commitment',
-                'icon' => 'star',
-                'title_key' => 'dashboard.mission_commitment_title',
-                'body_key' => 'dashboard.mission_commitment_body',
-                'reward_key' => 'dashboard.mission_reward_xp',
+        $hasSmoking = isset($habits['smoking']);
+        $hasAlcohol = isset($habits['alcohol']);
+        $missions = [];
+
+        if ($hasSmoking) {
+            $missions[] = [
+                'code' => 'after_lunch_craving',
+                'icon' => 'bolt',
+                'title_key' => 'dashboard.mission_after_lunch_title',
+                'body_key' => 'dashboard.mission_after_lunch_body',
+                'reward_key' => 'dashboard.mission_reward_full',
                 'reward_xp' => 15,
-                'completed' => $this->repository->hasDailyCommitmentToday($userId),
-                'action' => 'commitment',
-            ],
-            [
-                'code' => 'social_support',
-                'icon' => 'users',
-                'title_key' => 'dashboard.mission_support_title',
-                'body_key' => 'dashboard.mission_support_body',
-                'reward_key' => 'dashboard.mission_reward_xp',
-                'reward_xp' => 10,
-                'completed' => $this->repository->hasSocialSupportToday($userId),
-                'action' => 'social',
-            ],
+                'energy' => 12,
+                'completed' => $this->repository->hasXpAwardToday($userId, 'mission_after_lunch_craving'),
+                'action' => 'complete:after_lunch_craving',
+            ];
+        }
+
+        if ($hasAlcohol) {
+            $missions[] = [
+                'code' => 'evening_no_alcohol',
+                'icon' => 'moon',
+                'title_key' => 'dashboard.mission_evening_no_alcohol_title',
+                'body_key' => 'dashboard.mission_evening_no_alcohol_body',
+                'reward_key' => 'dashboard.mission_reward_full',
+                'reward_xp' => 25,
+                'energy' => 18,
+                'completed' => $this->repository->hasXpAwardToday($userId, 'mission_evening_no_alcohol'),
+                'action' => 'complete:evening_no_alcohol',
+            ];
+        }
+
+        $missions[] = [
+            'code' => 'sos_craving',
+            'icon' => 'shield',
+            'title_key' => 'dashboard.mission_sos_craving_title',
+            'body_key' => 'dashboard.mission_sos_craving_body',
+            'reward_key' => 'dashboard.mission_reward_full',
+            'reward_xp' => 20,
+            'energy' => 16,
+            'completed' => $this->repository->completedCravingsToday($userId) > 0 || $this->repository->hasXpAwardToday($userId, 'mission_sos_craving'),
+            'action' => 'craving',
         ];
+
+        $missions[] = [
+            'code' => 'steps_3000',
+            'icon' => 'bolt',
+            'title_key' => 'dashboard.mission_steps_title',
+            'body_key' => 'dashboard.mission_steps_body',
+            'reward_key' => 'dashboard.mission_reward_full',
+            'reward_xp' => 12,
+            'energy' => 14,
+            'completed' => $this->repository->hasXpAwardToday($userId, 'mission_steps_3000'),
+            'action' => 'complete:steps_3000',
+        ];
+
+        $missions[] = [
+            'code' => 'buy_self_3',
+            'icon' => 'money',
+            'title_key' => 'dashboard.mission_buy_self_title',
+            'body_key' => 'dashboard.mission_buy_self_body',
+            'reward_key' => 'dashboard.mission_reward_full',
+            'reward_xp' => 12,
+            'energy' => 10,
+            'completed' => $this->repository->hasXpAwardToday($userId, 'mission_buy_self_3'),
+            'action' => 'complete:buy_self_3',
+        ];
+
+        $missions[] = [
+            'code' => 'trigger_note',
+            'icon' => 'star',
+            'title_key' => 'dashboard.mission_trigger_note_title',
+            'body_key' => 'dashboard.mission_trigger_note_body',
+            'reward_key' => 'dashboard.mission_reward_full',
+            'reward_xp' => 15,
+            'energy' => 12,
+            'completed' => $this->repository->hasDailyCommitmentToday($userId) || $this->repository->hasXpAwardToday($userId, 'mission_trigger_note'),
+            'action' => 'commitment',
+        ];
+
+        if ($hasAlcohol) {
+            $missions[] = [
+                'code' => 'sleep_without_alcohol',
+                'icon' => 'moon',
+                'title_key' => 'dashboard.mission_sleep_without_alcohol_title',
+                'body_key' => 'dashboard.mission_sleep_without_alcohol_body',
+                'reward_key' => 'dashboard.mission_reward_full',
+                'reward_xp' => 18,
+                'energy' => 15,
+                'completed' => $this->repository->hasXpAwardToday($userId, 'mission_sleep_without_alcohol'),
+                'action' => 'complete:sleep_without_alcohol',
+            ];
+        } elseif ($hasSmoking) {
+            $missions[] = [
+                'code' => 'clean_evening',
+                'icon' => 'moon',
+                'title_key' => 'dashboard.mission_clean_evening_title',
+                'body_key' => 'dashboard.mission_clean_evening_body',
+                'reward_key' => 'dashboard.mission_reward_full',
+                'reward_xp' => 25,
+                'energy' => 15,
+                'completed' => $this->repository->hasXpAwardToday($userId, 'mission_clean_evening'),
+                'action' => 'complete:clean_evening',
+            ];
+        }
+
+        return $missions;
     }
 
     private function missionSummary(array $missions): array

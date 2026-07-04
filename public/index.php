@@ -19,7 +19,7 @@ if (str_starts_with($requestPath, '/api/')) {
 
 $basePath = $scriptDir === '/' ? '' : $scriptDir;
 $csrf = Csrf::token();
-$assetVersion = '38';
+$assetVersion = '39';
 ?>
 <!doctype html>
 <html lang="en">

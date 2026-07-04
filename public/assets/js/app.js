@@ -98,6 +98,7 @@ let socialPollTimer = null;
 let socialPollBusy = false;
 let socialPollingUserId = null;
 let impulseTimer = null;
+let noticeTimer = null;
 const RETURN_BRIEF_MIN_MS = 4 * 60 * 60 * 1000;
 
 const apiPath = (path) => `${boot.basePath || ""}${path}`;
@@ -140,6 +141,27 @@ function money(amount, currency = "EUR") {
   } catch {
     return `${Number(amount || 0).toFixed(2)} ${currency}`;
   }
+}
+
+function dashboardNoticeToast() {
+  if (!state.notice) return "";
+  return `
+    <div class="app-toast success" id="dashboardNoticeToast" role="status" aria-live="polite">
+      <span class="app-toast-icon">${icon("bolt")}</span>
+      <strong>${esc(state.notice)}</strong>
+      <button class="icon-button" id="dismissDashboardNotice" type="button" aria-label="${esc(t("common.close"))}">${icon("x")}</button>
+    </div>`;
+}
+
+function scheduleNoticeClear() {
+  clearTimeout(noticeTimer);
+  if (!state.notice || state.screen !== "dashboard") return;
+  const currentNotice = state.notice;
+  noticeTimer = window.setTimeout(() => {
+    if (state.notice !== currentNotice || state.screen !== "dashboard") return;
+    state.notice = "";
+    render();
+  }, 5200);
 }
 
 function dateTime(value) {
@@ -992,7 +1014,7 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "38")}`)).catch(() => {});
+      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "39")}`)).catch(() => {});
     });
   }
 }
@@ -1763,7 +1785,6 @@ function renderDashboardView() {
         <button class="icon-button" id="logoutBtn" aria-label="${esc(t("settings.logout"))}">${icon("log-out")}</button>
       </div>
     </div>
-    ${state.notice ? `<div class="alert success">${esc(state.notice)}</div>` : ""}
     <main class="dashboard-grid">
       <section class="hero-card glass-card">
         <div class="ring-wrap">
@@ -1877,6 +1898,10 @@ function renderDashboardView() {
 
       <section class="panel">
         <div class="section-head"><div><p class="eyebrow">${esc(t("dashboard.treats_kicker"))}</p><h3>${esc(t("dashboard.treats_title"))}</h3></div></div>
+        <div class="money-reframe treat-reframe">
+          <span class="icon-token token-green">${icon("money")}</span>
+          <p>${esc(t("dashboard.money_reframe", { days: Number(data.reactor.control_days || 0), amount: money(data.money.saved_total, currency), target: oldHabitSpendTarget(data) }))}</p>
+        </div>
         <div class="treat-grid">
           ${data.money.treats.map((treat) => `
             <div class="treat-card ${treat.unlocked ? "unlocked" : "locked"}">
@@ -1909,6 +1934,7 @@ function renderDashboardView() {
       <button class="notification-anchor" id="mobileSocial" type="button">${icon("users")}<span>${esc(t("navigation.social"))}</span><b class="unread-badge" data-social-unread hidden>0</b></button>
       <button id="mobileProfile" type="button">${icon("settings")}<span>${esc(t("navigation.profile"))}</span></button>
     </nav>
+    ${dashboardNoticeToast()}
     <div class="social-toast-stack" id="socialToastStack" aria-live="polite"></div>`;
 
   if (state.enterDashboardAtTop) {
@@ -1934,7 +1960,12 @@ function renderDashboardView() {
   app.querySelector("#mobileProgress").addEventListener("click", () => app.querySelector(".progression-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   app.querySelector("#mobileSocial").addEventListener("click", () => openSocialModal("feed"));
   app.querySelector("#mobileProfile").addEventListener("click", () => { state.screen = "settings"; state.notice = ""; render(); });
+  app.querySelector("#dismissDashboardNotice")?.addEventListener("click", () => {
+    state.notice = "";
+    render();
+  });
   animateDashboardProgress(data, motion, currency);
+  scheduleNoticeClear();
   startSocialNotificationPolling();
   updateSocialBadges();
 }
@@ -1965,7 +1996,7 @@ function renderMedicalRiskBanner(risk) {
   const stateName = risk.state || "normal";
   return `
     <section class="medical-risk-banner risk-${esc(stateName)}">
-      <span class="risk-orb">${icon(stateName === "danger" ? "shield" : "heart")}</span>
+      <span class="risk-orb">${icon("shield")}</span>
       <div>
         <p class="eyebrow">${esc(t("recovery_assistant.medical_kicker"))}</p>
         <strong>${esc(t(`recovery_assistant.medical_${stateName}_title`))}</strong>
@@ -2167,15 +2198,40 @@ function recoveryVisualModel(data) {
   return { hours, mode, systems, progress, stage, lead, hasSmoking, hasAlcohol };
 }
 
+function recoveryNextSystem(model) {
+  const pending = [...model.systems].filter((system) => system.progress < 100).sort((a, b) => a.progress - b.progress);
+  return pending[0] || model.lead;
+}
+
+function recoveryMotivationCards(model) {
+  const lead = model.lead || model.systems[0];
+  const next = recoveryNextSystem(model);
+  return [
+    {
+      icon: lead.icon,
+      title: t("health_visual.active_change"),
+      body: t(`health_visual.systems.${lead.code}.body`),
+      value: t("health_visual.stage_percent", { percent: lead.progress })
+    },
+    {
+      icon: next.icon,
+      title: t("health_visual.next_focus"),
+      body: t("health_visual.next_focus_body", { system: t(`health_visual.systems.${next.code}.title`) }),
+      value: t("health_visual.stage_percent", { percent: next.progress })
+    }
+  ];
+}
+
 function renderRecoveryVisual(data) {
   const model = recoveryVisualModel(data);
-  const referenceSrc = apiPath(`/assets/img/living-contour-body.png?v=${encodeURIComponent(boot.assetVersion || "38")}`);
+  const referenceSrc = apiPath(`/assets/img/living-contour-body.png?v=${encodeURIComponent(boot.assetVersion || "39")}`);
   const recoveryMetrics = model.systems.map((system) => ({
     id: system.code,
     icon: system.icon,
     label: t(`health_visual.systems.${system.code}.title`),
     value: system.progress
   }));
+  const motivationCards = recoveryMotivationCards(model);
 
   return `
     <section class="panel recovery-visual-panel recovery-reference-panel" style="--recovery-percent:${model.progress}%">
@@ -2183,7 +2239,7 @@ function renderRecoveryVisual(data) {
         <div class="recovery-reference-head">
           <p class="eyebrow">${esc(t("health_visual.kicker"))}</p>
           <h3>${esc(t("health_visual.title"))}</h3>
-          <span class="mode-pill">${icon("reactor")}${esc(t("health_visual.mode_both"))}</span>
+          <span class="mode-pill">${icon("reactor")}${esc(t(`health_visual.mode_${model.mode}`))}</span>
         </div>
 
         <div class="recovery-contour-layout">
@@ -2223,6 +2279,18 @@ function renderRecoveryVisual(data) {
               <small>${esc(t("health_visual.now"))}</small>
             </div>
 
+            <div class="recovery-motivation-stack">
+              ${motivationCards.map((card) => `
+                <article class="recovery-motivation-card">
+                  <span class="icon-token">${icon(card.icon)}</span>
+                  <div>
+                    <strong>${esc(card.title)}</strong>
+                    <p>${esc(card.body)}</p>
+                  </div>
+                  <b>${esc(card.value)}</b>
+                </article>`).join("")}
+            </div>
+
             <div class="recovery-system-list">
               ${recoveryMetrics.map((metric) => `
                 <div class="recovery-system-row health-system-${esc(metric.id)}" style="--system-progress:${metric.value / 100}">
@@ -2239,8 +2307,8 @@ function renderRecoveryVisual(data) {
         <div class="recovery-reference-summary">
           <span class="stage-upgrade">${icon("bolt")}</span>
           <div class="stage-copy">
-            <strong>${esc(t("health_visual.stages.adaptation"))}</strong>
-            <p>${esc(t("health_visual.mode_body_both"))}</p>
+            <strong>${esc(t(`health_visual.stages.${model.stage}`))}</strong>
+            <p>${esc(t(`health_visual.mode_body_${model.mode}`))}</p>
           </div>
         </div>
       </div>
@@ -2259,6 +2327,8 @@ function renderGrowthPanels(data, currency, motion) {
       : t("dashboard.money_eta", { days: target.days_remaining }))
     : t("dashboard.money_all_open");
   const activeSystems = Math.min(3, Math.max(1, Math.ceil(Number(progression.level || 1) / 2)));
+  const cleanDays = Math.max(0, Number(data.reactor?.control_days || 0));
+  const oldSpendTarget = oldHabitSpendTarget(data);
 
   return `
     <section class="growth-grid">
@@ -2271,6 +2341,10 @@ function renderGrowthPanels(data, currency, motion) {
           <div class="money-metric primary"><span>${esc(t("dashboard.money_returned"))}</span><strong id="savedTotalAnimated">${money(motion.savedFrom, currency)}</strong></div>
           <div class="money-metric"><span>${esc(t("dashboard.money_daily_rate"))}</span><strong>${money(moneyData.daily_rate, currency)}</strong></div>
           <div class="money-metric"><span>${esc(t("dashboard.money_month_projection"))}</span><strong>${money(moneyData.month_projection, currency)}</strong></div>
+        </div>
+        <div class="money-reframe">
+          <span class="icon-token token-green">${icon("money")}</span>
+          <p>${esc(t("dashboard.money_reframe", { days: cleanDays, amount: money(moneyData.saved_total, currency), target: oldSpendTarget }))}</p>
         </div>
         ${target ? `
           <div class="money-next">
@@ -2308,6 +2382,15 @@ function recoveryNode(iconName, labelKey, active) {
   return `<div class="recovery-node ${active ? "active" : ""}"><span>${icon(iconName)}</span><small>${esc(t(labelKey))}</small></div>`;
 }
 
+function oldHabitSpendTarget(data) {
+  const habitTypes = Array.isArray(data.habit_types) ? data.habit_types : [];
+  const hasSmoking = habitTypes.includes("smoking");
+  const hasAlcohol = habitTypes.includes("alcohol");
+  if (hasSmoking && hasAlcohol) return t("dashboard.old_spend_both");
+  if (hasAlcohol) return t("dashboard.old_spend_alcohol");
+  return dashboardSmokingUi(data).isVape ? t("dashboard.old_spend_vape") : t("dashboard.old_spend_smoking");
+}
+
 function renderMissionPanel(data) {
   const missions = data.missions || [];
   const summary = data.missions_summary || { completed: 0, total: missions.length, percent: 0 };
@@ -2331,11 +2414,12 @@ function renderMissionPanel(data) {
 function renderMissionItem(mission) {
   const completed = Boolean(mission.completed);
   const reward = Number(mission.reward_xp || 0) > 0
-    ? t(mission.reward_key, { xp: mission.reward_xp })
+    ? t(mission.reward_key, { xp: mission.reward_xp, energy: mission.energy || 0 })
     : t(mission.reward_key);
 
   return `
     <article class="daily-mission ${completed ? "completed" : ""}">
+      <span class="mission-energy-pulse" aria-hidden="true"></span>
       <div class="mission-check">${completed ? icon("shield") : icon(mission.icon || "star")}</div>
       <div>
         <strong>${esc(t(mission.title_key))}</strong>
@@ -2344,9 +2428,14 @@ function renderMissionItem(mission) {
       <div class="mission-meta">
         <span class="mission-reward">${esc(reward)}</span>
         <small>${esc(t(completed ? "dashboard.mission_done" : "dashboard.mission_open"))}</small>
-        ${!completed && mission.action ? `<button class="mission-action" type="button" data-mission-action="${esc(mission.action)}">${esc(t(`dashboard.mission_action_${mission.action}`))}</button>` : ""}
+        ${!completed && mission.action ? `<button class="mission-action" type="button" data-mission-action="${esc(mission.action)}">${esc(missionActionLabel(mission.action))}</button>` : ""}
       </div>
     </article>`;
+}
+
+function missionActionLabel(action) {
+  if (action?.startsWith("complete:")) return t("dashboard.mission_action_complete");
+  return t(`dashboard.mission_action_${action}`);
 }
 
 function impulseDeck(data) {
@@ -2505,11 +2594,62 @@ function handleMissionAction(action) {
     app.querySelector(".daily-check-panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
+  if (action === "craving") {
+    openCraving();
+    return;
+  }
+  if (action?.startsWith("complete:")) {
+    completeQuickMission(action.replace("complete:", ""));
+    return;
+  }
   if (action === "commitment") {
     openCommitmentMission();
     return;
   }
   if (action === "social") openSocialModal("feed");
+}
+
+async function completeQuickMission(code) {
+  const mission = (state.dashboard?.missions || []).find((item) => item.code === code) || {};
+  try {
+    const data = await api("/api/missions/complete", { method: "POST", body: { code } });
+    state.dashboard = data.dashboard;
+    state.notice = t("dashboard.mission_completed_notice");
+    openMissionRewardModal(mission);
+  } catch (error) {
+    state.error = error.message;
+    render();
+  }
+}
+
+function openMissionRewardModal(mission = {}) {
+  const xp = Number(mission.reward_xp || 0);
+  const energy = Number(mission.energy || 0);
+  modalRoot.innerHTML = `
+    <div class="modal mission-reward-overlay" role="dialog" aria-modal="true" aria-labelledby="missionRewardTitle">
+      <div class="modal-card mission-reward-modal">
+        <button class="icon-button close-button" id="closeMissionReward" type="button" aria-label="${esc(t("common.close"))}">${icon("x")}</button>
+        <div class="mission-reward-core" aria-hidden="true">
+          <span>${icon("reactor")}</span>
+          <i></i>
+        </div>
+        <p class="eyebrow">${esc(t("dashboard.mission_reward_kicker"))}</p>
+        <h2 id="missionRewardTitle">${esc(t("dashboard.mission_reward_title"))}</h2>
+        <p class="muted">${esc(t("dashboard.mission_reward_body"))}</p>
+        <div class="mission-reward-stats">
+          <span>${icon("star")}<strong>${esc(t("dashboard.mission_reward_xp_value", { xp }))}</strong></span>
+          <span>${icon("bolt")}<strong>${esc(t("dashboard.mission_reward_energy_value", { energy }))}</strong></span>
+        </div>
+        <button class="primary-button full" id="acceptMissionReward" type="button">${esc(t("dashboard.mission_reward_continue"))}</button>
+      </div>
+    </div>`;
+
+  const finish = () => {
+    closeModal();
+    render();
+  };
+  modalRoot.querySelector("#closeMissionReward").addEventListener("click", finish);
+  modalRoot.querySelector("#acceptMissionReward").addEventListener("click", finish);
 }
 
 function openCommitmentMission() {
@@ -3375,6 +3515,7 @@ function renderCravingModal(phase) {
           </div>
           <h3>${esc(t("craving.body_action_title"))}</h3>
           <div class="pill-grid">${bodyActions.map((action) => `<button class="pill ${state.craving.action === action ? "selected" : ""}" type="button" data-body-action="${esc(action)}">${esc(action)}</button>`).join("")}</div>
+          <button class="primary-button full sos-complete-now" id="completeCravingNow" type="button">${icon("shield")}${esc(t("craving.complete_now"))}</button>
         ` : `
           <div class="sos-intensity-card after">
             <span>${esc(t("craving.intensity_after"))}</span>
@@ -3440,6 +3581,10 @@ function renderCravingModal(phase) {
     }
   });
   modalRoot.querySelector("#completeCraving")?.addEventListener("click", completeCraving);
+  modalRoot.querySelector("#completeCravingNow")?.addEventListener("click", () => {
+    state.craving.afterIntensity = Math.max(1, Math.min(Number(state.craving.initialIntensity || 5), Number(state.craving.initialIntensity || 5) - 2));
+    completeCraving();
+  });
   modalRoot.querySelector("#extraCravingCycle")?.addEventListener("click", () => {
     state.craving.completedCycles += 1;
     state.craving.seconds = 90;

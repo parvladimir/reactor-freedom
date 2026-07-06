@@ -1854,6 +1854,415 @@ a {
   line-height: 1.35;
 }
 
+.reduction-plan-panel,
+.mentor-panel {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(0, 215, 255, .16);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(123, 255, 207, .11), transparent 32%),
+    rgba(7, 20, 35, .78);
+}
+
+.reduction-plan-layout {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.reduction-limit {
+  display: grid;
+  width: 116px;
+  height: 116px;
+  place-items: center;
+  align-content: center;
+  border: 1px solid rgba(123, 255, 207, .28);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(0, 215, 255, .18), transparent 60%),
+    rgba(3, 18, 32, .74);
+  box-shadow: inset 0 0 28px rgba(0, 215, 255, .08), 0 0 28px rgba(0, 215, 255, .1);
+  text-align: center;
+}
+
+.reduction-limit svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent-3);
+}
+
+.reduction-limit strong {
+  max-width: 96px;
+  overflow: hidden;
+  color: #fff;
+  font-size: 29px;
+  line-height: 1;
+  text-overflow: ellipsis;
+}
+
+.reduction-limit small {
+  max-width: 88px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.reduction-plan-copy p {
+  margin: 0;
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.reduction-next {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(123, 255, 207, .16);
+  border-radius: 999px;
+  color: var(--accent-3);
+  background: rgba(123, 255, 207, .065);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.reduction-next svg {
+  width: 16px;
+  height: 16px;
+}
+
+.reduction-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.reduction-steps span {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: rgba(255, 255, 255, .045);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.reduction-steps span.active {
+  border-color: rgba(123, 255, 207, .36);
+  color: var(--text);
+  background: rgba(123, 255, 207, .08);
+  box-shadow: inset 0 0 22px rgba(0, 215, 255, .06);
+}
+
+.reduction-steps b {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--accent-3);
+  background: rgba(0, 215, 255, .1);
+  font-size: 11px;
+}
+
+.chain-active {
+  border-color: rgba(255, 209, 102, .24);
+  background:
+    radial-gradient(circle at 10% 12%, rgba(255, 209, 102, .12), transparent 32%),
+    radial-gradient(circle at 90% 10%, rgba(0, 215, 255, .12), transparent 30%),
+    rgba(20, 20, 30, .82);
+}
+
+.chain-alert {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 209, 102, .18);
+  border-radius: var(--radius);
+  background: rgba(255, 209, 102, .06);
+}
+
+.chain-alert strong,
+.chain-alert p {
+  display: block;
+  min-width: 0;
+}
+
+.chain-alert p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chain-action-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chain-action,
+.mentor-topic,
+.recovery-system-row,
+.recovery-motivation-card {
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chain-action {
+  display: grid;
+  min-height: 78px;
+  gap: 8px;
+  justify-items: start;
+  padding: 11px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+}
+
+.chain-action svg {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-3);
+}
+
+.chain-action span {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.chain-action.done {
+  border-color: rgba(123, 255, 207, .34);
+  background: rgba(123, 255, 207, .1);
+}
+
+.mentor-lead {
+  max-width: 740px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.mentor-signal {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 215, 255, .15);
+  border-radius: 999px;
+  color: var(--accent-3);
+  background: rgba(0, 215, 255, .06);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.mentor-signal svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mentor-topic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mentor-topic {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+}
+
+.mentor-topic svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--accent-3);
+}
+
+.mentor-topic span {
+  min-width: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.mentor-modal,
+.chain-timer-modal,
+.recovery-system-modal {
+  position: relative;
+  overflow: hidden;
+  width: min(560px, 100%);
+  border-color: rgba(0, 215, 255, .2);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(0, 215, 255, .14), transparent 34%),
+    radial-gradient(circle at 84% 10%, rgba(123, 255, 207, .1), transparent 28%),
+    #101a2e;
+}
+
+.mentor-modal .close-button,
+.chain-timer-modal .close-button,
+.recovery-system-modal .close-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.mentor-core,
+.recovery-system-orb,
+.chain-timer-orb {
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(123, 255, 207, .2), transparent 62%),
+    rgba(0, 215, 255, .08);
+  box-shadow: 0 0 38px rgba(0, 215, 255, .18), inset 0 0 28px rgba(123, 255, 207, .08);
+}
+
+.mentor-core {
+  width: 78px;
+  height: 78px;
+}
+
+.mentor-core svg {
+  width: 38px;
+  height: 38px;
+  color: var(--accent-3);
+}
+
+.mentor-response {
+  margin: 8px 0 14px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.mentor-step-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.mentor-step-list span {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .045);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mentor-step-list b {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--accent-3);
+  background: rgba(0, 215, 255, .1);
+  font-size: 12px;
+}
+
+.mentor-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.chain-timer-orb {
+  position: relative;
+  width: 210px;
+  height: 210px;
+  border: 1px solid rgba(123, 255, 207, .24);
+}
+
+.chain-timer-orb i {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 70deg, rgba(123, 255, 207, .75) 86deg 92deg, transparent 110deg 360deg);
+  mask-image: radial-gradient(circle, transparent 70%, #000 71% 75%, transparent 76%);
+  animation: focusOrbit 8s linear infinite;
+}
+
+.chain-timer-orb strong,
+.chain-timer-orb span {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.chain-timer-orb strong {
+  color: #fff;
+  font-size: 44px;
+  line-height: 1;
+}
+
+.chain-timer-orb span {
+  margin-top: 8px;
+  color: var(--accent-3);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.recovery-system-orb {
+  width: 132px;
+  height: 132px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#081827, #081827) padding-box,
+    conic-gradient(var(--accent-3) calc(var(--system-progress) * 360deg), rgba(255, 255, 255, .09) 0) border-box;
+}
+
+.recovery-system-orb svg {
+  width: 34px;
+  height: 34px;
+  color: var(--accent-3);
+}
+
+.recovery-system-orb strong {
+  max-width: 94px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+}
+
 .health-reactor-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -3803,6 +4212,14 @@ a {
   font-weight: 800;
 }
 
+.recovery-system-copy small {
+  display: block;
+  margin-top: 4px;
+  color: color-mix(in srgb, var(--system-color) 66%, var(--muted));
+  font-size: 10px;
+  font-weight: 850;
+}
+
 .recovery-system-track {
   height: 7px;
   margin-top: 9px;
@@ -4578,6 +4995,9 @@ a {
   .impulse-grid,
   .health-reactor-grid,
   .chain-steps,
+  .chain-action-grid,
+  .mentor-topic-grid,
+  .reduction-steps,
   .mission-list,
   .craving-tool-grid,
   .friends-grid {
@@ -4649,10 +5069,15 @@ a {
   .check-grid,
   .impulse-grid,
   .daily-risk-layout,
+  .reduction-plan-layout,
+  .reduction-steps,
   .risk-question-grid,
   .compact-choice-grid,
   .health-reactor-grid,
   .chain-steps,
+  .chain-action-grid,
+  .mentor-topic-grid,
+  .mentor-actions,
   .sos-reactor-stage,
   .incident-grid {
     grid-template-columns: 1fr;
@@ -4745,6 +5170,31 @@ a {
   .risk-actions .secondary-button {
     width: 100%;
     border-radius: var(--radius);
+  }
+
+  .reduction-limit {
+    width: 104px;
+    height: 104px;
+    justify-self: center;
+  }
+
+  .chain-action {
+    min-height: 50px;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .mentor-topic {
+    min-height: 44px;
+  }
+
+  .chain-timer-orb {
+    width: 180px;
+    height: 180px;
+  }
+
+  .chain-timer-orb strong {
+    font-size: 38px;
   }
 
   .health-reactor-card {
@@ -5718,7 +6168,8 @@ a {
   .meter-reactor-glow i,
   .impulse-card.impulse-game::after,
   .impulse-breath-orb,
-  .impulse-breath-orb i {
+  .impulse-breath-orb i,
+  .chain-timer-orb i {
     animation: none;
   }
 }

@@ -98,6 +98,7 @@ let socialPollTimer = null;
 let socialPollBusy = false;
 let socialPollingUserId = null;
 let impulseTimer = null;
+let chainTimer = null;
 let noticeTimer = null;
 const RETURN_BRIEF_MIN_MS = 4 * 60 * 60 * 1000;
 
@@ -110,6 +111,130 @@ const esc = (value) => String(value ?? "")
   .replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;")
   .replaceAll("'", "&#039;");
+
+const FALLBACK_COPY = {
+  ru: {
+    health_visual: {
+      open_system: "Открыть протокол",
+      system_modal_kicker: "Функция контура",
+      system_done: "Сделал один шаг",
+      system_notice: "Шаг восстановления зафиксирован.",
+      system_actions: {
+        brain: ["Запиши один триггер, который сегодня может включить тягу.", "Дай себе правило: сначала 5 минут паузы, потом решение.", "Убери один раздражитель: чат, место или предмет."],
+        lungs: ["Сделай 10 медленных вдохов с длинным выдохом.", "Пройди 300 шагов без телефона.", "Открой окно или выйди на воздух на 3 минуты."],
+        heart: ["Выпей воды и замедли темп на 2 минуты.", "Сделай короткую прогулку вместо старого ритуала.", "Отметь, что сегодня сердце не получает лишнюю нагрузку."],
+        detox: ["Выбери один простой прием пищи без перегруза.", "Замени старую покупку на воду, чай или полезный перекус.", "Не спорь с тягой: дай телу спокойный вечер."],
+        immunity: ["Сделай ранний сигнал сна: приглуши экран.", "Подготовь безопасный напиток заранее.", "Похвали себя за возвращение в строй, а не за идеальность."],
+        sleep: ["За 30 минут до сна убери алкогольный/никотиновый сценарий.", "Запиши одну фразу: завтра будет легче, если сегодня я не продолжу.", "Сделай короткий ритуал завершения дня."],
+        fallback: ["Сделай один маленький шаг без героизма.", "Отметь текущую тягу по шкале 1-10.", "Верни тело в спокойный режим: вода, воздух, пауза."]
+      }
+    },
+    recovery_assistant: {
+      reduction_kicker: "Режим движения",
+      reduction_mode_quit_now: "сразу",
+      reduction_mode_reduce: "снижение",
+      reduction_mode_observe: "наблюдение",
+      reduction_quit_title: "Чистая линия на сегодня",
+      reduction_quit_body: "Главная задача проста: не торговаться с привычкой сегодня. Не на всю жизнь, только на текущий день.",
+      reduction_quit_next: "Следующий шаг - заранее включить SOS, если тяга станет громкой.",
+      reduction_quit_step_1: "Сегодня 0",
+      reduction_quit_step_2: "SOS до действия",
+      reduction_quit_step_3: "Вечер без цепочки",
+      reduction_smoking_title: "План снижения сигарет",
+      reduction_smoking_body: "Если резко пока тяжело, приложение держит коридор снижения. Цель - не идеальность, а управляемое движение к нулю.",
+      reduction_vape_title: "План снижения электронок",
+      reduction_vape_body: "Для электронных сигарет считаем не пачки, а дневной лимит по тратам/использованию. Каждая неделя сжимает коридор.",
+      reduction_alcohol_title: "Мягкий план снижения алкоголя",
+      reduction_alcohol_body: "При низком риске можно снижать сумму и количество алкогольных дней. При признаках зависимости резкий отказ лучше согласовать с врачом.",
+      reduction_alcohol_medical_title: "Нужен безопасный план с врачом",
+      reduction_alcohol_medical_body: "Есть признаки риска. Приложение не будет строить агрессивное снижение алкоголя без медицинской поддержки.",
+      reduction_alcohol_medical_next: "Следующий шаг - обсудить план с Hausarzt или Suchtberatung.",
+      reduction_alcohol_medical_steps: ["Не бросать резко без врача", "Записать симптомы", "Подготовить безопасный вечер"],
+      reduction_observe_title: "Наблюдение без давления",
+      reduction_observe_body: "Пока ты готовишься, приложение собирает триггеры и помогает построить момент, когда бросить будет легче.",
+      reduction_observe_value: "3",
+      reduction_observe_unit: "сигнала",
+      reduction_observe_next: "Сегодня достаточно заметить тягу, место и время.",
+      reduction_observe_steps: ["Отметить тягу", "Записать триггер", "Выбрать дату старта"],
+      reduction_cigarette_unit: "сигарет максимум",
+      reduction_vape_unit: "лимит сегодня",
+      reduction_alcohol_unit: "лимит сегодня",
+      reduction_safe: "безопасно",
+      reduction_next_cigarettes: "Через неделю цель снизится до {count}.",
+      reduction_next_budget: "Следующая цель - до {amount} в день.",
+      reduction_week_cigarettes: "Неделя {week}: максимум {count}",
+      reduction_week_budget: "Неделя {week}: до {amount}/день",
+      chain_stop_title: "Остановить цепочку",
+      chain_active_badge: "3 часа защиты",
+      chain_stop_smoking: "Ты закурил. Теперь главная цель - не продолжить.",
+      chain_stop_vape: "Ты использовал электронку. Теперь главная цель - не продолжить.",
+      chain_stop_alcohol: "Ты выпил. Теперь главная цель - не продолжить.",
+      chain_stop_body: "Следующие 3 часа защищаем реактор. Режим активен до {until}.",
+      chain_action_pledge: "больше сегодня не продолжаю",
+      chain_action_smoking_pledge: "больше сегодня не курю",
+      chain_action_vape_pledge: "больше сегодня без электронки",
+      chain_action_alcohol_pledge: "больше сегодня не пью",
+      chain_action_dispose: "убрать остаток",
+      chain_action_smoking_dispose: "выкинуть остаток",
+      chain_action_vape_dispose: "убрать устройство",
+      chain_action_alcohol_dispose: "убрать алкоголь",
+      chain_action_water: "выпить воды",
+      chain_action_leave: "выйти из ситуации",
+      chain_action_timer: "10-минутный таймер",
+      chain_action_saved: "Цепочка остановлена одним защитным шагом.",
+      chain_timer_title: "10 минут без продолжения",
+      chain_timer_body: "Сейчас говорит тяга. Дай ей пройти одну волну, потом решишь спокойнее.",
+      chain_timer_label: "защищаем реактор",
+      chain_timer_finish: "Я удержал паузу",
+      chain_timer_done: "Пауза удержана. Цепочка стала слабее."
+    },
+    mentor: {
+      kicker: "Наставник Реактора",
+      title: "Короткая помощь без морали",
+      subtitle: "Выбери ситуацию, и наставник даст план на ближайшие минуты.",
+      signal_empty: "Пока нет check-in. Можно начать с короткой оценки состояния.",
+      signal_checkin: "Последний сигнал: стресс {stress}/10, тяга {craving}/10.",
+      default_reason: "свободы и контроля",
+      no_recent_incident: "недавно инцидентов не было",
+      open_sos: "Открыть SOS",
+      open_checkin: "Check-in",
+      topics: {
+        craving: "Объяснить тягу",
+        incident: "Разобрать срыв",
+        evening: "План на вечер",
+        refusal: "Фраза отказа",
+        anxiety: "Помочь с тревогой",
+        goal: "Напомнить цель"
+      },
+      responses: {
+        craving: { title: "Сейчас говорит не ты, а тяга", body: "Тяга пытается сократить мир до одного действия. Дай мне 5 минут: вода, воздух, пауза. Потом решишь.", steps: ["Назови тягу вслух", "Выпей воды", "Запусти SOS или выйди из места"] },
+        incident: { title: "Инцидент - это данные, не приговор", body: "Последний эпизод: {time}. Главная задача сейчас - не продолжить цепочку и понять первый триггер.", steps: ["Остановить продолжение", "Записать что было до эпизода", "Выбрать один защитный шаг на вечер"] },
+        evening: { title: "Вечер нужен с планом", body: "Сегодня не надо побеждать всю жизнь. Нужно закрыть ближайшие часы так, чтобы завтра было легче.", steps: ["Подготовь напиток без алкоголя/никотина", "Убери покупку из маршрута", "Зайди в приложение перед самым рискованным окном"] },
+        refusal: { title: "Коротко и без объяснений", body: "Фраза: «Я сегодня не пью и не курю. Мне так спокойнее». Не доказывай. Повтори тем же тоном.", steps: ["Скажи коротко", "Смени тему", "Держи в руке безопасный напиток"] },
+        anxiety: { title: "Тревога не требует старого ритуала", body: "Сначала снижаем шум в теле. Решения принимаются после дыхания, воды и дистанции.", steps: ["Выдох длиннее вдоха 10 раз", "Плечи вниз, стопы на пол", "Напиши одну реальную причину держаться: {reason}"] },
+        goal: { title: "Ты делаешь это ради {reason}", body: "Цель не обязана быть громкой. Она должна быть рядом в момент, когда привычка предлагает старый путь.", steps: ["Посмотри на сохраненные деньги", "Выбери одну маленькую награду", "Сделай следующий чистый час"] }
+      }
+    }
+  },
+  en: {
+    mentor: { kicker: "Reactor Mentor", title: "Short help without lectures", subtitle: "Pick a situation and get a plan for the next few minutes.", signal_empty: "No check-in yet. Start with a quick state check.", signal_checkin: "Last signal: stress {stress}/10, craving {craving}/10.", default_reason: "freedom and control", no_recent_incident: "no recent incident", open_sos: "Open SOS", open_checkin: "Check-in", topics: { craving: "Explain craving", incident: "Review slip", evening: "Evening plan", refusal: "Refusal phrase", anxiety: "Anxiety help", goal: "Remember goal" }, responses: { craving: { title: "This is craving speaking, not you", body: "Give it five minutes: water, air, pause. Decide after the wave drops.", steps: ["Name the craving", "Drink water", "Open SOS or leave the trigger"] }, incident: { title: "An incident is data, not a verdict", body: "Recent episode: {time}. Stop the chain first, then find the trigger.", steps: ["Stop continuation", "Write what happened before", "Pick one evening protection step"] }, evening: { title: "The evening needs a plan", body: "You do not need to win a whole life tonight. Close the next hours well.", steps: ["Prepare a safe drink", "Remove the risky route", "Check in before the risk window"] }, refusal: { title: "Short, calm, no debate", body: "Phrase: I am not drinking or smoking today. I feel better this way.", steps: ["Say it shortly", "Change topic", "Hold a safe drink"] }, anxiety: { title: "Anxiety does not need the old ritual", body: "Lower the body noise first. Decisions come after breath, water and distance.", steps: ["Long exhale 10 times", "Feet on floor", "Write one real reason: {reason}"] }, goal: { title: "You are doing this for {reason}", body: "Keep the goal close when the habit offers the old path.", steps: ["Look at saved money", "Choose a small reward", "Make the next clean hour"] } } },
+    recovery_assistant: {},
+    health_visual: {}
+  },
+  de: {
+    mentor: { kicker: "Reaktor-Mentor", title: "Kurze Hilfe ohne Moral", subtitle: "Wähle eine Situation und bekomme einen Plan für die nächsten Minuten.", signal_empty: "Noch kein Check-in. Starte mit einer kurzen Einschätzung.", signal_checkin: "Letztes Signal: Stress {stress}/10, Verlangen {craving}/10.", default_reason: "Freiheit und Kontrolle", no_recent_incident: "kein aktueller Vorfall", open_sos: "SOS öffnen", open_checkin: "Check-in", topics: { craving: "Verlangen erklären", incident: "Rückfall ansehen", evening: "Plan für Abend", refusal: "Ablehnungssatz", anxiety: "Angst beruhigen", goal: "Ziel erinnern" }, responses: { craving: { title: "Gerade spricht das Verlangen, nicht du", body: "Gib ihm fünf Minuten: Wasser, Luft, Pause. Entscheide danach.", steps: ["Verlangen benennen", "Wasser trinken", "SOS öffnen oder Ort wechseln"] }, incident: { title: "Ein Vorfall ist Daten, kein Urteil", body: "Letzte Episode: {time}. Stoppe zuerst die Kette.", steps: ["Nicht weitermachen", "Trigger notieren", "Einen Schutzschritt wählen"] }, evening: { title: "Der Abend braucht einen Plan", body: "Heute zählt der nächste ruhige Abschnitt.", steps: ["Sicheres Getränk vorbereiten", "Riskante Route meiden", "Vor dem Risiko einchecken"] }, refusal: { title: "Kurz, ruhig, ohne Debatte", body: "Satz: Heute trinke und rauche ich nicht. So geht es mir besser.", steps: ["Kurz sagen", "Thema wechseln", "Sicheres Getränk halten"] }, anxiety: { title: "Angst braucht kein altes Ritual", body: "Erst den Körper beruhigen: Atmung, Wasser, Abstand.", steps: ["Lang ausatmen", "Füße auf den Boden", "Einen Grund notieren: {reason}"] }, goal: { title: "Du machst das für {reason}", body: "Halte das Ziel nah, wenn die Gewohnheit den alten Weg anbietet.", steps: ["Gespartes ansehen", "Kleine Belohnung wählen", "Die nächste saubere Stunde schaffen"] } } },
+    recovery_assistant: {},
+    health_visual: {}
+  }
+};
+
+function messagePath(path) {
+  const translated = readPath(state.messages, path);
+  if (translated !== undefined) return translated;
+  const langFallback = readPath(FALLBACK_COPY[state.lang] || {}, path);
+  if (langFallback !== undefined) return langFallback;
+  return readPath(FALLBACK_COPY.ru, path);
+}
 
 function avatarMarkup(name, code = "pulse", extraClass = "", userId = null, hasAvatar = false) {
   const safeCode = AVATAR_CODES.includes(code) ? code : "pulse";
@@ -124,14 +249,14 @@ function readPath(object, path) {
 }
 
 function t(path, vars = {}) {
-  let value = readPath(state.messages, path);
+  let value = messagePath(path);
   if (value === undefined) value = path;
   if (typeof value !== "string") return value;
   return value.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? "");
 }
 
 function list(path) {
-  const value = readPath(state.messages, path);
+  const value = messagePath(path);
   return Array.isArray(value) ? value : [];
 }
 
@@ -468,6 +593,205 @@ function calculateHealthReactor(data = state.dashboard, store = loadRecoveryStor
     energy: clampPercent(energyInput),
     control: clampPercent(controlInput),
     health: clampPercent(healthInput)
+  };
+}
+
+function daysSince(value) {
+  const time = Date.parse(value || "");
+  if (!Number.isFinite(time)) return 0;
+  return Math.max(0, Math.floor((Date.now() - time) / (24 * 60 * 60 * 1000)));
+}
+
+function latestIncident(store, windowHours = 3) {
+  const windowMs = windowHours * 60 * 60 * 1000;
+  const incidents = Array.isArray(store?.incidents) ? store.incidents : [];
+  return [...incidents]
+    .filter((incident) => {
+      const time = Date.parse(incident.createdAt || incident.created_at || "");
+      return Number.isFinite(time) && Date.now() - time <= windowMs;
+    })
+    .sort((a, b) => Date.parse(b.createdAt || b.created_at || "") - Date.parse(a.createdAt || a.created_at || ""))[0] || null;
+}
+
+function habitActionLabel(habitType, code) {
+  const smokingUi = dashboardSmokingUi(state.dashboard);
+  const key = habitType === "alcohol"
+    ? `recovery_assistant.chain_action_alcohol_${code}`
+    : smokingUi.isVape
+      ? `recovery_assistant.chain_action_vape_${code}`
+      : `recovery_assistant.chain_action_smoking_${code}`;
+  const fallback = messagePath(key) === undefined
+    ? `recovery_assistant.chain_action_${code}`
+    : key;
+  return t(fallback);
+}
+
+function chainProtectionState(risk, store) {
+  const incident = latestIncident(store, 3);
+  const incidentTime = Date.parse(incident?.createdAt || incident?.created_at || "");
+  const until = Number.isFinite(incidentTime) ? new Date(incidentTime + 3 * 60 * 60 * 1000) : null;
+  const protocols = Array.isArray(store?.protectionProtocols) ? store.protectionProtocols : [];
+  const completed = new Set(protocols
+    .filter((item) => incident ? item.incidentId === incident.id : item.date === localDateKey())
+    .map((item) => item.code));
+
+  return {
+    active: Boolean(incident && until && until.getTime() > Date.now()),
+    incident,
+    until,
+    completed,
+    shouldShow: Boolean(incident) || risk.level === "high"
+  };
+}
+
+function chainActionOptions(habitType) {
+  return [
+    { code: "pledge", icon: "shield", label: habitActionLabel(habitType, "pledge") },
+    { code: "dispose", icon: "x", label: habitActionLabel(habitType, "dispose") },
+    { code: "water", icon: "leaf", label: t("recovery_assistant.chain_action_water") },
+    { code: "leave", icon: "bolt", label: t("recovery_assistant.chain_action_leave") },
+    { code: "timer", icon: "bell", label: t("recovery_assistant.chain_action_timer") }
+  ];
+}
+
+function compactLimit(value, unit) {
+  return { value: String(value), unit };
+}
+
+function buildReductionPlan(data, store, startupRisk) {
+  const profile = store.recoveryProfile || defaultRecoveryProfile(data);
+  const mode = profile.mode || "quit_now";
+  const createdDays = daysSince(profile.createdAt || store.lastSeenAt);
+  const week = Math.max(0, Math.floor(createdDays / 7));
+  const habitTypes = Array.isArray(data?.habit_types) ? data.habit_types : [];
+  const hasSmoking = habitTypes.includes("smoking");
+  const hasAlcohol = habitTypes.includes("alcohol");
+  const isVape = dashboardSmokingUi(data).isVape;
+  const smokingStart = Math.max(1, Number(profile.smoking?.cigarettesPerDay || data?.habits?.smoking?.cigarettes_per_day || 20));
+  const vapeWeekly = Math.max(0, Number(data?.habits?.smoking?.vape_weekly_spend || state.onboarding.vape_weekly_spend || 35));
+  const alcoholWeekly = Math.max(0, Number(data?.money?.alcohol_weekly_spend || data?.habits?.alcohol?.weekly_spend || state.onboarding.alcohol_weekly_spend || 30));
+
+  if (mode === "observe") {
+    return {
+      mode,
+      token: "token-violet",
+      title: t("recovery_assistant.reduction_observe_title"),
+      body: t("recovery_assistant.reduction_observe_body"),
+      today: compactLimit(t("recovery_assistant.reduction_observe_value"), t("recovery_assistant.reduction_observe_unit")),
+      next: t("recovery_assistant.reduction_observe_next"),
+      steps: list("recovery_assistant.reduction_observe_steps").map((title, index) => ({ title, active: index === Math.min(week, 2) }))
+    };
+  }
+
+  if (mode === "quit_now") {
+    return {
+      mode,
+      token: "token-green",
+      title: t("recovery_assistant.reduction_quit_title"),
+      body: t("recovery_assistant.reduction_quit_body"),
+      today: compactLimit("0", hasSmoking ? t(isVape ? "recovery_assistant.reduction_vape_unit" : "recovery_assistant.reduction_cigarette_unit") : t("recovery_assistant.reduction_alcohol_unit")),
+      next: t("recovery_assistant.reduction_quit_next"),
+      steps: [
+        { title: t("recovery_assistant.reduction_quit_step_1"), active: true },
+        { title: t("recovery_assistant.reduction_quit_step_2"), active: false },
+        { title: t("recovery_assistant.reduction_quit_step_3"), active: false }
+      ]
+    };
+  }
+
+  if (hasAlcohol && !hasSmoking) {
+    if (startupRisk.alcoholMedical) {
+      return {
+        mode,
+        token: "token-red",
+        title: t("recovery_assistant.reduction_alcohol_medical_title"),
+        body: t("recovery_assistant.reduction_alcohol_medical_body"),
+        today: compactLimit(t("recovery_assistant.reduction_safe"), t("recovery_assistant.reduction_alcohol_unit")),
+        next: t("recovery_assistant.reduction_alcohol_medical_next"),
+        steps: list("recovery_assistant.reduction_alcohol_medical_steps").map((title, index) => ({ title, active: index === 0 }))
+      };
+    }
+    const factors = [1, .8, .65, .45, .25, 0];
+    const target = Math.max(0, alcoholWeekly * factors[Math.min(week, factors.length - 1)]);
+    const nextTarget = Math.max(0, alcoholWeekly * factors[Math.min(week + 1, factors.length - 1)]);
+    return {
+      mode,
+      token: "token-blue",
+      title: t("recovery_assistant.reduction_alcohol_title"),
+      body: t("recovery_assistant.reduction_alcohol_body"),
+      today: compactLimit(money(target / 7, data.money?.goal?.currency || "EUR"), t("recovery_assistant.reduction_alcohol_unit")),
+      next: t("recovery_assistant.reduction_next_budget", { amount: money(nextTarget / 7, data.money?.goal?.currency || "EUR") }),
+      steps: factors.slice(1).map((factor, index) => ({
+        title: t("recovery_assistant.reduction_week_budget", { week: index + 1, amount: money(Math.max(0, alcoholWeekly * factor / 7), data.money?.goal?.currency || "EUR") }),
+        active: index === Math.min(week, factors.length - 2)
+      }))
+    };
+  }
+
+  if (isVape) {
+    const factors = [1, .8, .65, .5, .25, 0];
+    const target = Math.max(0, vapeWeekly * factors[Math.min(week, factors.length - 1)]);
+    const nextTarget = Math.max(0, vapeWeekly * factors[Math.min(week + 1, factors.length - 1)]);
+    return {
+      mode,
+      token: "token-blue",
+      title: t("recovery_assistant.reduction_vape_title"),
+      body: t("recovery_assistant.reduction_vape_body"),
+      today: compactLimit(money(target / 7, data.money?.goal?.currency || "EUR"), t("recovery_assistant.reduction_vape_unit")),
+      next: t("recovery_assistant.reduction_next_budget", { amount: money(nextTarget / 7, data.money?.goal?.currency || "EUR") }),
+      steps: factors.slice(1).map((factor, index) => ({
+        title: t("recovery_assistant.reduction_week_budget", { week: index + 1, amount: money(Math.max(0, vapeWeekly * factor / 7), data.money?.goal?.currency || "EUR") }),
+        active: index === Math.min(week, factors.length - 2)
+      }))
+    };
+  }
+
+  const targets = [smokingStart, 15, 12, 10, 5, 0].map((target) => Math.min(smokingStart, target));
+  const currentTarget = targets[Math.min(week, targets.length - 1)];
+  const nextTarget = targets[Math.min(week + 1, targets.length - 1)];
+  return {
+    mode,
+    token: "token-blue",
+    title: t("recovery_assistant.reduction_smoking_title"),
+    body: t("recovery_assistant.reduction_smoking_body"),
+    today: compactLimit(currentTarget, t("recovery_assistant.reduction_cigarette_unit")),
+    next: t("recovery_assistant.reduction_next_cigarettes", { count: nextTarget }),
+    steps: targets.slice(1).map((target, index) => ({
+      title: t("recovery_assistant.reduction_week_cigarettes", { week: index + 1, count: target }),
+      active: index === Math.min(week, targets.length - 2)
+    }))
+  };
+}
+
+function mentorTopics() {
+  return [
+    { code: "craving", icon: "bolt" },
+    { code: "incident", icon: "shield" },
+    { code: "evening", icon: "moon" },
+    { code: "refusal", icon: "message" },
+    { code: "anxiety", icon: "heart" },
+    { code: "goal", icon: "star" }
+  ];
+}
+
+function mentorResponse(topic, data, store) {
+  const response = messagePath(`mentor.responses.${topic}`) || messagePath("mentor.responses.goal") || {};
+  const reasons = profileMotivationReasons(data?.profile || {});
+  const reasonOptions = list("onboarding.reason_options");
+  const reasonText = reasons.length
+    ? reasons.map((code) => reasonOptions.find((item) => item.code === code)?.title).filter(Boolean).slice(0, 2).join(", ")
+    : t("mentor.default_reason");
+  const latest = latestIncident(store, 24);
+  const vars = {
+    reason: reasonText,
+    time: latest ? dateTime(latest.createdAt || latest.created_at) : t("mentor.no_recent_incident")
+  };
+  const apply = (value) => String(value || "").replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? "");
+
+  return {
+    title: apply(response.title),
+    body: apply(response.body),
+    steps: Array.isArray(response.steps) ? response.steps.map(apply) : []
   };
 }
 
@@ -1014,7 +1338,7 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "39")}`)).catch(() => {});
+      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "40")}`)).catch(() => {});
     });
   }
 }
@@ -1845,7 +2169,11 @@ function renderDashboardView() {
 
       ${renderDailyRiskPanel(dailyRisk)}
 
+      ${renderReductionPlanPanel(data, recoveryStore, startupRisk)}
+
       ${renderChainProtectionPanel(dailyRisk, recoveryStore)}
+
+      ${renderMentorPanel(data, recoveryStore, dailyRisk)}
 
       ${renderImpulsePanel(data)}
 
@@ -1954,6 +2282,9 @@ function renderDashboardView() {
   app.querySelectorAll("[data-mission-action]").forEach((button) => button.addEventListener("click", () => handleMissionAction(button.dataset.missionAction)));
   app.querySelectorAll("[data-impulse-action]").forEach((button) => button.addEventListener("click", () => handleImpulseAction(button.dataset.impulseAction)));
   app.querySelectorAll("[data-risk-action]").forEach((button) => button.addEventListener("click", () => handleRiskAction(button.dataset.riskAction)));
+  app.querySelectorAll("[data-chain-action]").forEach((button) => button.addEventListener("click", () => handleChainAction(button.dataset.chainAction)));
+  app.querySelectorAll("[data-mentor-topic]").forEach((button) => button.addEventListener("click", () => openMentorModal(button.dataset.mentorTopic)));
+  app.querySelectorAll("[data-recovery-system]").forEach((button) => button.addEventListener("click", () => openRecoverySystemModal(button.dataset.recoverySystem)));
   app.querySelector("#dailyCheckinDetailed")?.addEventListener("click", openDailyCheckinModal);
   app.querySelector("#chainProtectionSos")?.addEventListener("click", openCraving);
   app.querySelector("#mobileHome").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
@@ -2036,13 +2367,68 @@ function renderDailyRiskPanel(risk) {
     </section>`;
 }
 
+function renderReductionPlanPanel(data, store, startupRisk) {
+  const plan = buildReductionPlan(data, store, startupRisk);
+  return `
+    <section class="panel reduction-plan-panel mode-${esc(plan.mode)}">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">${esc(t("recovery_assistant.reduction_kicker"))}</p>
+          <h3>${esc(plan.title)}</h3>
+        </div>
+        <span class="badge">${esc(t(`recovery_assistant.reduction_mode_${plan.mode}`))}</span>
+      </div>
+      <div class="reduction-plan-layout">
+        <div class="reduction-limit ${esc(plan.token)}">
+          <span>${icon("reactor")}</span>
+          <strong>${esc(plan.today.value)}</strong>
+          <small>${esc(plan.today.unit)}</small>
+        </div>
+        <div class="reduction-plan-copy">
+          <p>${esc(plan.body)}</p>
+          <div class="reduction-next">${icon("bolt")}<span>${esc(plan.next)}</span></div>
+        </div>
+      </div>
+      <div class="reduction-steps">
+        ${plan.steps.map((step, index) => `
+          <span class="${step.active ? "active" : ""}"><b>${index + 1}</b>${esc(step.title)}</span>`).join("")}
+      </div>
+    </section>`;
+}
+
 function renderChainProtectionPanel(risk, store) {
-  const incidents = Array.isArray(store.incidents) ? store.incidents : [];
-  const hasRecentIncident = incidents.some((incident) => {
-    const time = Date.parse(incident.createdAt || "");
-    return Number.isFinite(time) && Date.now() - time < 36 * 60 * 60 * 1000;
-  });
-  if (risk.level !== "high" && !hasRecentIncident) return "";
+  const chain = chainProtectionState(risk, store);
+  if (!chain.shouldShow) return "";
+  const habitType = chain.incident?.habitType || state.dashboard?.habit_types?.[0] || "smoking";
+  const activeActions = chainActionOptions(habitType);
+
+  if (chain.active) {
+    const until = chain.until ? dateTime(chain.until.toISOString()) : "";
+    return `
+      <section class="panel chain-protection-panel chain-active">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">${esc(t("recovery_assistant.chain_kicker"))}</p>
+            <h3>${esc(t("recovery_assistant.chain_stop_title"))}</h3>
+          </div>
+          <span class="badge">${esc(t("recovery_assistant.chain_active_badge"))}</span>
+        </div>
+        <div class="chain-alert">
+          <span class="icon-token token-red">${icon("shield")}</span>
+          <div>
+            <strong>${esc(t(`recovery_assistant.chain_stop_${habitType === "alcohol" ? "alcohol" : dashboardSmokingUi(state.dashboard).isVape ? "vape" : "smoking"}`))}</strong>
+            <p>${esc(t("recovery_assistant.chain_stop_body", { until }))}</p>
+          </div>
+        </div>
+        <div class="chain-action-grid">
+          ${activeActions.map((action) => `
+            <button class="chain-action ${chain.completed.has(action.code) ? "done" : ""}" type="button" data-chain-action="${esc(action.code)}">
+              ${icon(chain.completed.has(action.code) ? "shield" : action.icon)}
+              <span>${esc(action.label)}</span>
+            </button>`).join("")}
+        </div>
+      </section>`;
+  }
 
   return `
     <section class="panel chain-protection-panel">
@@ -2053,12 +2439,41 @@ function renderChainProtectionPanel(risk, store) {
         </div>
         <span class="badge">${esc(t("recovery_assistant.chain_badge"))}</span>
       </div>
-      <p class="muted">${esc(t(hasRecentIncident ? "recovery_assistant.chain_after_incident" : "recovery_assistant.chain_high_risk"))}</p>
+      <p class="muted">${esc(t("recovery_assistant.chain_high_risk"))}</p>
       <div class="chain-steps">
         ${list("recovery_assistant.chain_steps").map((step) => `
           <div><span class="icon-token ${esc(step.token || "token-blue")}">${icon(step.icon || "shield")}</span><strong>${esc(step.title)}</strong><small>${esc(step.body)}</small></div>`).join("")}
       </div>
       <button class="secondary-button full" type="button" id="chainProtectionSos">${icon("shield")}${esc(t("recovery_assistant.chain_button"))}</button>
+    </section>`;
+}
+
+function renderMentorPanel(data, store, risk) {
+  const topics = mentorTopics();
+  const checkins = Array.isArray(store.dailyCheckins) ? store.dailyCheckins : [];
+  const latest = checkins.slice(-1)[0];
+  const signal = latest
+    ? t("mentor.signal_checkin", { stress: latest.stress || 0, craving: latest.craving || 0 })
+    : t("mentor.signal_empty");
+
+  return `
+    <section class="panel mentor-panel risk-${esc(risk.level)}">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">${esc(t("mentor.kicker"))}</p>
+          <h3>${esc(t("mentor.title"))}</h3>
+        </div>
+        <span class="badge">${esc(t(`recovery_assistant.risk_${risk.level}`))}</span>
+      </div>
+      <p class="mentor-lead">${esc(t("mentor.subtitle"))}</p>
+      <div class="mentor-signal">${icon("reactor")}<span>${esc(signal)}</span></div>
+      <div class="mentor-topic-grid">
+        ${topics.map((topic) => `
+          <button class="mentor-topic" type="button" data-mentor-topic="${esc(topic.code)}">
+            ${icon(topic.icon)}
+            <span>${esc(t(`mentor.topics.${topic.code}`))}</span>
+          </button>`).join("")}
+      </div>
     </section>`;
 }
 
@@ -2099,6 +2514,117 @@ function handleRiskAction(action) {
   if (action === "sos") {
     openCraving();
   }
+}
+
+function handleChainAction(action) {
+  const store = loadRecoveryStore(state.dashboard);
+  const dailyRisk = calculateDailyRisk(store.recoveryProfile, store.dailyCheckins, store.incidents, new Date());
+  const chain = chainProtectionState(dailyRisk, store);
+  const incident = chain.incident;
+  const date = localDateKey();
+
+  updateRecoveryStore((current) => {
+    const already = current.protectionProtocols.some((item) => (
+      item.code === action
+      && (incident ? item.incidentId === incident.id : item.date === date)
+    ));
+    if (already) return current;
+    return {
+      ...current,
+      protectionProtocols: [
+        ...current.protectionProtocols,
+        {
+          id: `protocol_${Date.now()}_${action}`,
+          code: action,
+          incidentId: incident?.id || null,
+          habitType: incident?.habitType || state.dashboard?.habit_types?.[0] || "smoking",
+          date,
+          createdAt: new Date().toISOString()
+        }
+      ].slice(-120)
+    };
+  });
+
+  if (action === "timer") {
+    openChainTimerModal();
+    return;
+  }
+
+  state.notice = t("recovery_assistant.chain_action_saved");
+  render();
+}
+
+function openChainTimerModal() {
+  clearInterval(chainTimer);
+  let remaining = 10 * 60;
+  const renderTime = () => formatTimer(remaining);
+
+  modalRoot.innerHTML = `
+    <div class="modal chain-timer-overlay" role="dialog" aria-modal="true" aria-labelledby="chainTimerTitle">
+      <div class="modal-card chain-timer-modal">
+        <button class="icon-button close-button" id="closeChainTimer" type="button" aria-label="${esc(t("common.close"))}">${icon("x")}</button>
+        <p class="eyebrow">${esc(t("recovery_assistant.chain_kicker"))}</p>
+        <h2 id="chainTimerTitle">${esc(t("recovery_assistant.chain_timer_title"))}</h2>
+        <p class="muted">${esc(t("recovery_assistant.chain_timer_body"))}</p>
+        <div class="chain-timer-orb">
+          <i aria-hidden="true"></i>
+          <strong id="chainTimerValue">${esc(renderTime())}</strong>
+          <span>${esc(t("recovery_assistant.chain_timer_label"))}</span>
+        </div>
+        <button class="primary-button full" id="finishChainTimer" type="button">${esc(t("recovery_assistant.chain_timer_finish"))}</button>
+      </div>
+    </div>`;
+
+  const value = modalRoot.querySelector("#chainTimerValue");
+  chainTimer = window.setInterval(() => {
+    remaining = Math.max(0, remaining - 1);
+    if (value) value.textContent = renderTime();
+    if (remaining <= 0) {
+      clearInterval(chainTimer);
+      state.notice = t("recovery_assistant.chain_timer_done");
+      closeModal();
+      render();
+    }
+  }, 1000);
+
+  modalRoot.querySelector("#closeChainTimer").addEventListener("click", closeModal);
+  modalRoot.querySelector("#finishChainTimer").addEventListener("click", () => {
+    state.notice = t("recovery_assistant.chain_timer_done");
+    closeModal();
+    render();
+  });
+}
+
+function openMentorModal(topic) {
+  const store = loadRecoveryStore(state.dashboard);
+  const response = mentorResponse(topic, state.dashboard, store);
+  modalRoot.innerHTML = `
+    <div class="modal mentor-overlay" role="dialog" aria-modal="true" aria-labelledby="mentorTitle">
+      <div class="modal-card mentor-modal">
+        <button class="icon-button close-button" id="closeMentor" type="button" aria-label="${esc(t("common.close"))}">${icon("x")}</button>
+        <div class="mentor-core" aria-hidden="true">${icon("reactor")}</div>
+        <p class="eyebrow">${esc(t("mentor.kicker"))}</p>
+        <h2 id="mentorTitle">${esc(response.title)}</h2>
+        <p class="mentor-response">${esc(response.body)}</p>
+        <div class="mentor-step-list">
+          ${response.steps.map((step, index) => `<span><b>${index + 1}</b>${esc(step)}</span>`).join("")}
+        </div>
+        <div class="mentor-actions">
+          <button class="primary-button" id="mentorOpenSos" type="button">${icon("shield")}${esc(t("mentor.open_sos"))}</button>
+          <button class="secondary-button" id="mentorCheckin" type="button">${icon("star")}${esc(t("mentor.open_checkin"))}</button>
+        </div>
+      </div>
+    </div>`;
+
+  modalRoot.querySelector("#closeMentor").addEventListener("click", closeModal);
+  modalRoot.querySelector("#mentorOpenSos").addEventListener("click", () => {
+    closeModal();
+    openCraving();
+  });
+  modalRoot.querySelector("#mentorCheckin").addEventListener("click", () => {
+    closeModal();
+    openDailyCheckinModal();
+  });
 }
 
 function openDailyCheckinModal() {
@@ -2208,12 +2734,14 @@ function recoveryMotivationCards(model) {
   const next = recoveryNextSystem(model);
   return [
     {
+      code: lead.code,
       icon: lead.icon,
       title: t("health_visual.active_change"),
       body: t(`health_visual.systems.${lead.code}.body`),
       value: t("health_visual.stage_percent", { percent: lead.progress })
     },
     {
+      code: next.code,
       icon: next.icon,
       title: t("health_visual.next_focus"),
       body: t("health_visual.next_focus_body", { system: t(`health_visual.systems.${next.code}.title`) }),
@@ -2224,7 +2752,7 @@ function recoveryMotivationCards(model) {
 
 function renderRecoveryVisual(data) {
   const model = recoveryVisualModel(data);
-  const referenceSrc = apiPath(`/assets/img/living-contour-body.png?v=${encodeURIComponent(boot.assetVersion || "39")}`);
+  const referenceSrc = apiPath(`/assets/img/living-contour-body.png?v=${encodeURIComponent(boot.assetVersion || "40")}`);
   const recoveryMetrics = model.systems.map((system) => ({
     id: system.code,
     icon: system.icon,
@@ -2281,25 +2809,26 @@ function renderRecoveryVisual(data) {
 
             <div class="recovery-motivation-stack">
               ${motivationCards.map((card) => `
-                <article class="recovery-motivation-card">
+                <button class="recovery-motivation-card" type="button" data-recovery-system="${esc(card.code)}">
                   <span class="icon-token">${icon(card.icon)}</span>
                   <div>
                     <strong>${esc(card.title)}</strong>
                     <p>${esc(card.body)}</p>
                   </div>
                   <b>${esc(card.value)}</b>
-                </article>`).join("")}
+                </button>`).join("")}
             </div>
 
             <div class="recovery-system-list">
               ${recoveryMetrics.map((metric) => `
-                <div class="recovery-system-row health-system-${esc(metric.id)}" style="--system-progress:${metric.value / 100}">
+                <button class="recovery-system-row health-system-${esc(metric.id)}" type="button" data-recovery-system="${esc(metric.id)}" style="--system-progress:${metric.value / 100}">
                   <span class="icon-token">${icon(metric.icon)}</span>
                   <div class="recovery-system-copy">
                     <div><strong>${esc(metric.label)}</strong><span>${esc(t("health_visual.stage_percent", { percent: metric.value }))}</span></div>
                     <div class="recovery-system-track"><i></i></div>
+                    <small>${esc(t("health_visual.open_system"))}</small>
                   </div>
-                </div>`).join("")}
+                </button>`).join("")}
             </div>
           </aside>
         </div>
@@ -2314,6 +2843,37 @@ function renderRecoveryVisual(data) {
       </div>
     </section>`;
 }
+
+function openRecoverySystemModal(systemCode) {
+  const model = recoveryVisualModel(state.dashboard);
+  const system = model.systems.find((item) => item.code === systemCode) || model.lead || model.systems[0];
+  const tips = list(`health_visual.system_actions.${system.code}`);
+  modalRoot.innerHTML = `
+    <div class="modal recovery-system-overlay" role="dialog" aria-modal="true" aria-labelledby="recoverySystemTitle">
+      <div class="modal-card recovery-system-modal health-system-${esc(system.code)}">
+        <button class="icon-button close-button" id="closeRecoverySystem" type="button" aria-label="${esc(t("common.close"))}">${icon("x")}</button>
+        <div class="recovery-system-orb" style="--system-progress:${system.progress / 100}">
+          ${icon(system.icon)}
+          <strong>${esc(t("health_visual.stage_percent", { percent: system.progress }))}</strong>
+        </div>
+        <p class="eyebrow">${esc(t("health_visual.system_modal_kicker"))}</p>
+        <h2 id="recoverySystemTitle">${esc(t(`health_visual.systems.${system.code}.title`))}</h2>
+        <p class="mentor-response">${esc(t(`health_visual.systems.${system.code}.body`))}</p>
+        <div class="mentor-step-list">
+          ${(tips.length ? tips : list("health_visual.system_actions.fallback")).map((tip, index) => `<span><b>${index + 1}</b>${esc(tip)}</span>`).join("")}
+        </div>
+        <button class="primary-button full" id="recoverySystemDone" type="button">${esc(t("health_visual.system_done"))}</button>
+      </div>
+    </div>`;
+
+  modalRoot.querySelector("#closeRecoverySystem").addEventListener("click", closeModal);
+  modalRoot.querySelector("#recoverySystemDone").addEventListener("click", () => {
+    state.notice = t("health_visual.system_notice");
+    closeModal();
+    render();
+  });
+}
+
 function renderGrowthPanels(data, currency, motion) {
   const moneyData = data.money || {};
   const target = moneyData.next_target;
@@ -3992,6 +4552,7 @@ async function downloadShareImage(canvas) {
 function closeModal() {
   clearInterval(state.craving.timer);
   clearInterval(impulseTimer);
+  clearInterval(chainTimer);
   modalRoot.innerHTML = "";
 }
 

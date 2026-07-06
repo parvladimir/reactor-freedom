@@ -103,7 +103,7 @@ let noticeTimer = null;
 const RETURN_BRIEF_MIN_MS = 4 * 60 * 60 * 1000;
 
 const apiPath = (path) => `${boot.basePath || ""}${path}`;
-const icon = (name) => `<svg aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
+const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
 const AVATAR_CODES = ["pulse", "nova", "focus", "mint", "ember", "orbit"];
 const esc = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -116,6 +116,7 @@ const FALLBACK_COPY = {
   ru: {
     health_visual: {
       open_system: "Открыть протокол",
+      support_progress: "контур поддержки",
       system_modal_kicker: "Функция контура",
       system_done: "Сделал один шаг",
       system_notice: "Шаг восстановления зафиксирован.",
@@ -1338,7 +1339,7 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "40")}`)).catch(() => {});
+      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "41")}`)).catch(() => {});
     });
   }
 }
@@ -2752,14 +2753,24 @@ function recoveryMotivationCards(model) {
 
 function renderRecoveryVisual(data) {
   const model = recoveryVisualModel(data);
-  const referenceSrc = apiPath(`/assets/img/living-contour-body.png?v=${encodeURIComponent(boot.assetVersion || "40")}`);
-  const recoveryMetrics = model.systems.map((system) => ({
+  const nodePositions = [
+    ["14%", "20%"],
+    ["74%", "18%"],
+    ["82%", "50%"],
+    ["67%", "78%"],
+    ["23%", "78%"],
+    ["8%", "50%"]
+  ];
+  const recoveryMetrics = model.systems.map((system, index) => ({
     id: system.code,
     icon: system.icon,
     label: t(`health_visual.systems.${system.code}.title`),
-    value: system.progress
+    value: system.progress,
+    x: nodePositions[index]?.[0] || "50%",
+    y: nodePositions[index]?.[1] || "50%"
   }));
   const motivationCards = recoveryMotivationCards(model);
+  const next = recoveryNextSystem(model);
 
   return `
     <section class="panel recovery-visual-panel recovery-reference-panel" style="--recovery-percent:${model.progress}%">
@@ -2771,26 +2782,35 @@ function renderRecoveryVisual(data) {
         </div>
 
         <div class="recovery-contour-layout">
-          <div class="recovery-reference-visual" aria-label="${esc(t("health_visual.figure_label"))}">
-            <div class="contour-scene-layer contour-grid-layer" aria-hidden="true"></div>
-            <div class="contour-scene-layer contour-rings" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
+          <div class="recovery-support-visual" aria-label="${esc(t("health_visual.figure_label"))}">
+            <div class="support-grid-layer" aria-hidden="true"></div>
+            <div class="support-orbit-rings" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="support-pulse-line" aria-hidden="true"></div>
+            <div class="support-core" aria-hidden="true">
+              <span class="support-core-icon">${icon("reactor")}</span>
+              <strong>${model.progress}<small>%</small></strong>
+              <em>${esc(t("health_visual.support_progress"))}</em>
             </div>
-            <div class="contour-energy-column" aria-hidden="true"></div>
-            <div class="contour-body-aura" aria-hidden="true"></div>
-            <img
-              class="recovery-reference-image"
-              src="${esc(referenceSrc)}"
-              alt="${esc(t("health_visual.figure_label"))}"
-              loading="lazy"
-              decoding="async"
-            >
-            <div class="contour-scan-beam" aria-hidden="true"><span></span></div>
-            <div class="contour-platform" aria-hidden="true"></div>
-            <div class="contour-particles" aria-hidden="true">
-              <span></span><span></span><span></span><span></span><span></span><span></span>
+            <div class="support-node-cloud">
+              ${recoveryMetrics.map((metric, index) => `
+                <button
+                  class="support-system-node health-system-${esc(metric.id)}"
+                  type="button"
+                  data-recovery-system="${esc(metric.id)}"
+                  style="--node-x:${esc(metric.x)};--node-y:${esc(metric.y)};--system-progress:${metric.value / 100};--node-delay:${index * -.45}s"
+                >
+                  <span>${icon(metric.icon)}</span>
+                  <b>${esc(metric.value)}%</b>
+                  <small>${esc(metric.label)}</small>
+                </button>`).join("")}
+            </div>
+            <div class="support-focus-card">
+              <span class="icon-token">${icon(next.icon)}</span>
+              <div>
+                <small>${esc(t("health_visual.next_focus"))}</small>
+                <strong>${esc(t(`health_visual.systems.${next.code}.title`))}</strong>
+                <p>${esc(t("health_visual.next_focus_body", { system: t(`health_visual.systems.${next.code}.title`) }))}</p>
+              </div>
             </div>
           </div>
 
@@ -2798,7 +2818,7 @@ function renderRecoveryVisual(data) {
             <div class="recovery-main-meter">
               <span class="meter-reactor-glow" aria-hidden="true"><i></i><i></i><i></i></span>
               <strong>${model.progress}<span>%</span></strong>
-              <small>${esc(t("health_visual.visual_progress"))}</small>
+              <small>${esc(t("health_visual.support_progress"))}</small>
             </div>
 
             <div class="recovery-progress-card">

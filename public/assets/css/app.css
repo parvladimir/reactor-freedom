@@ -1658,7 +1658,7 @@ a {
   width: 54px;
   height: 54px;
   place-items: center;
-  justify-self: center;
+  place-self: center;
   overflow: hidden;
   border: 1px solid rgba(123, 255, 207, .28);
   border-radius: 50%;
@@ -1672,6 +1672,7 @@ a {
   display: block;
   width: 24px;
   height: 24px;
+  transform: translateY(1px);
 }
 
 .medical-risk-banner strong,
@@ -1743,18 +1744,45 @@ a {
 
 .risk-meter {
   --risk-color: var(--accent-3);
+  position: relative;
   display: grid;
   width: 118px;
   height: 118px;
   place-items: center;
   align-content: center;
+  overflow: visible;
   border: 1px solid transparent;
   border-radius: 50%;
   background:
-    radial-gradient(circle, rgba(0, 215, 255, .16), transparent 58%) padding-box,
-    linear-gradient(#081827, #081827) padding-box,
-    conic-gradient(var(--risk-color) var(--risk-score), rgba(255, 255, 255, .09) 0) border-box;
-  box-shadow: inset 0 0 28px rgba(0, 215, 255, .08), 0 0 28px rgba(0, 215, 255, .1);
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--risk-color) 21%, transparent), transparent 38%) padding-box,
+    linear-gradient(#06192d, #06111f) padding-box,
+    conic-gradient(from -38deg, var(--risk-color) 0 var(--risk-score), rgba(63, 86, 116, .28) var(--risk-score) 100%) border-box;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, .3),
+    0 0 30px color-mix(in srgb, var(--risk-color) 18%, transparent),
+    inset 0 0 28px rgba(0, 215, 255, .12);
+}
+
+.risk-meter::before {
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(3, 42, 68, .96) 0 40%, rgba(0, 10, 24, .86) 68%),
+    repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--risk-color) 16%, transparent) 0 2deg, transparent 2deg 14deg);
+  box-shadow: inset 0 0 24px rgba(0, 215, 255, .14), 0 0 18px color-mix(in srgb, var(--risk-color) 10%, transparent);
+  content: "";
+}
+
+.risk-meter::after {
+  position: absolute;
+  inset: -7px;
+  border: 1px dashed color-mix(in srgb, var(--risk-color) 38%, transparent);
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 72deg, color-mix(in srgb, var(--risk-color) 62%, transparent) 84deg 92deg, transparent 106deg 360deg);
+  mask-image: radial-gradient(circle, transparent 64%, #000 65% 70%, transparent 71%);
+  content: "";
+  animation: reactorMeterSweep 14s linear infinite;
 }
 
 .risk-medium .risk-meter {
@@ -1767,6 +1795,8 @@ a {
 
 .risk-meter strong,
 .risk-meter span {
+  position: relative;
+  z-index: 1;
   display: block;
 }
 
@@ -1880,27 +1910,59 @@ a {
 }
 
 .reduction-limit {
+  position: relative;
   display: grid;
   width: 116px;
   height: 116px;
   place-items: center;
   align-content: center;
+  overflow: visible;
   border: 1px solid rgba(123, 255, 207, .28);
   border-radius: 50%;
   background:
-    radial-gradient(circle, rgba(0, 215, 255, .18), transparent 60%),
-    rgba(3, 18, 32, .74);
-  box-shadow: inset 0 0 28px rgba(0, 215, 255, .08), 0 0 28px rgba(0, 215, 255, .1);
+    radial-gradient(circle at 50% 50%, rgba(123, 255, 207, .2), transparent 38%) padding-box,
+    linear-gradient(#06192d, #06111f) padding-box,
+    conic-gradient(from -38deg, var(--accent-3) 0 82%, rgba(63, 86, 116, .28) 82% 100%) border-box;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, .3),
+    0 0 30px rgba(0, 215, 255, .14),
+    inset 0 0 28px rgba(0, 215, 255, .12);
   text-align: center;
 }
 
+.reduction-limit::before {
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(3, 42, 68, .96) 0 40%, rgba(0, 10, 24, .86) 68%),
+    repeating-conic-gradient(from 0deg, rgba(123, 255, 207, .16) 0 2deg, transparent 2deg 14deg);
+  box-shadow: inset 0 0 24px rgba(0, 215, 255, .14), 0 0 18px rgba(123, 255, 207, .08);
+  content: "";
+}
+
+.reduction-limit::after {
+  position: absolute;
+  inset: -7px;
+  border: 1px dashed rgba(123, 255, 207, .34);
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 72deg, rgba(123, 255, 207, .58) 84deg 92deg, transparent 106deg 360deg);
+  mask-image: radial-gradient(circle, transparent 64%, #000 65% 70%, transparent 71%);
+  content: "";
+  animation: reactorMeterSweep 14s linear infinite;
+}
+
 .reduction-limit svg {
+  position: relative;
+  z-index: 1;
   width: 20px;
   height: 20px;
   color: var(--accent-3);
 }
 
 .reduction-limit strong {
+  position: relative;
+  z-index: 1;
   max-width: 96px;
   overflow: hidden;
   color: #fff;
@@ -1910,6 +1972,8 @@ a {
 }
 
 .reduction-limit small {
+  position: relative;
+  z-index: 1;
   max-width: 88px;
   color: var(--muted);
   font-size: 10px;
@@ -5891,7 +5955,7 @@ a {
 .recovery-support-visual {
   position: relative;
   display: grid;
-  min-height: 500px;
+  min-height: 430px;
   overflow: hidden;
   border: 1px solid rgba(0, 215, 255, .2);
   border-radius: var(--radius);
@@ -5905,6 +5969,12 @@ a {
     inset 0 -34px 70px rgba(0, 215, 255, .06),
     0 18px 40px rgba(0, 0, 0, .24);
   isolation: isolate;
+}
+
+.recovery-support-column {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
 }
 
 .recovery-support-visual::before {
@@ -5923,9 +5993,13 @@ a {
 .support-orbit-rings,
 .support-pulse-line,
 .support-core,
-.support-node-cloud,
-.support-focus-card {
+.support-node-cloud {
   position: absolute;
+}
+
+.support-focus-card {
+  position: relative;
+  inset: auto;
 }
 
 .support-grid-layer {
@@ -5940,7 +6014,7 @@ a {
 }
 
 .support-orbit-rings {
-  inset: 9% 7% 13%;
+  inset: 8% 7%;
   z-index: 1;
   display: grid;
   place-items: center;
@@ -5985,34 +6059,59 @@ a {
   top: 50%;
   left: 50%;
   display: grid;
-  width: 178px;
-  height: 178px;
+  width: 216px;
+  height: 216px;
   place-items: center;
   align-content: center;
   border: 1px solid transparent;
   border-radius: 50%;
   background:
-    radial-gradient(circle, rgba(0, 215, 255, .18), rgba(0, 14, 30, .82) 62%) padding-box,
-    conic-gradient(var(--accent-3) var(--recovery-percent), rgba(255, 255, 255, .08) 0) border-box;
-  box-shadow: 0 0 48px rgba(0, 215, 255, .2), inset 0 0 34px rgba(123, 255, 207, .08);
+    radial-gradient(circle at 50% 50%, rgba(123, 255, 207, .22), transparent 36%) padding-box,
+    linear-gradient(#06192d, #06111f) padding-box,
+    conic-gradient(from -38deg, #7bffcf 0 var(--recovery-percent), rgba(63, 86, 116, .28) var(--recovery-percent) 100%) border-box;
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, .38),
+    0 0 38px rgba(0, 215, 255, .16),
+    inset 0 0 38px rgba(0, 215, 255, .16);
   text-align: center;
   transform: translate(-50%, -50%);
 }
 
 .support-core::before {
   position: absolute;
-  inset: 16px;
-  border: 1px solid rgba(123, 255, 207, .15);
+  z-index: 0;
+  inset: 18px;
   border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(3, 42, 68, .96) 0 40%, rgba(0, 10, 24, .86) 68%),
+    repeating-conic-gradient(from 0deg, rgba(123, 255, 207, .18) 0 2deg, transparent 2deg 14deg);
+  box-shadow:
+    inset 0 0 28px rgba(0, 215, 255, .18),
+    0 0 24px rgba(123, 255, 207, .08);
   content: "";
 }
 
+.support-core::after {
+  position: absolute;
+  z-index: 1;
+  inset: -10px;
+  border: 1px dashed rgba(123, 255, 207, .28);
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg, transparent 0 72deg, rgba(123, 255, 207, .52) 84deg 92deg, transparent 106deg 360deg);
+  mask-image: radial-gradient(circle, transparent 64%, #000 65% 70%, transparent 71%);
+  content: "";
+  animation: reactorMeterSweep 14s linear infinite;
+}
+
 .support-core-icon {
+  position: relative;
+  z-index: 2;
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   border-radius: 50%;
   color: var(--accent-3);
   background: rgba(123, 255, 207, .08);
@@ -6026,25 +6125,25 @@ a {
 .support-core strong,
 .support-core em {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: block;
 }
 
 .support-core strong {
-  color: #fff;
-  font-size: 46px;
+  color: #f7fbff;
+  font-size: 58px;
   line-height: .9;
-  text-shadow: 0 0 24px rgba(123, 255, 207, .2);
+  text-shadow: 0 0 12px rgba(255, 255, 255, .18), 0 0 28px rgba(123, 255, 207, .32);
 }
 
 .support-core strong small {
-  font-size: 18px;
+  font-size: 22px;
 }
 
 .support-core em {
-  max-width: 112px;
-  margin-top: 10px;
-  color: var(--accent-3);
+  max-width: 116px;
+  margin-top: 12px;
+  color: rgba(244, 248, 255, .66);
   font-size: 10px;
   font-style: normal;
   font-weight: 900;
@@ -6062,8 +6161,8 @@ a {
   left: var(--node-x);
   top: var(--node-y);
   display: grid;
-  width: 118px;
-  min-height: 74px;
+  width: 112px;
+  min-height: 70px;
   gap: 4px;
   place-items: center;
   padding: 9px;
@@ -6114,14 +6213,12 @@ a {
 }
 
 .support-focus-card {
-  z-index: 6;
-  left: 18px;
-  right: 18px;
-  bottom: 18px;
+  z-index: 1;
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
+  min-width: 0;
   padding: 12px;
   border: 1px solid rgba(123, 255, 207, .16);
   border-radius: var(--radius);
@@ -6327,7 +6424,7 @@ a {
   }
 
   .recovery-support-visual {
-    min-height: 450px;
+    min-height: 420px;
   }
 
   .recovery-contour-ui {
@@ -6354,32 +6451,32 @@ a {
   }
 
   .recovery-support-visual {
-    min-height: 390px;
+    min-height: 360px;
     border-radius: 8px;
   }
 
   .support-orbit-rings {
-    inset: 8% -14% 18%;
+    inset: 7% -12%;
   }
 
   .support-core {
-    width: 132px;
-    height: 132px;
+    width: 150px;
+    height: 150px;
   }
 
   .support-core strong {
-    font-size: 34px;
+    font-size: 38px;
   }
 
   .support-core em {
-    max-width: 88px;
-    margin-top: 6px;
+    max-width: 94px;
+    margin-top: 7px;
     font-size: 8px;
   }
 
   .support-core-icon {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     margin-bottom: 5px;
   }
 
@@ -6409,9 +6506,7 @@ a {
   }
 
   .support-focus-card {
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
+    inset: auto;
     padding: 10px;
   }
 
@@ -6533,6 +6628,9 @@ a {
   .level-up-rays i,
   .level-up-core::before,
   .recovery-main-meter::after,
+  .support-core::after,
+  .risk-meter::after,
+  .reduction-limit::after,
   .meter-reactor-glow i,
   .impulse-card.impulse-game::after,
   .impulse-breath-orb,

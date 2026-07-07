@@ -1339,7 +1339,7 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "41")}`)).catch(() => {});
+      navigator.serviceWorker.register(apiPath(`/service-worker.js?v=${encodeURIComponent(boot.assetVersion || "42")}`)).catch(() => {});
     });
   }
 }
@@ -2782,27 +2782,30 @@ function renderRecoveryVisual(data) {
         </div>
 
         <div class="recovery-contour-layout">
-          <div class="recovery-support-visual" aria-label="${esc(t("health_visual.figure_label"))}">
-            <div class="support-grid-layer" aria-hidden="true"></div>
-            <div class="support-orbit-rings" aria-hidden="true"><span></span><span></span><span></span></div>
-            <div class="support-pulse-line" aria-hidden="true"></div>
-            <div class="support-core" aria-hidden="true">
-              <span class="support-core-icon">${icon("reactor")}</span>
-              <strong>${model.progress}<small>%</small></strong>
-              <em>${esc(t("health_visual.support_progress"))}</em>
-            </div>
-            <div class="support-node-cloud">
-              ${recoveryMetrics.map((metric, index) => `
-                <button
-                  class="support-system-node health-system-${esc(metric.id)}"
-                  type="button"
-                  data-recovery-system="${esc(metric.id)}"
-                  style="--node-x:${esc(metric.x)};--node-y:${esc(metric.y)};--system-progress:${metric.value / 100};--node-delay:${index * -.45}s"
-                >
-                  <span>${icon(metric.icon)}</span>
-                  <b>${esc(metric.value)}%</b>
-                  <small>${esc(metric.label)}</small>
-                </button>`).join("")}
+          <div class="recovery-support-column">
+            <div class="recovery-support-visual" aria-label="${esc(t("health_visual.figure_label"))}">
+              <div class="support-grid-layer" aria-hidden="true"></div>
+              <div class="support-orbit-rings" aria-hidden="true"><span></span><span></span><span></span></div>
+              <div class="support-pulse-line" aria-hidden="true"></div>
+              <div class="support-core" aria-hidden="true">
+                <span class="meter-reactor-glow" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span class="support-core-icon">${icon("reactor")}</span>
+                <strong>${model.progress}<small>%</small></strong>
+                <em>${esc(t("health_visual.support_progress"))}</em>
+              </div>
+              <div class="support-node-cloud">
+                ${recoveryMetrics.map((metric, index) => `
+                  <button
+                    class="support-system-node health-system-${esc(metric.id)}"
+                    type="button"
+                    data-recovery-system="${esc(metric.id)}"
+                    style="--node-x:${esc(metric.x)};--node-y:${esc(metric.y)};--system-progress:${metric.value / 100};--node-delay:${index * -.45}s"
+                  >
+                    <span>${icon(metric.icon)}</span>
+                    <b>${esc(metric.value)}%</b>
+                    <small>${esc(metric.label)}</small>
+                  </button>`).join("")}
+              </div>
             </div>
             <div class="support-focus-card">
               <span class="icon-token">${icon(next.icon)}</span>
@@ -2815,12 +2818,6 @@ function renderRecoveryVisual(data) {
           </div>
 
           <aside class="recovery-contour-ui">
-            <div class="recovery-main-meter">
-              <span class="meter-reactor-glow" aria-hidden="true"><i></i><i></i><i></i></span>
-              <strong>${model.progress}<span>%</span></strong>
-              <small>${esc(t("health_visual.support_progress"))}</small>
-            </div>
-
             <div class="recovery-progress-card">
               <span>${icon("bolt")}${esc(t("health_visual.progress_card"))}</span>
               <strong>${esc(duration(model.hours))}</strong>
